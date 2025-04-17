@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>yushihu.top</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Helvetica Neue", Helvetica, sans-serif;
+      background-color: #f9f9f9;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      font-size: 1.1rem;
+      color: #777;
+    }
+
+    .nav {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1.2rem;
+      max-width: 600px;
+      width: 100%;
+      margin-bottom: 4rem;
+    }
+
+    .nav a {
+      display: block;
+      text-align: center;
+      padding: 1rem;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      text-decoration: none;
+      color: #333;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+
+    .nav a:hover {
+      background: #333;
+      color: #fff;
+      border-color: #333;
+    }
+
+    footer {
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>yushihu.top</h1>
+    <p>寻找简单之中的智慧</p>
+  </header>
+
+  <section class="nav">
+    <a href="/tool1.html">工具一</a>
+    <a href="/tool2.html">工具二</a>
+    <a href="/about.html">关于我</a>
+  </section>
+
+  <footer>
+    © 2025 yushihu.top
+  </footer>
+</body>
+</html>
