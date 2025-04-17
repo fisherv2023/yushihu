@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>中考美术分数动态对比</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+        .input-group { margin: 20px 0; display: flex; gap: 10px; }
+        input { padding: 8px; width: 150px; border: 1px solid #ddd; border-radius: 4px; }
+        .result { font-size: 1.1em; margin: 10px 0; color: #333; }
+        .chart-container { height: 400px; }
+    </style>
+</head>
+<body>
+    <h1>沈阳中考美术综合分动态对比工具</h1>
+    
+    <!-- 分数输入 -->
+    <div class="input-group">
+        <label>文化课成绩（满分790）：</label>
+        <input type="number" id="cultureScore" min="90" max="790" value="650" placeholder="输入文化课分数">
+        <label>专业课成绩（满分100）：</label>
+        <input type="number" id="artScore" min="0" max="100" value="80" placeholder="输入专业课分数">
+    </div>
+    
+    <!-- 结果显示 -->
+    <div class="result">
+        <p>旧公式综合分：<span id="oldScore">-</span></p>
+        <p>新公式综合分：<span id="newScore">-</span></p>
+        <p>分差（新-旧）：<span id="scoreDiff">-</span></p>
+    </div>
+    
+    <!-- 对比图表 -->
+    <div class="chart-container">
+        <canvas id="scoreChart"></canvas>
+    </div>
+
+    <script>
+        // 获取输入框和图表元素
+        const cultureInput = document.getElementById('cultureScore');
+        const artInput = document.getElementById('artScore');
+        const oldScore = document.getElementById('oldScore');
+        const newScore = document.getElementById('newScore');
+        const scoreDiff = document.getElementById('scoreDiff');
+        const chartCanvas = document.getElementById('scoreChart');
+
+        // 初始化图表
+        let chart = new Chart(chartCanvas, {
+            type: 'bar',
+            data: {
+                labels: ['旧公式', '新公式'],
+                datasets: [{
+                    label: '综合分',
+                    data: [0, 0],
+                    backgroundColor: ['#ff6b6b', '#6ab04c'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: '综合分' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // 计算函数
+        function calculateScores() {
+            const c = parseFloat(cultureInput.value);
+            const a = parseFloat(artInput.value);
+            if (isNaN(c) || isNaN(a)) return;
+            
+            // 新旧公式计算（减去体育/实验90分）
+            const old = ((c - 90) / 2) + (a * 3.5);
+            const newS = ((c - 90) * 0.6) + (a * 2.8);
+            const diff = newS - old;
+            
+            // 更新数值显示
+            oldScore.textContent = old.toFixed(1);
+            newScore.textContent = newS.toFixed(1);
+            scoreDiff.textContent = diff.toFixed(1) + '分（新-旧）';
+            
+            // 更新图表数据
+            chart.data.datasets[0].data = [old, newS];
+            chart.update();
+        }
+
+        // 监听输入变化
+        cultureInput.addEventListener('input', calculateScores);
+        artInput.addEventListener('input', calculateScores);
+
+        // 初始计算
+        calculateScores();
+    </script>
+</body>
+</html>
