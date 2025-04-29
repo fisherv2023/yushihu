@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>色彩的起源与历史</title>
+  <style>
+    /* 全局重置与字体 */
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body { font-family: sans-serif; background:#f5f5f5; color:#333; }
+
+    /* 顶部标题 */
+    header {
+      background:#222; color:#fff; text-align:center;
+      padding:1rem 0;
+    }
+    header p {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+
+    /* 网格布局色块 */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      padding: 1rem;
+    }
+    .swatch {
+      position: relative;
+      padding-top: 100%;          /* 保持正方形 */
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: transform .2s;
+    }
+    .swatch:hover {
+      transform: scale(1.05);
+    }
+    .swatch .label {
+      position: absolute;
+      bottom: 8px; left: 8px;
+      background: rgba(0,0,0,0.6);
+      color: #fff; padding: 2px 6px;
+      border-radius: 4px; font-size: .9rem;
+    }
+
+    /* 遮罩与弹窗 */
+    #overlay {
+      position: fixed; top:0; left:0;
+      width:100%; height:100%;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      visibility: hidden; opacity: 0;
+      transition: opacity .3s, visibility .3s;
+    }
+    #overlay.active {
+      visibility: visible; opacity: 1;
+    }
+    #overlay .modal {
+      background: #fff; padding:1.5rem;
+      border-radius: 8px; max-width: 80%; text-align: left;
+      transform: translateY(-20px);
+      transition: transform .3s;
+    }
+    #overlay.active .modal {
+      transform: translateY(0);
+    }
+    #overlay .close {
+      position: absolute; top: 1rem; right: 1rem;
+      font-size: 1.2rem; color: #666; cursor: pointer;
+    }
+    #overlay h2 { margin-bottom: .5rem; }
+
+    /* 底部版权信息 */
+    footer {
+      text-align: center;
+      padding: 1rem 0;
+      font-size: 0.8rem;
+      color: #666;
+    }
+    footer a {
+      color: #666;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>色彩的起源与历史</h1>
+    <p>每一种色彩都有其独特的故事，从远古洞穴壁画上的一抹土红，到现代艺术中大胆创新的色彩运用。它们跨越时空，见证着人类文明的发展与变迁。让我们一同揭开色彩背后的神秘面纱，探寻它们的起源与历史。</p>
+  </header>
+  <div class="grid" id="palette"></div>
+
+  <!-- 模态遮罩 -->
+  <div id="overlay">
+    <div class="modal">
+      <span class="close">&times;</span>
+      <h2 id="modal-title"></h2>
+      <p id="modal-desc"></p>
+    </div>
+  </div>
+
+  <footer>
+    <a href="https://www.xiaohongshu.com/user/profile/5e79c4a90000000001004be7">开发整理 by 艺贝少儿美术教育</a>
+  </footer>
+
+  <script>
+    // —— 数据集中管理所有颜料 ——  
+    const pigments = [
+      { name: "天青石蓝", hex: "#3F00FF",
+        desc: "天然群青由阿富汗青金石研磨而成，6世纪起用于壁画与手抄本，文艺复兴时期价值媲美黄金。它在宗教画中常被用于描绘圣母玛利亚的长袍，象征着神圣与高贵。当时由于其获取难度极大，只有富有的教会和贵族才能负担得起使用这种颜料的画作。" },
+      { name: "孔雀石绿", hex: "#0BDA51",
+        desc: "铜碳酸盐矿物，古埃及时期即用于墓室壁画；文艺复兴时画家用其柔和绿调调和自然光影。古埃及人认为孔雀石具有神秘的力量，不仅用于绘画，还制作成珠宝佩戴，相信它能带来健康和好运。" },
+      { name: "胭脂红", hex: "#E34234",
+        desc: "由朱砂（汞硫化物）制得，新石器时代即见于卡塔尔霍伊克遗址，后成为帝王与宗教礼仪之色。在中国古代，朱砂被视为辟邪之物，帝王的印玺多用朱砂制成。在绘画中，胭脂红鲜艳夺目，常被用于描绘重要人物的服饰。" },
+      { name: "黄赭", hex: "#CC7722",
+        desc: "铁氧化物家族，旧石器时代洞穴壁画和土著岩画常见，是最古老的矿物颜料之一。它来源广泛，容易获取，在早期人类的艺术创作中发挥了重要作用，为洞穴壁画增添了温暖而自然的色彩。" },
+      { name: "烧褐（锡耶纳）", hex: "#623034",
+        desc: "锡耶纳黄土加热制成，17世纪即有文献记载，其化学作用使色调更深红。这种颜料在意大利文艺复兴时期的绘画中经常使用，为作品带来了浓郁的历史氛围和独特的质感。" },
+      { name: "钴蓝", hex: "#0047AB",
+        desc: "由钴铝合金烧结制成，1802年Thénard合成后广泛用于油画与水彩，稳定且持久。它的出现为画家们提供了一种新的蓝色选择，在印象派绘画中，钴蓝被用来描绘天空和海洋，展现出明亮而纯净的色彩效果。" },
+      { name: "藤黄", hex: "#FFD700",
+        desc: "从藤黄树中提取的树脂制成，在中国、印度等亚洲国家有着悠久的使用历史。它色彩鲜艳明亮，在传统中国画中常用于绘制花鸟、人物的服饰等。在古代，藤黄还是一种重要的染料，可用于染制丝绸等织物。但藤黄有一定毒性，使用时需格外小心。" },
+      { name: "靛蓝", hex: "#00008B",
+        desc: "从蓝草植物中提取的天然染料，早在公元前2500年的印度和埃及就已被使用。靛蓝染色的布料在世界各地都很受欢迎，如中国的蓝印花布、日本的友禅染等。在绘画中，靛蓝常被用于表现深沉、宁静的氛围，如夜晚的天空、深邃的海洋等。" },
+      { name: "铅白", hex: "#FFFFFF",
+        desc: "通过铅的化学反应制成，是一种古老的白色颜料。在古希腊和古罗马时期就广泛应用于绘画和化妆品中。它具有良好的覆盖性和光泽度，但含有毒性。在欧洲中世纪的绘画中，铅白是常用的白色颜料之一，许多著名画家都曾使用过它来创作作品。" },
+      { name: "骨黑", hex: "#000000",
+        desc: "由动物骨头烧制而成，是一种天然的黑色颜料。在史前时期，人类就开始使用骨黑进行绘画创作。它的颜色深沉、稳定，常用于绘制阴影和轮廓。在传统的水墨画中，骨黑也有一定的应用，为画面增添了古朴、厚重的感觉。" },
+      { name: "埃及蓝", hex: "#104E8B",
+        desc: "世界上最早的人造颜料之一，约在公元前2500年的古埃及被发明。它由石英、石灰、铜和碱混合加热制成，常被用于装饰木乃伊棺椁和神庙壁画。埃及蓝的制作工艺复杂，随着罗马帝国的衰落，其制作方法一度失传。" },
+      { name: "镉黄", hex: "#FFAE42",
+        desc: "1817年被发现，是一种明亮而持久的黄色颜料。由于其色彩鲜艳、稳定性好，很快在绘画领域得到广泛应用，尤其在印象派和后印象派画家的作品中经常出现。不过镉是一种有毒元素，使用时需要注意安全。" },
+      { name: "土红", hex: "#CD5B45",
+        desc: "一种天然的红色颜料，主要成分是氧化铁。它在史前时期就被人类使用，常见于洞穴壁画和原始陶器上。土红的颜色温暖而质朴，在不同地区的土壤中都有产出，因此在世界各地的艺术创作中都能见到它的身影。" },
+      { name: "锰紫", hex: "#8B008B",
+        desc: "1860年左右被发现，是一种合成的紫色颜料。锰紫的出现填补了当时绘画中紫色颜料的空白，它的色彩鲜艳且具有较好的稳定性。在现代绘画中，锰紫被广泛用于表现神秘、高贵的氛围。" },
+      { name: "钛白", hex: "#F8F8FF",
+        desc: "20世纪开始广泛使用的白色颜料，由二氧化钛制成。它具有高遮盖力、白度高、化学稳定性好等优点，逐渐取代了铅白成为绘画中最常用的白色颜料。钛白的出现对现代绘画的发展产生了重要影响。" },
+      { name: "普鲁士蓝", hex: "#003153",
+        desc: "18世纪初被偶然发现，是第一种人工合成的蓝色颜料。普鲁士蓝的颜色深沉而浓郁，很快在绘画、染料等领域得到广泛应用。它的出现打破了当时蓝色颜料依赖天然矿物的局面，为艺术家们提供了新的创作可能性。" },
+      { name: "朱砂红", hex: "#FF0000",
+        desc: "天然的硫化汞矿物，在中国古代就被用作颜料和药物。朱砂红颜色鲜艳夺目，具有极高的装饰性，常被用于绘制重要的壁画、书法作品等。在古代，朱砂还被视为炼丹的重要原料，具有神秘的色彩。" },
+      { name: "那不勒斯黄", hex: "#FFF68F",
+        desc: "一种含铅的黄色颜料，在18世纪至19世纪的欧洲绘画中非常流行。它的颜色柔和、温暖，可用于绘制皮肤、衣物等。由于含有铅，那不勒斯黄也具有一定的毒性。" },
+      { name: "群青紫", hex: "#8A2BE2",
+        desc: "与天青石蓝相关的紫色颜料，由青金石矿物经过特殊处理制成。群青紫的颜色高贵、典雅，在中世纪的手抄本插画和宗教绘画中经常使用。由于其制作成本较高，只有少数重要的作品才能使用这种颜料。" },
+      { name: "镉红", hex: "#E30B5C",
+        desc: "镉红是一种以硫化镉为基础的颜料，于19世纪被开发出来。它色彩鲜艳、饱和度高且持久稳定，很快成为艺术家们钟爱的红色颜料之一。印象派和后印象派画家常使用镉红来描绘强烈的光线和炽热的情感，如梵高在一些作品中就运用了镉红来增强画面的表现力。不过，和其他含镉颜料一样，镉红具有毒性，在使用和处理时需要谨慎。" },
+      { name: "印度黄", hex: "#FFB90F",
+        desc: "历史上的印度黄是由以芒果叶为食的牛的尿液制成，这种独特的制作方法使其具有特殊的色调。它在19世纪的欧洲绘画中非常流行，艺术家们被其温暖、明亮且透明的黄色所吸引。但由于动物权益和健康问题，到20世纪初，传统的印度黄制作方法被禁止，现在市场上的印度黄多为合成替代品。" },
+      { name: "克莱因蓝", hex: "#002FA7",
+        desc: "由法国艺术家伊夫·克莱因（Yves Klein）在1957年发明。克莱因通过将合成树脂与群青颜料混合，创造出了这种鲜明、深邃且具有强烈视觉冲击力的蓝色。克莱因蓝不仅仅是一种颜色，更代表了一种艺术理念和哲学思想，它被广泛应用于绘画、雕塑等艺术形式中，成为了现代艺术的标志性颜色之一。" },
+      { name: "雄黄", hex: "#E3AB57",
+        desc: "雄黄（As₂S₃）是最早的黄色矿物颜料，自古埃及、波斯至中世纪欧洲文献中均有记载，因具有鲜明金色光泽也被炼金术士青睐；剧毒且不兼容常见颜料，19世纪被更安全、色彩持久的化学颜料所取代。" },
+      { name: "胭脂虫红", hex: "#E30B17",
+        desc: "胭脂虫红采自中美洲仙人掌害虫，16世纪由西班牙带回欧洲，迅速成为高档织物与油画的重要红料，西班牙帝国一度垄断，其贸易价值仅次于金银；工业染料兴起后才逐渐式微，但仍在食品和化妆品中应用。" },
+      { name: "木乃伊棕", hex: "#826644",
+        desc: "木乃伊棕以古埃及木乃伊遗骸为原料，加入白沥青和没药制成，18–19世纪欧洲画家（如前拉斐利派）喜用，因供应枯竭与色牢度差，20世纪初停产，现已绝迹。" },
+      { name: "群青", hex: "#3F00FF",
+        desc: "天然群青由阿富汗拉皮斯矿石研磨而成，自6世纪起用于拜占庭与中世纪的壁画和手抄本，文艺复兴时期因其稀缺与纯净度媲美黄金，被广泛用于宗教画与贵族肖像，象征神圣与奢华。" },
+      { name: "玛雅蓝", hex: "#73C2FB",
+        desc: "玛雅蓝由靛蓝染料与墨西哥金石（海泡石）加热合成，是玛雅和阿兹特克文明的神圣色彩，曾用于壁画和仪式中的装饰，因其卓越的耐光与防水性能，至今在众多中美洲遗址中色彩依旧鲜艳。" },
+      { name: "石黄", hex: "#E49B0F",
+        desc: "石黄为东南亚山萆柑树脂，始见于8世纪日本和中国画作，17世纪经东印度公司传入欧洲，用于水彩和装饰画；因易褪色和毒性大，在19世纪后期逐步被铬黄等有光牢度更好的黄颜料取代。" },
+      { name: "狄父紫", hex: "#990024",
+        desc: "腓尼基人在公元前1200年左右从盐螺（Murex）分泌物中提炼而得，色泽持久且越晒越亮，因耗费成千上万只螺、工序繁复而成为皇权象征。" },
+      { name: "铜绿", hex: "#43B3AE",
+        desc: "古希腊和罗马常见的铜酢酸盐，易生成绿色铜锈，曾用于中世纪至巴洛克时期的油画和地图装饰，因遇空气易褪变色而逐渐被更稳定的孔雀石、翠绿等替代。" },
+      { name: "茜素红（胭脂湖）", hex: "#E32636",
+        desc: "由茜草（Rubia tinctorum）根部提取，古埃及早有使用，1826年首次分离出颜料主成分alizarin，开启天然湖颜料转向合成染料的化学新时代。" },
+      { name: "石青", hex: "#1F4788",
+        desc: "石青是一种从天然矿石中提取的蓝绿色颜料，主要成分为蓝铜矿。自唐代以来，石青被广泛应用于壁画和绘画中，尤其在敦煌壁画中表现突出。其色彩鲜艳，耐久性强，象征着宁静与深远。" },
+      { name: "回青", hex: "#26619C",
+        desc: "青金石是一种深蓝色的宝石，主要从西域传入中国。通过丝绸之路传入中国，常用于佛教艺术和宫廷装饰，象征高贵与神秘。" }
+    ];
+
+    // —— 动态生成色块 ——  
+    const grid = document.getElementById('palette');
+    pigments.forEach((p, i) => {
+      const el = document.createElement('div');
+      el.className = 'swatch';
+      el.style.background = p.hex;
+      el.dataset.index = i;
+      el.innerHTML = `<span class="label">${p.name}</span>`;
+      grid.appendChild(el);
+    });
+
+    // —— 弹窗交互 ——  
+    const overlay = document.getElementById('overlay');
+    const titleEl = document.getElementById('modal-title');
+    const descEl  = document.getElementById('modal-desc');
+    grid.addEventListener('click', e => {
+      const sw = e.target.closest('.swatch');
+      if (!sw) return;
+      const data = pigments[sw.dataset.index];
+      titleEl.textContent = data.name;
+      descEl.textContent  = data.desc;
+      overlay.classList.add('active');
+    });
+    // 关闭弹窗
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay || e.target.classList.contains('close')) {
+        overlay.classList.remove('active');
+      }
+    });
+  </script>
+</body>
+</html>
+    
