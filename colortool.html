@@ -1,85 +1,126 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>色彩提取工具 - Color Palette Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>色彩搭配探索工具 | yushihu.top</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      margin: 2em;
-      background-color: #f9f9f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: #ffffff;
       color: #333;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
     }
+
     h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .preview {
+      margin: 1rem 0;
       text-align: center;
     }
-    .container {
-      max-width: 800px;
-      margin: auto;
-    }
-    .preview {
-      margin-top: 1em;
-      max-width: 100%;
-    }
-    .colors {
+
+    .color-boxes {
       display: flex;
       flex-wrap: wrap;
-      margin-top: 1em;
-      gap: 10px;
+      margin-top: 1rem;
     }
-    .color {
-      width: 100px;
-      height: 100px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-weight: bold;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+
+    .color-box {
+      width: 60px;
+      height: 60px;
+      margin: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      position: relative;
+    }
+
+    .color-code {
+      font-size: 0.75rem;
+      text-align: center;
+      margin-top: 0.25rem;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🎨 色彩提取工具</h1>
-    <input type="file" accept="image/*" id="imageInput" />
-    <div>
-      <img id="imagePreview" class="preview" src="" alt="预览图像"/>
-    </div>
-    <div id="colorPalette" class="colors"></div>
+
+  <h1>色彩搭配探索工具</h1>
+  <p>
+    本工具可自动提取图片的主色调，帮助艺术创作者、设计师快速获取灵感搭配。
+    上传一张图片，即可查看从中提取出的主要配色。
+  </p>
+
+  <div class="preview">
+    <img src="changyu.jpg" id="previewImg" alt="预览图片" style="max-width: 100%; height: auto; border-radius: 8px;" />
   </div>
+
+  <input type="file" accept="image/*" onchange="handleImage(this)" />
+  <canvas id="canvas" style="display: none;"></canvas>
+
+  <div id="colorPalette" class="color-boxes"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
   <script>
-    const imageInput = document.getElementById('imageInput');
-    const imagePreview = document.getElementById('imagePreview');
-    const colorPalette = document.getElementById('colorPalette');
     const colorThief = new ColorThief();
+    const previewImg = document.getElementById('previewImg');
 
-    imageInput.addEventListener('change', () => {
-      const file = imageInput.files[0];
+    function handleImage(input) {
+      const file = input.files[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (e) => {
-        imagePreview.src = e.target.result;
-        imagePreview.onload = () => {
-          const palette = colorThief.getPalette(imagePreview, 6);
-          colorPalette.innerHTML = '';
-          palette.forEach(color => {
-            const hex = `#${color.map(c => c.toString(16).padStart(2, '0')).join('')}`;
-            const colorDiv = document.createElement('div');
-            colorDiv.className = 'color';
-            colorDiv.style.backgroundColor = hex;
-            colorDiv.textContent = hex;
-            colorPalette.appendChild(colorDiv);
-          });
+      reader.onload = function (e) {
+        previewImg.src = e.target.result;
+        previewImg.onload = function () {
+          extractColors(previewImg);
         };
       };
       reader.readAsDataURL(file);
-    });
+    }
+
+    function extractColors(img) {
+      const palette = colorThief.getPalette(img, 6);
+      const colorPaletteDiv = document.getElementById('colorPalette');
+      colorPaletteDiv.innerHTML = '';
+
+      palette.forEach(color => {
+        const hex = rgbToHex(...color);
+        const div = document.createElement('div');
+        div.className = 'color-box';
+        div.style.backgroundColor = hex;
+
+        const code = document.createElement('div');
+        code.className = 'color-code';
+        code.innerText = hex;
+
+        const wrapper = document.createElement('div');
+        wrapper.appendChild(div);
+        wrapper.appendChild(code);
+        colorPaletteDiv.appendChild(wrapper);
+      });
+    }
+
+    function rgbToHex(r, g, b) {
+      return "#" + [r, g, b].map(x => {
+        const hex = x.toString(16);
+        return hex.length === 1 ? "0" + hex : hex;
+      }).join("");
+    }
+
+    // 初始化默认图片色彩
+    window.onload = function () {
+      previewImg.onload = () => extractColors(previewImg);
+    };
   </script>
 </body>
 </html>
