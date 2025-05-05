@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>色彩提取工具 - Color Palette Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2em;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+    }
+    .preview {
+      margin-top: 1em;
+      max-width: 100%;
+    }
+    .colors {
+      display: flex;
+      flex-wrap: wrap;
+      margin-top: 1em;
+      gap: 10px;
+    }
+    .color {
+      width: 100px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: bold;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 色彩提取工具</h1>
+    <input type="file" accept="image/*" id="imageInput" />
+    <div>
+      <img id="imagePreview" class="preview" src="" alt="预览图像"/>
+    </div>
+    <div id="colorPalette" class="colors"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const colorPalette = document.getElementById('colorPalette');
+    const colorThief = new ColorThief();
+
+    imageInput.addEventListener('change', () => {
+      const file = imageInput.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        imagePreview.src = e.target.result;
+        imagePreview.onload = () => {
+          const palette = colorThief.getPalette(imagePreview, 6);
+          colorPalette.innerHTML = '';
+          palette.forEach(color => {
+            const hex = `#${color.map(c => c.toString(16).padStart(2, '0')).join('')}`;
+            const colorDiv = document.createElement('div');
+            colorDiv.className = 'color';
+            colorDiv.style.backgroundColor = hex;
+            colorDiv.textContent = hex;
+            colorPalette.appendChild(colorDiv);
+          });
+        };
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+</html>
