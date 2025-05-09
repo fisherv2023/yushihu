@@ -3,99 +3,170 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>番茄时钟</title>
+  <title>番茄时钟 v2.0</title>
   <style>
-    /* 基础重置 */
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:sans-serif; display:flex; flex-direction:column;
-           align-items:center; justify-content:center; height:100vh;
-           background:#f5f5f5; color:#333; }
-    h1 { font-size:4rem; margin-bottom:1rem; }
-    .buttons { display:flex; gap:1rem; flex-wrap:wrap; }
-    button { padding:0.5rem 1rem; font-size:1rem; border:none;
-             border-radius:4px; cursor:pointer;
-             background:#e63946; color:#fff;
-             transition:background 0.2s; }
-    button:hover { background:#d62828; }
-    .custom { background:#457b9d; }
-    .custom:hover { background:#1d3557; }
-    /* 自定义弹窗 */
-    #customModal { display:none; position:fixed; top:0; left:0;
-                   width:100%; height:100%; background:rgba(0,0,0,0.4);
-                   align-items:center; justify-content:center; }
-    #modalContent { background:#fff; padding:1.5rem; border-radius:8px;
-                    width:90%; max-width:300px; }
-    #modalContent input { width:100%; padding:0.5rem; margin:0.5rem 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      height:100vh; background:#f0f0f5; color:#333;
+    }
+    #timer {
+      font-size:6rem; /* 更大字体 */ :contentReference[oaicite:6]{index=6}
+      margin-bottom:1.5rem;
+    }
+    .buttons, .controls, .soundscape {
+      display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;
+    }
+    button, select {
+      padding:0.6rem 1.2rem; font-size:1rem;
+      border:none; border-radius:8px;
+      cursor:pointer; transition:transform .1s;
+      box-shadow:0 2px 5px rgba(0,0,0,0.1);
+    }
+    button:hover, select:hover { transform:translateY(-2px); }
+    .preset { background:#e63946; color:#fff; }
+    .custom { background:#457b9d; color:#fff; }
+    .start { background:#2a9d8f; color:#fff; }
+    .pause { background:#f4a261; color:#fff; }
+    select { background:#fff; }
   </style>
 </head>
 <body>
-  <h1 id="timer">25:00</h1>
+  <div id="timer">25:00</div>
+
+  <!-- 预设与自定义 -->
   <div class="buttons">
-    <button data-work="25" data-break="5">25/5</button>
-    <button data-work="50" data-break="10">50/10</button>
-    <button data-work="90" data-break="20">90/20</button>
+    <button class="preset" data-work="25" data-break="5">25 / 5</button>
+    <button class="preset" data-work="50" data-break="10">50 / 10</button>
+    <button class="preset" data-work="90" data-break="20">90 / 20</button>
     <button class="custom">⚙️ 自定义</button>
   </div>
 
-  <!-- 自定义设置弹窗 -->
-  <div id="customModal">
-    <div id="modalContent">
-      <label>工作 (分钟)：<input type="number" id="workInput" value="25" min="1"/></label>
-      <label>休息 (分钟)：<input type="number" id="breakInput" value="5" min="1"/></label>
-      <button id="saveCustom">保存</button>
+  <!-- 开始 / 暂停 -->
+  <div class="controls">
+    <button class="start">▶️ 开始</button>
+    <button class="pause">⏸️ 暂停</button>
+  </div>
+
+  <!-- 背景音乐情境 -->
+  <div class="soundscape">
+    <label>背景音乐：
+      <select id="bgSelect">
+        <option value="">关闭</option>
+        <option value="rain">下雨</option>
+        <option value="forest">森林</option>
+        <option value="ocean">大海</option>
+        <option value="piano">钢琴</option>
+      </select>
+    </label>
+  </div>
+
+  <!-- 自定义弹窗 -->
+  <div id="customModal" style="
+    display:none;position:fixed;top:0;left:0;
+    width:100%;height:100%;background:rgba(0,0,0,0.4);
+    align-items:center;justify-content:center;">
+    <div style="
+      background:#fff;padding:1.5rem;border-radius:8px;
+      width:90%;max-width:320px;">
+      <label>工作 (分钟)：<input type="number" id="workInput" value="25" min="1"/></label><br/>
+      <label>休息 (分钟)：<input type="number" id="breakInput" value="5" min="1"/></label><br/>
+      <button id="saveCustom" class="preset">保存</button>
     </div>
   </div>
 
-  <audio id="alarm" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
+  <!-- 音频元素 -->
+  <audio id="alarm" src="https://assets.mixkit.co/sfx/preview/mixkit-digital-alarm-notification-2356.mp3"></audio> <!-- 更优提示音 :contentReference[oaicite:7]{index=7} -->
+  <audio id="bgAudio" loop></audio> <!-- 背景情境音 :contentReference[oaicite:8]{index=8} -->
 
   <script>
-    let timerEl = document.getElementById('timer');
-    let buttons = document.querySelectorAll('.buttons button');
-    let customBtn = document.querySelector('.custom');
-    let modal = document.getElementById('customModal');
-    let workInput = document.getElementById('workInput');
-    let breakInput = document.getElementById('breakInput');
-    let saveCustom = document.getElementById('saveCustom');
-    let alarm = document.getElementById('alarm');
-    let intervalId, remainingSec;
+    const timerEl = document.getElementById('timer');
+    const presetBtns = document.querySelectorAll('.preset');
+    const customBtn = document.querySelector('.custom');
+    const startBtn = document.querySelector('.start');
+    const pauseBtn = document.querySelector('.pause');
+    const bgSelect = document.getElementById('bgSelect');
+    const alarm = document.getElementById('alarm');
+    const bgAudio = document.getElementById('bgAudio');
+    const modal = document.getElementById('customModal');
+    const workInput = document.getElementById('workInput');
+    const breakInput = document.getElementById('breakInput');
+    const saveCustom = document.getElementById('saveCustom');
 
-    function startTimer(totalMin) {
-      clearInterval(intervalId);
-      remainingSec = totalMin * 60;
-      updateDisplay();
-      intervalId = setInterval(() => {
-        remainingSec--;
-        if (remainingSec < 0) {
-          clearInterval(intervalId);
-          alarm.play();
-          return;
-        }
-        updateDisplay();
-      }, 1000);
-    }
+    let workMin = 25, breakMin = 5;
+    let mode = 'work'; // 'work' or 'break'
+    let remainingSec = workMin*60, intervalId = null;
 
     function updateDisplay() {
-      let m = Math.floor(remainingSec / 60);
-      let s = remainingSec % 60;
-      timerEl.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+      const m = Math.floor(remainingSec/60).toString().padStart(2,'0');
+      const s = (remainingSec%60).toString().padStart(2,'0');
+      timerEl.textContent = `${m}:${s}`;
     }
 
-    buttons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        let w = parseInt(btn.dataset.work);
-        let b = parseInt(btn.dataset.break);
-        startTimer(w);
-      });
-    });
+    function switchMode() {
+      mode = mode === 'work' ? 'break' : 'work';
+      remainingSec = (mode==='work' ? workMin : breakMin) * 60;
+      updateDisplay();
+    }
 
-    customBtn.addEventListener('click', () => modal.style.display = 'flex');
-    saveCustom.addEventListener('click', () => {
-      let w = parseInt(workInput.value), b = parseInt(breakInput.value);
-      modal.style.display = 'none';
-      startTimer(w);
-    });
-    // 点击遮罩关闭
-    modal.addEventListener('click', e => { if(e.target===modal) modal.style.display='none'; });
+    function tick() {
+      remainingSec--;
+      if (remainingSec < 0) {
+        clearInterval(intervalId);
+        alarm.play();
+        switchMode();
+        intervalId = setInterval(tick, 1000);
+      } else {
+        updateDisplay();
+      }
+    }
+
+    // 预设按钮
+    presetBtns.forEach(btn => btn.addEventListener('click', () => {
+      workMin = +btn.dataset.work;
+      breakMin = +btn.dataset.break;
+      mode = 'work';
+      remainingSec = workMin*60;
+      updateDisplay();
+    }));
+
+    // 自定义弹窗
+    customBtn.onclick = () => modal.style.display='flex';
+    saveCustom.onclick = () => {
+      workMin = +workInput.value; breakMin = +breakInput.value;
+      mode = 'work'; remainingSec = workMin*60; updateDisplay();
+      modal.style.display='none';
+    };
+    modal.addEventListener('click', e=>{ if(e.target===modal) modal.style.display='none' });
+
+    // 开始 / 暂停
+    startBtn.onclick = () => {
+      clearInterval(intervalId);
+      intervalId = setInterval(tick, 1000);
+    };
+    pauseBtn.onclick = () => clearInterval(intervalId); :contentReference[oaicite:9]{index=9}
+
+    // 背景音乐切换
+    const soundscapeMap = {
+      rain: 'https://assets.mixkit.co/sfx/preview/mixkit-heavy-rain-uk-781.mp3',
+      forest: 'https://assets.mixkit.co/sfx/preview/mixkit-forest-birds-ambience-2310.mp3',
+      ocean: 'https://assets.mixkit.co/sfx/preview/mixkit-calm-ocean-ambience-2085.mp3',
+      piano: 'https://assets.mixkit.co/sfx/preview/mixkit-simple-piano-riff-1126.mp3'
+    };
+    bgSelect.onchange = () => {
+      const val = bgSelect.value;
+      if (!val) {
+        bgAudio.pause(); bgAudio.src='';
+      } else {
+        bgAudio.src = soundscapeMap[val];
+        bgAudio.play();
+      }
+    }; :contentReference[oaicite:10]{index=10}
+
+    // 初始化显示
+    updateDisplay();
   </script>
 </body>
 </html>
