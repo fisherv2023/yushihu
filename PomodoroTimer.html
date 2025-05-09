@@ -27,7 +27,7 @@
       margin: 2rem 0;
       font-weight: 600;
     }
-    .controls, .sliders {
+    .controls, .sliders, .bgm-controls {
       display: flex;
       flex-direction: column;
       gap: 1rem;
@@ -41,20 +41,23 @@
     input[type="range"] {
       width: 200px;
     }
-    .buttons {
+    .buttons, .bgm-buttons {
       display: flex;
       flex-wrap: wrap;
       gap: 0.75rem;
       justify-content: center;
     }
     button {
-      padding: 0.75rem 1.5rem;
-      font-size: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
       border: none;
       border-radius: 6px;
       cursor: pointer;
       background-color: #f0f0f0;
       transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
     button:hover {
       background-color: #e0e0e0;
@@ -62,6 +65,9 @@
     label {
       margin-bottom: 0.25rem;
       font-weight: 600;
+    }
+    .bgm-icon {
+      font-size: 1.2rem;
     }
     @media (max-width: 600px) {
       #timer {
@@ -77,21 +83,33 @@
   <div class="sliders">
     <div class="slider-group">
       <label for="workTime">工作时长：<span id="workLabel">25</span> 分钟</label>
-      <input type="range" id="workTime" min="15" max="60" value="25" step="5" onchange="updateLabels()">
+      <input type="range" id="workTime" min="1" max="60" value="25" step="1" onchange="updateLabels()">
     </div>
     <div class="slider-group">
       <label for="breakTime">休息时长：<span id="breakLabel">5</span> 分钟</label>
-      <input type="range" id="breakTime" min="3" max="30" value="5" step="2" onchange="updateLabels()">
+      <input type="range" id="breakTime" min="1" max="30" value="5" step="1" onchange="updateLabels()">
     </div>
   </div>
 
   <div class="buttons">
-    <button onclick="startTimer()">开始</button>
-    <button onclick="pauseTimer()">暂停</button>
-    <button onclick="resetTimer()">重置</button>
+    <button onclick="startTimer()">▶️ 开始</button>
+    <button onclick="pauseTimer()">⏸️ 暂停</button>
+    <button onclick="resetTimer()">🔁 重置</button>
+  </div>
+
+  <div class="bgm-controls">
+    <h3>背景音乐</h3>
+    <div class="bgm-buttons">
+      <button onclick="playBgm('rain')">🌧️ 雨声</button>
+      <button onclick="playBgm('forest')">🌲 森林</button>
+      <button onclick="playBgm('ocean')">🌊 海浪</button>
+      <button onclick="playBgm('piano')">🎹 钢琴</button>
+      <button onclick="stopBgm()">❌ 关闭</button>
+    </div>
   </div>
 
   <audio id="dingSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_0ab3b5ffb7.mp3"></audio>
+  <audio id="bgmPlayer" loop></audio>
 
   <script>
     let workDuration = 25 * 60;
@@ -103,6 +121,14 @@
 
     const timerEl = document.getElementById('timer');
     const ding = document.getElementById('dingSound');
+    const bgm = document.getElementById('bgmPlayer');
+
+    const bgmSources = {
+      rain: 'https://cdn.pixabay.com/download/audio/2021/08/08/audio_e83058e7a7.mp3',
+      forest: 'https://cdn.pixabay.com/download/audio/2022/02/16/audio_1be91cd0f4.mp3',
+      ocean: 'https://cdn.pixabay.com/download/audio/2022/03/17/audio_c917d9b4df.mp3',
+      piano: 'https://cdn.pixabay.com/download/audio/2022/03/28/audio_80a5ad4fcd.mp3',
+    };
 
     function updateLabels() {
       const work = parseInt(document.getElementById('workTime').value);
@@ -153,6 +179,18 @@
       pauseTimer();
       onBreak = false;
       updateLabels();
+    }
+
+    function playBgm(type) {
+      if (bgmSources[type]) {
+        bgm.src = bgmSources[type];
+        bgm.play();
+      }
+    }
+
+    function stopBgm() {
+      bgm.pause();
+      bgm.src = '';
     }
 
     updateLabels();
