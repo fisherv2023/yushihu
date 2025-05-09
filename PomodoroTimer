@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能番茄时钟 | yushihu.top</title>
+  
+  <!-- React 依赖 -->
+  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #2c3e50;    /* 主色调 */
+      --accent: #e74c3c;     /* 强调色 */
+      --bg: #f8f9fa;         /* 背景色 */
+      --border: #e0e0e0;     /* 边框色 */
+      --text-secondary: #666;/* 次要文字 */
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+      padding: 2rem;
+      width: 100%;
+      max-width: 500px;
+      margin: 1rem;
+    }
+
+    .presets {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .preset-btn {
+      background: none;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 0.8rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      line-height: 1.4;
+    }
+
+    .preset-btn:hover,
+    .preset-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .preset-btn span {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-top: 0.3rem;
+    }
+
+    .timer-display {
+      font-size: 5.5rem;
+      font-weight: 300;
+      color: var(--primary);
+      margin: 2rem 0;
+      letter-spacing: -0.05em;
+    }
+
+    .control-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 1rem 2.5rem;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .control-btn:active {
+      transform: scale(0.98);
+    }
+
+    .settings {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+
+    input[type="number"] {
+      padding: 0.6rem;
+      width: 70px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin: 0 0.5rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // 预设配置
+    const PRESETS = [
+      { label: '经典模式', work: 25, break: 5 },
+      { label: '深度专注', work: 50, break: 10 },
+      { label: '冲刺模式', work: 15, break: 3 },
+      { label: '创作模式', work: 90, break: 15 }
+    ];
+
+    function PomodoroTimer() {
+      // 初始化状态
+      const savedSettings = JSON.parse(localStorage.getItem('pomodoroSettings') || '{"work":25,"break":5}');
+      const [timeLeft, setTimeLeft] = useState(savedSettings.work * 60);
+      const [isActive, setIsActive] = useState(false);
+      const [isWork, setIsWork] = useState(true);
+      const [settings, setSettings] = useState(savedSettings);
+
+      // 倒计时逻辑
+      useEffect(() => {
+        let interval;
+        if (isActive && timeLeft > 0) {
+          interval = setInterval(() => {
+            setTimeLeft(t => t - 1);
+          }, 1000);
+        } else if (timeLeft === 0) {
+          handleTimerEnd();
+        }
+        return () => clearInterval(interval);
+      }, [isActive, timeLeft]);
+
+      // 时间格式化
+      const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const secs = (seconds % 60).toString().padStart(2, '0');
+        return `${mins}:${secs}`;
+      };
+
+      // 计时结束处理
+      const handleTimerEnd = () => {
+        new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play();
+        setIsWork(!isWork);
+        setTimeLeft((isWork ? settings.break : settings.work) * 60);
+        setIsActive(false);
+      };
+
+      // 保存设置
+      const saveSettings = () => {
+        localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
+        setTimeLeft(settings.work * 60);
+        setIsActive(false);
+      };
+
+      return (
+        <div className="container">
+          {/* 预设按钮区域 */}
+          <div className="presets">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                className={`preset-btn ${
+                  settings.work === preset.work && settings.break === preset.break 
+                    ? 'active' 
+                    : ''
+                }`}
+                onClick={() => {
+                  setSettings({ work: preset.work, break: preset.break });
+                  saveSettings();
+                }}
+              >
+                {preset.label}
+                <span>{preset.work}+{preset.break} 分钟</span>
+              </button>
+            ))}
+          </div>
+
+          {/* 主计时器 */}
+          <h1 style={{ color: isWork ? var(--primary) : var(--accent) }}>
+            {isWork ? '专注时间' : '休息时间'}
+          </h1>
+          <div className="timer-display">{formatTime(timeLeft)}</div>
+          
+          {/* 控制按钮 */}
+          <button 
+            className="control-btn"
+            onClick={() => setIsActive(!isActive)}
+          >
+            {isActive ? '暂停' : '开始'}
+          </button>
+
+          {/* 自定义设置 */}
+          <div className="settings">
+            <h3>自定义设置</h3>
+            <div style={{ margin: '1rem 0' }}>
+              <label>
+                专注: 
+                <input
+                  type="number"
+                  value={settings.work}
+                  min="1"
+                  onChange={(e) => setSettings({...settings, work: parseInt(e.target.value)})}
+                />
+                分钟
+              </label>
+              <label style={{ marginLeft: '1rem' }}>
+                休息: 
+                <input
+                  type="number"
+                  value={settings.break}
+                  min="1"
+                  onChange={(e) => setSettings({...settings, break: parseInt(e.target.value)})}
+                />
+                分钟
+              </label>
+            </div>
+            <button 
+              className="control-btn"
+              style={{ background: var(--primary) }}
+              onClick={saveSettings}
+            >
+              保存自定义设置
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<PomodoroTimer />, document.getElementById('root'));
+  </script>
+</body>
+</html>
