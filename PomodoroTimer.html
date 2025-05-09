@@ -1,172 +1,173 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>番茄时钟 v2.0</title>
+  <title>番茄时钟</title>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
-      display:flex; flex-direction:column;
-      align-items:center; justify-content:center;
-      height:100vh; background:#f0f0f5; color:#333;
+      background: #f4f4f4;
+      text-align: center;
+      padding: 40px;
+      margin: 0;
+    }
+    h1 {
+      margin-bottom: 20px;
     }
     #timer {
-      font-size:6rem; /* 更大字体 */ :contentReference[oaicite:6]{index=6}
-      margin-bottom:1.5rem;
+      font-size: 80px;
+      font-weight: bold;
+      margin: 40px 0;
+      color: #333;
     }
-    .buttons, .controls, .soundscape {
-      display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;
+    .controls, .presets, .music {
+      margin: 20px 0;
     }
-    button, select {
-      padding:0.6rem 1.2rem; font-size:1rem;
-      border:none; border-radius:8px;
-      cursor:pointer; transition:transform .1s;
-      box-shadow:0 2px 5px rgba(0,0,0,0.1);
+    button {
+      font-size: 16px;
+      margin: 5px;
+      padding: 10px 20px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
     }
-    button:hover, select:hover { transform:translateY(-2px); }
-    .preset { background:#e63946; color:#fff; }
-    .custom { background:#457b9d; color:#fff; }
-    .start { background:#2a9d8f; color:#fff; }
-    .pause { background:#f4a261; color:#fff; }
-    select { background:#fff; }
+    button:hover {
+      background-color: #0056b3;
+    }
+    select {
+      padding: 8px;
+      font-size: 16px;
+    }
+    input[type="number"] {
+      width: 60px;
+      padding: 5px;
+      font-size: 16px;
+      margin-left: 5px;
+    }
   </style>
 </head>
 <body>
-  <div id="timer">25:00</div>
+  <h1>番茄时钟</h1>
 
-  <!-- 预设与自定义 -->
-  <div class="buttons">
+  <div class="presets">
     <button class="preset" data-work="25" data-break="5">25 / 5</button>
     <button class="preset" data-work="50" data-break="10">50 / 10</button>
-    <button class="preset" data-work="90" data-break="20">90 / 20</button>
-    <button class="custom">⚙️ 自定义</button>
-  </div>
-
-  <!-- 开始 / 暂停 -->
-  <div class="controls">
-    <button class="start">▶️ 开始</button>
-    <button class="pause">⏸️ 暂停</button>
-  </div>
-
-  <!-- 背景音乐情境 -->
-  <div class="soundscape">
-    <label>背景音乐：
-      <select id="bgSelect">
-        <option value="">关闭</option>
-        <option value="rain">下雨</option>
-        <option value="forest">森林</option>
-        <option value="ocean">大海</option>
-        <option value="piano">钢琴</option>
-      </select>
+    <button class="preset" data-work="15" data-break="3">15 / 3</button>
+    <label>
+      自定义：工作
+      <input type="number" id="customWork" value="30" min="1" />
+      分钟，休息
+      <input type="number" id="customBreak" value="5" min="1" />
+      分钟
+      <button id="applyCustom">应用</button>
     </label>
   </div>
 
-  <!-- 自定义弹窗 -->
-  <div id="customModal" style="
-    display:none;position:fixed;top:0;left:0;
-    width:100%;height:100%;background:rgba(0,0,0,0.4);
-    align-items:center;justify-content:center;">
-    <div style="
-      background:#fff;padding:1.5rem;border-radius:8px;
-      width:90%;max-width:320px;">
-      <label>工作 (分钟)：<input type="number" id="workInput" value="25" min="1"/></label><br/>
-      <label>休息 (分钟)：<input type="number" id="breakInput" value="5" min="1"/></label><br/>
-      <button id="saveCustom" class="preset">保存</button>
-    </div>
+  <div id="timer">25:00</div>
+
+  <div class="controls">
+    <button id="start">开始</button>
+    <button id="pause">暂停</button>
   </div>
 
-  <!-- 音频元素 -->
-  <audio id="alarm" src="https://assets.mixkit.co/sfx/preview/mixkit-digital-alarm-notification-2356.mp3"></audio> <!-- 更优提示音 :contentReference[oaicite:7]{index=7} -->
-  <audio id="bgAudio" loop></audio> <!-- 背景情境音 :contentReference[oaicite:8]{index=8} -->
+  <div class="music">
+    背景音乐：
+    <select id="bgmSelect">
+      <option value="">无</option>
+      <option value="rain">雨声</option>
+      <option value="forest">森林</option>
+      <option value="waves">海浪</option>
+      <option value="piano">钢琴</option>
+    </select>
+  </div>
+
+  <audio id="alarmSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_45c4a9cce0.mp3" preload="auto"></audio>
+
+  <audio id="bgm" loop></audio>
 
   <script>
-    const timerEl = document.getElementById('timer');
-    const presetBtns = document.querySelectorAll('.preset');
-    const customBtn = document.querySelector('.custom');
-    const startBtn = document.querySelector('.start');
-    const pauseBtn = document.querySelector('.pause');
-    const bgSelect = document.getElementById('bgSelect');
-    const alarm = document.getElementById('alarm');
-    const bgAudio = document.getElementById('bgAudio');
-    const modal = document.getElementById('customModal');
-    const workInput = document.getElementById('workInput');
-    const breakInput = document.getElementById('breakInput');
-    const saveCustom = document.getElementById('saveCustom');
-
     let workMin = 25, breakMin = 5;
-    let mode = 'work'; // 'work' or 'break'
-    let remainingSec = workMin*60, intervalId = null;
+    let isRunning = false;
+    let isWorkTime = true;
+    let timer, timeLeft;
 
-    function updateDisplay() {
-      const m = Math.floor(remainingSec/60).toString().padStart(2,'0');
-      const s = (remainingSec%60).toString().padStart(2,'0');
-      timerEl.textContent = `${m}:${s}`;
-    }
+    const timerDisplay = document.getElementById('timer');
+    const startBtn = document.getElementById('start');
+    const pauseBtn = document.getElementById('pause');
+    const alarm = document.getElementById('alarmSound');
+    const bgm = document.getElementById('bgm');
+    const bgmSelect = document.getElementById('bgmSelect');
 
-    function switchMode() {
-      mode = mode === 'work' ? 'break' : 'work';
-      remainingSec = (mode==='work' ? workMin : breakMin) * 60;
-      updateDisplay();
-    }
-
-    function tick() {
-      remainingSec--;
-      if (remainingSec < 0) {
-        clearInterval(intervalId);
-        alarm.play();
-        switchMode();
-        intervalId = setInterval(tick, 1000);
-      } else {
-        updateDisplay();
-      }
-    }
-
-    // 预设按钮
+    const presetBtns = document.querySelectorAll('.preset');
     presetBtns.forEach(btn => btn.addEventListener('click', () => {
       workMin = +btn.dataset.work;
       breakMin = +btn.dataset.break;
-      mode = 'work';
-      remainingSec = workMin*60;
-      updateDisplay();
+      isWorkTime = true;
+      updateDisplay(workMin * 60);
     }));
 
-    // 自定义弹窗
-    customBtn.onclick = () => modal.style.display='flex';
-    saveCustom.onclick = () => {
-      workMin = +workInput.value; breakMin = +breakInput.value;
-      mode = 'work'; remainingSec = workMin*60; updateDisplay();
-      modal.style.display='none';
+    document.getElementById('applyCustom').onclick = () => {
+      const customWork = document.getElementById('customWork').value;
+      const customBreak = document.getElementById('customBreak').value;
+      workMin = parseInt(customWork);
+      breakMin = parseInt(customBreak);
+      isWorkTime = true;
+      updateDisplay(workMin * 60);
     };
-    modal.addEventListener('click', e=>{ if(e.target===modal) modal.style.display='none' });
 
-    // 开始 / 暂停
-    startBtn.onclick = () => {
-      clearInterval(intervalId);
-      intervalId = setInterval(tick, 1000);
-    };
-    pauseBtn.onclick = () => clearInterval(intervalId); :contentReference[oaicite:9]{index=9}
+    function updateDisplay(seconds) {
+      const min = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const sec = String(seconds % 60).padStart(2, '0');
+      timerDisplay.textContent = `${min}:${sec}`;
+    }
 
-    // 背景音乐切换
-    const soundscapeMap = {
-      rain: 'https://assets.mixkit.co/sfx/preview/mixkit-heavy-rain-uk-781.mp3',
-      forest: 'https://assets.mixkit.co/sfx/preview/mixkit-forest-birds-ambience-2310.mp3',
-      ocean: 'https://assets.mixkit.co/sfx/preview/mixkit-calm-ocean-ambience-2085.mp3',
-      piano: 'https://assets.mixkit.co/sfx/preview/mixkit-simple-piano-riff-1126.mp3'
-    };
-    bgSelect.onchange = () => {
-      const val = bgSelect.value;
-      if (!val) {
-        bgAudio.pause(); bgAudio.src='';
-      } else {
-        bgAudio.src = soundscapeMap[val];
-        bgAudio.play();
+    function startTimer() {
+      if (isRunning) return;
+      isRunning = true;
+      timeLeft = timeLeft || (isWorkTime ? workMin * 60 : breakMin * 60);
+      timer = setInterval(() => {
+        timeLeft--;
+        updateDisplay(timeLeft);
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          alarm.play();
+          isWorkTime = !isWorkTime;
+          timeLeft = isWorkTime ? workMin * 60 : breakMin * 60;
+          updateDisplay(timeLeft);
+          startTimer();
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      isRunning = false;
+      clearInterval(timer);
+    }
+
+    startBtn.onclick = startTimer;
+    pauseBtn.onclick = pauseTimer;
+
+    bgmSelect.onchange = () => {
+      const choice = bgmSelect.value;
+      if (!choice) {
+        bgm.pause();
+        bgm.src = '';
+        return;
       }
-    }; :contentReference[oaicite:10]{index=10}
+      const bgmMap = {
+        rain: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_6bfc05bd36.mp3',
+        forest: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_6afae5ec5e.mp3',
+        waves: 'https://cdn.pixabay.com/download/audio/2021/09/15/audio_78c9c0b3a1.mp3',
+        piano: 'https://cdn.pixabay.com/download/audio/2021/10/30/audio_a17d7fbd29.mp3',
+      };
+      bgm.src = bgmMap[choice];
+      bgm.play();
+    };
 
-    // 初始化显示
-    updateDisplay();
+    updateDisplay(workMin * 60); // 初始显示
   </script>
 </body>
 </html>
