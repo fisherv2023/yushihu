@@ -1,173 +1,118 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>番茄时钟</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>番茄时钟 - PomodoroTimer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f4f4f4;
-      text-align: center;
-      padding: 40px;
       margin: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #ffffff;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 1rem;
     }
     h1 {
-      margin-bottom: 20px;
+      font-size: 2rem;
+      margin-bottom: 1rem;
     }
     #timer {
-      font-size: 80px;
-      font-weight: bold;
-      margin: 40px 0;
-      color: #333;
+      font-size: 6rem;
+      margin: 2rem 0;
+      font-weight: 600;
     }
-    .controls, .presets, .music {
-      margin: 20px 0;
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
     }
     button {
-      font-size: 16px;
-      margin: 5px;
-      padding: 10px 20px;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
       border: none;
-      background-color: #007bff;
-      color: white;
       border-radius: 6px;
       cursor: pointer;
+      background-color: #f0f0f0;
+      transition: background-color 0.2s;
     }
     button:hover {
-      background-color: #0056b3;
+      background-color: #e0e0e0;
     }
-    select {
-      padding: 8px;
-      font-size: 16px;
-    }
-    input[type="number"] {
-      width: 60px;
-      padding: 5px;
-      font-size: 16px;
-      margin-left: 5px;
+    @media (max-width: 600px) {
+      #timer {
+        font-size: 4rem;
+      }
     }
   </style>
 </head>
 <body>
   <h1>番茄时钟</h1>
-
-  <div class="presets">
-    <button class="preset" data-work="25" data-break="5">25 / 5</button>
-    <button class="preset" data-work="50" data-break="10">50 / 10</button>
-    <button class="preset" data-work="15" data-break="3">15 / 3</button>
-    <label>
-      自定义：工作
-      <input type="number" id="customWork" value="30" min="1" />
-      分钟，休息
-      <input type="number" id="customBreak" value="5" min="1" />
-      分钟
-      <button id="applyCustom">应用</button>
-    </label>
-  </div>
-
   <div id="timer">25:00</div>
-
-  <div class="controls">
-    <button id="start">开始</button>
-    <button id="pause">暂停</button>
+  <div class="buttons">
+    <button onclick="setTimer(25)">25分钟工作</button>
+    <button onclick="setTimer(5)">5分钟休息</button>
+    <button onclick="setTimer(15)">15分钟长休</button>
+    <button onclick="customTime()">自定义</button>
+    <button onclick="startTimer()">开始</button>
+    <button onclick="pauseTimer()">暂停</button>
   </div>
-
-  <div class="music">
-    背景音乐：
-    <select id="bgmSelect">
-      <option value="">无</option>
-      <option value="rain">雨声</option>
-      <option value="forest">森林</option>
-      <option value="waves">海浪</option>
-      <option value="piano">钢琴</option>
-    </select>
-  </div>
-
-  <audio id="alarmSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_45c4a9cce0.mp3" preload="auto"></audio>
-
-  <audio id="bgm" loop></audio>
 
   <script>
-    let workMin = 25, breakMin = 5;
+    let timerDuration = 25 * 60;
+    let timer;
     let isRunning = false;
-    let isWorkTime = true;
-    let timer, timeLeft;
 
-    const timerDisplay = document.getElementById('timer');
-    const startBtn = document.getElementById('start');
-    const pauseBtn = document.getElementById('pause');
-    const alarm = document.getElementById('alarmSound');
-    const bgm = document.getElementById('bgm');
-    const bgmSelect = document.getElementById('bgmSelect');
+    function updateDisplay() {
+      const minutes = Math.floor(timerDuration / 60).toString().padStart(2, '0');
+      const seconds = (timerDuration % 60).toString().padStart(2, '0');
+      document.getElementById('timer').innerText = `${minutes}:${seconds}`;
+    }
 
-    const presetBtns = document.querySelectorAll('.preset');
-    presetBtns.forEach(btn => btn.addEventListener('click', () => {
-      workMin = +btn.dataset.work;
-      breakMin = +btn.dataset.break;
-      isWorkTime = true;
-      updateDisplay(workMin * 60);
-    }));
+    function setTimer(minutes) {
+      clearInterval(timer);
+      isRunning = false;
+      timerDuration = minutes * 60;
+      updateDisplay();
+    }
 
-    document.getElementById('applyCustom').onclick = () => {
-      const customWork = document.getElementById('customWork').value;
-      const customBreak = document.getElementById('customBreak').value;
-      workMin = parseInt(customWork);
-      breakMin = parseInt(customBreak);
-      isWorkTime = true;
-      updateDisplay(workMin * 60);
-    };
-
-    function updateDisplay(seconds) {
-      const min = String(Math.floor(seconds / 60)).padStart(2, '0');
-      const sec = String(seconds % 60).padStart(2, '0');
-      timerDisplay.textContent = `${min}:${sec}`;
+    function customTime() {
+      const userInput = prompt("请输入时间（分钟）：", "10");
+      if (userInput) {
+        const minutes = parseInt(userInput);
+        if (!isNaN(minutes) && minutes > 0) {
+          setTimer(minutes);
+        }
+      }
     }
 
     function startTimer() {
       if (isRunning) return;
       isRunning = true;
-      timeLeft = timeLeft || (isWorkTime ? workMin * 60 : breakMin * 60);
       timer = setInterval(() => {
-        timeLeft--;
-        updateDisplay(timeLeft);
-        if (timeLeft <= 0) {
+        if (timerDuration > 0) {
+          timerDuration--;
+          updateDisplay();
+        } else {
           clearInterval(timer);
-          alarm.play();
-          isWorkTime = !isWorkTime;
-          timeLeft = isWorkTime ? workMin * 60 : breakMin * 60;
-          updateDisplay(timeLeft);
-          startTimer();
+          isRunning = false;
+          alert("时间到！");
         }
       }, 1000);
     }
 
     function pauseTimer() {
-      isRunning = false;
       clearInterval(timer);
+      isRunning = false;
     }
 
-    startBtn.onclick = startTimer;
-    pauseBtn.onclick = pauseTimer;
-
-    bgmSelect.onchange = () => {
-      const choice = bgmSelect.value;
-      if (!choice) {
-        bgm.pause();
-        bgm.src = '';
-        return;
-      }
-      const bgmMap = {
-        rain: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_6bfc05bd36.mp3',
-        forest: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_6afae5ec5e.mp3',
-        waves: 'https://cdn.pixabay.com/download/audio/2021/09/15/audio_78c9c0b3a1.mp3',
-        piano: 'https://cdn.pixabay.com/download/audio/2021/10/30/audio_a17d7fbd29.mp3',
-      };
-      bgm.src = bgmMap[choice];
-      bgm.play();
-    };
-
-    updateDisplay(workMin * 60); // 初始显示
+    updateDisplay();
   </script>
 </body>
 </html>
