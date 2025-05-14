@@ -78,7 +78,7 @@
             
             // 新旧公式计算（减去体育/实验90分）
             const old = ((c - 90) / 2) + (a * 3.5);
-            const newS = (c * 0.6) + (a * 2.8);
+            const newS = ((c - 90)* 0.6) + (a * 2.8);
             const diff = newS - old;
             
             // 更新数值显示
