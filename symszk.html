@@ -1,109 +1,179 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7223142882707524"
-     crossorigin="anonymous"></script>
-    <title>中考美术分数动态对比</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
-        .input-group { margin: 20px 0; display: flex; gap: 10px; }
-        input { padding: 8px; width: 150px; border: 1px solid #ddd; border-radius: 4px; }
-        .result { font-size: 1.1em; margin: 10px 0; color: #333; }
-        .chart-container { height: 400px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>2025年沈阳中考美术综合分计算器</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    .input-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    label {
+      flex: 1 0 150px;
+    }
+    input {
+      flex: 1 0 200px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .result {
+      font-size: 1.1em;
+      margin: 10px 0;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #2c3e50;
+      color: white;
+    }
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+    @media (max-width: 600px) {
+      .input-group {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      label, input {
+        flex: 1 0 100%;
+      }
+    }
+  </style>
 </head>
 <body>
-    <h1>沈阳中考美术综合分动态对比工具</h1>
-    
-    <!-- 分数输入 -->
-    <div class="input-group">
-        <label>文化课成绩（满分790）：</label>
-        <input type="number" id="cultureScore" min="90" max="790" value="650" placeholder="输入文化课分数">
-        <label>专业课成绩（满分100）：</label>
-        <input type="number" id="artScore" min="0" max="100" value="80" placeholder="输入专业课分数">
-    </div>
-    
-    <!-- 结果显示 -->
-    <div class="result">
-        <p>旧公式综合分：<span id="oldScore">-</span></p>
-        <p>新公式综合分：<span id="newScore">-</span></p>
-        <p>分差（新-旧）：<span id="scoreDiff">-</span></p>
-    </div>
-    
-    <!-- 对比图表 -->
-    <div class="chart-container">
-        <canvas id="scoreChart"></canvas>
-    </div>
+  <h1>2025年沈阳中考美术综合分计算器</h1>
+<p style="text-align: center; font-size: 1.1rem; color: #666; margin-top: -10px; margin-bottom: 30px;">
+    艺贝少儿美术教育，助力沈阳美术中考！
+</p>
 
-    <script>
-        // 获取输入框和图表元素
-        const cultureInput = document.getElementById('cultureScore');
-        const artInput = document.getElementById('artScore');
-        const oldScore = document.getElementById('oldScore');
-        const newScore = document.getElementById('newScore');
-        const scoreDiff = document.getElementById('scoreDiff');
-        const chartCanvas = document.getElementById('scoreChart');
+ <h2>计算综合成绩</h2>
+  <div class="input-group">
+    <label for="cultureScore">文化课成绩（满分790）：</label>
+    <input type="number" id="cultureScore" min="90" max="790" value="650" placeholder="输入文化课分数">
+  </div>
+  <div class="input-group">
+    <label for="artScore">专业课成绩（满分100）：</label>
+    <input type="number" id="artScore" min="0" max="100" value="80" placeholder="输入专业课分数">
+  </div>
+  <div class="result">
+    <p>综合分：<span id="newScore">-</span></p>
+  </div>
 
-        // 初始化图表
-        let chart = new Chart(chartCanvas, {
-            type: 'bar',
-            data: {
-                labels: ['旧公式', '新公式'],
-                datasets: [{
-                    label: '综合分',
-                    data: [0, 0],
-                    backgroundColor: ['#ff6b6b', '#6ab04c'],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: { display: true, text: '综合分' }
-                    }
-                },
-                plugins: {
-                    legend: { display: false }
-                }
-            }
-        });
+  <hr>
 
-        // 计算函数
-        function calculateScores() {
-            const c = parseFloat(cultureInput.value);
-            const a = parseFloat(artInput.value);
-            if (isNaN(c) || isNaN(a)) return;
-            
-            // 新旧公式计算（减去体育/实验90分）
-            const old = ((c - 90) / 2) + (a * 3.5);
-            const newS = ((c - 90)* 0.6) + (a * 2.8);
-            const diff = newS - old;
-            
-            // 更新数值显示
-            oldScore.textContent = old.toFixed(1);
-            newScore.textContent = newS.toFixed(1);
-            scoreDiff.textContent = diff.toFixed(1) + '分（新-旧）';
-            
-            // 更新图表数据
-            chart.data.datasets[0].data = [old, newS];
-            chart.update();
-        }
+  <h2>倒推文化课成绩</h2>
+  <div class="input-group">
+    <label for="inputNewScore">综合分：</label>
+    <input type="number" id="inputNewScore" placeholder="输入综合分">
+  </div>
+  <div class="input-group">
+    <label for="inputArtScore">专业课成绩：</label>
+    <input type="number" id="inputArtScore" placeholder="输入专业课成绩">
+  </div>
+  <div class="result">
+    <p>所需文化课成绩：<span id="requiredCultureScore">-</span></p>
+  </div>
 
-        // 监听输入变化
-        cultureInput.addEventListener('input', calculateScores);
-        artInput.addEventListener('input', calculateScores);
+  <hr>
 
-        // 初始计算
-        calculateScores();
-    </script>
+  <h2>沈阳部分招收美术特长生的高中名单</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>学校名称</th>
+        <th>招生人数</th>
+        <th>门槛分数线</th>
+        <th>综合分要求</th>
+        <th>专业75分对应文化课分</th>
+        <th>专业80分对应文化课分</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>沈阳第一中学</td>
+        <td>30</td>
+        <td>综合分≥180</td>
+        <td>≥180</td>
+        <td>525</td>
+        <td>500</td>
+      </tr>
+      <tr>
+        <td>沈阳第二中学</td>
+        <td>25</td>
+        <td>综合分≥175</td>
+        <td>≥175</td>
+        <td>508</td>
+        <td>485</td>
+      </tr>
+      <tr>
+        <td>东北育才学校</td>
+        <td>20</td>
+        <td>综合分≥185</td>
+        <td>≥185</td>
+        <td>541</td>
+        <td>515</td>
+      </tr>
+      <!-- 更多学校数据可根据实际情况添加 -->
+    </tbody>
+  </table>
 
-<footer style="text-align: center;">
-  <a href="https://www.xiaohongshu.com/user/profile/5e79c4a90000000001004be7" style="font-size: 0.9rem; color: #aaa;">
-    开发整理 by 艺贝少儿美术教育
-  </a>
-</footer>
+  <footer>
+    <a href="https://www.xiaohongshu.com/user/profile/5e79c4a90000000001004be7">开发整理 by 艺贝少儿美术教育</a>
+  </footer>
 
+  <script>
+    function calculateNewScore() {
+      const c = parseFloat(document.getElementById('cultureScore').value);
+      const a = parseFloat(document.getElementById('artScore').value);
+      if (isNaN(c) || isNaN(a)) return;
+      const newS = ((c - 90) * 0.6) + (a * 2.8);
+      document.getElementById('newScore').textContent = newS.toFixed(1);
+    }
+
+    function calculateRequiredCultureScore() {
+      const newS = parseFloat(document.getElementById('inputNewScore').value);
+      const a = parseFloat(document.getElementById('inputArtScore').value);
+      if (isNaN(newS) || isNaN(a)) return;
+      const c = ((newS - (a * 2.8)) / 0.6) + 90;
+      document.getElementById('requiredCultureScore').textContent = c.toFixed(1);
+    }
+
+    document.getElementById('cultureScore').addEventListener('input', calculateNewScore);
+    document.getElementById('artScore').addEventListener('input', calculateNewScore);
+    document.getElementById('inputNewScore').addEventListener('input', calculateRequiredCultureScore);
+    document.getElementById('inputArtScore').addEventListener('input', calculateRequiredCultureScore);
+
+    // 初始化计算
+    calculateNewScore();
+  </script>
 </body>
 </html>
