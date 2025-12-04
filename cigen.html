@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>英语单词词根词缀记忆 - 初中版</title>
+    <title>单词魔法实验室 v2.0 - 你的英语私教</title>
     <style>
         :root {
-            --primary: #4a90e2;
-            --secondary: #f5a623;
-            --accent: #7ed321;
+            --primary: #4a90e2;    /* 蓝色：词根 */
+            --secondary: #f5a623;  /* 橙色：词缀 */
+            --accent: #7ed321;     /* 绿色：前缀 */
+            --high: #ff5e57;       /* 红色：高频 */
+            --cat: #8e44ad;        /* 紫色：分类 */
             --bg: #f0f4f8;
-            --card-bg: #ffffff;
-            --text: #333;
+            --text: #2c3e50;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
@@ -23,317 +24,179 @@
             line-height: 1.6;
         }
 
-        h1, h2 {
-            text-align: center;
-            color: #2c3e50;
-        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { margin: 10px 0; color: #2c3e50; }
+        .subtitle { color: #7f8c8d; font-size: 0.9em; }
 
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-
-        /* Navigation Pills */
+        /* --- 导航栏样式 --- */
         .nav-pills {
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
-            gap: 15px;
+            gap: 10px;
             margin-bottom: 30px;
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
 
         .nav-btn {
-            padding: 10px 25px;
-            background: white;
-            border: 2px solid var(--primary);
-            border-radius: 25px;
+            padding: 8px 20px;
+            border: 2px solid transparent;
+            border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
-            color: var(--primary);
+            color: #555;
             transition: all 0.3s;
+            background: #f8f9fa;
+            font-size: 0.95em;
         }
 
-        .nav-btn.active, .nav-btn:hover {
-            background: var(--primary);
-            color: white;
-        }
-
-        /* Section Styles */
-        .section {
-            display: none;
-            animation: fadeIn 0.5s;
-        }
-        .section.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* --- 1. Flip Cards Style (Roots) --- */
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-
-        .flip-card {
-            background-color: transparent;
-            width: 100%;
-            height: 220px;
-            perspective: 1000px;
-            cursor: pointer;
-        }
-
-        .flip-card-inner {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            text-align: center;
-            transition: transform 0.6s;
-            transform-style: preserve-3d;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            border-radius: 15px;
-        }
-
-        .flip-card.flipped .flip-card-inner {
-            transform: rotateY(180deg);
-        }
-
-        .flip-card-front, .flip-card-back {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            border-radius: 15px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .flip-card-front {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .flip-card-front h3 { font-size: 2.5em; margin: 0; }
-        .flip-card-front p { font-size: 1.2em; opacity: 0.9; }
-
-        .flip-card-back {
-            background-color: white;
-            color: var(--text);
-            transform: rotateY(180deg);
-            border: 2px solid var(--primary);
-            padding: 10px;
-            box-sizing: border-box;
-        }
-
-        .word-list { list-style: none; padding: 0; text-align: left; width: 80%; }
-        .word-list li { border-bottom: 1px dashed #eee; padding: 5px 0; font-size: 0.95em; }
-        .word-list b { color: var(--primary); }
-
-        /* --- 2. Suffix Builder Style --- */
-        .suffix-row {
-            background: white;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
+        .nav-btn:hover { transform: translateY(-2px); }
         
-        .equation {
-            font-size: 1.5em;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .part { padding: 5px 10px; background: #e1f0ff; border-radius: 5px; color: var(--primary); }
-        .plus { color: #aaa; }
-        .suffix { background: #fff0d4; color: var(--secondary); }
-        .result { color: var(--accent); font-size: 1.1em; }
-        .meaning-tag { font-size: 0.6em; background: #eee; padding: 2px 6px; border-radius: 4px; color: #666; margin-left: 10px; vertical-align: middle; }
+        .nav-btn.active-root { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3); }
+        .nav-btn.active-suffix { background: var(--secondary); color: white; box-shadow: 0 4px 10px rgba(245, 166, 35, 0.3); }
+        .nav-btn.active-prefix { background: var(--accent); color: white; box-shadow: 0 4px 10px rgba(126, 211, 33, 0.3); }
+        .nav-btn.active-high { background: var(--high); color: white; box-shadow: 0 4px 10px rgba(255, 94, 87, 0.3); }
+        .nav-btn.active-cat { background: var(--cat); color: white; box-shadow: 0 4px 10px rgba(142, 68, 173, 0.3); }
 
-        /* --- 3. Prefix Mirror Style --- */
-        .mirror-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-        }
+        /* --- 通用板块样式 --- */
+        .section { display: none; animation: fadeIn 0.5s; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: 0; } }
 
-        .mirror-box {
-            background: white;
-            width: 280px;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-        }
+        /* --- 1. 词根卡片 (Roots) --- */
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .flip-card { background-color: transparent; width: 100%; height: 240px; perspective: 1000px; cursor: pointer; }
+        .flip-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .flip-card-front { background: linear-gradient(135deg, #4a90e2, #357abd); color: white; }
+        .flip-card-back { background: white; color: #333; transform: rotateY(180deg); border: 2px solid #4a90e2; }
+        .word-list { list-style: none; padding: 0; text-align: left; width: 85%; font-size: 0.9em; }
+        .word-list li { border-bottom: 1px dashed #eee; padding: 4px 0; }
 
-        .mirror-box:hover { transform: translateY(-5px); }
+        /* --- 2. 词缀工厂 (Suffixes) --- */
+        .factory-row { background: white; padding: 15px; margin-bottom: 15px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid var(--secondary); }
+        .equation { font-size: 1.2em; font-weight: bold; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .part { padding: 4px 10px; background: #fff7e6; border-radius: 5px; color: #d35400; }
+        .result { color: #27ae60; font-size: 1.1em; }
 
-        .word-pair {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-            font-size: 1.2em;
-        }
+        /* --- 3. 前缀镜像 (Prefixes) --- */
+        .mirror-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+        .mirror-box { background: white; flex: 1 1 280px; padding: 20px; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.05); border-top: 4px solid var(--accent); }
+        .pair { display: flex; justify-content: space-between; margin-top: 10px; align-items: center; font-size: 1.1em; }
 
-        .arrow { font-size: 1.5em; color: var(--secondary); }
-        .negative { color: #e74c3c; font-weight: bold; }
-        .positive { color: var(--accent); }
+        /* --- 4. 高频词汇 (High Freq) - 闪卡模式 --- */
+        .flash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
+        .flash-card { background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.05); transition: transform 0.2s; border-bottom: 3px solid var(--high); }
+        .flash-card:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+        .flash-icon { font-size: 3em; margin-bottom: 10px; display: block; }
+        .flash-word { font-size: 1.4em; font-weight: bold; color: #2c3e50; display: block; }
+        .flash-meaning { color: #7f8c8d; font-size: 0.9em; }
+        .flash-tag { display: inline-block; background: #ffeaea; color: var(--high); font-size: 0.7em; padding: 2px 6px; border-radius: 4px; margin-top: 5px; }
 
-        .tip-box {
-            background: #dff9fb;
-            border-left: 5px solid #22a6b3;
-            padding: 15px;
-            margin-top: 30px;
-            border-radius: 5px;
-        }
+        /* --- 5. 分类词汇 (Categories) - 货架模式 --- */
+        .cat-shelf { margin-bottom: 30px; }
+        .shelf-title { font-size: 1.3em; color: var(--cat); margin-bottom: 10px; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        .shelf-items { display: flex; flex-wrap: wrap; gap: 10px; }
+        .word-chip { background: white; padding: 8px 15px; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 8px; transition: all 0.2s; border: 1px solid #eee; }
+        .word-chip:hover { background: var(--cat); color: white; border-color: var(--cat); transform: scale(1.05); }
+        .chip-emoji { font-size: 1.2em; }
 
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🎓 单词魔法实验室</h1>
-    <p style="text-align: center; color: #666;">基于初中英语2000词考纲定制 · 词根词缀记忆法</p>
+    <header>
+        <h1>🎓 单词魔法实验室 v2.0</h1>
+        <div class="subtitle">基于中考英语词汇表 · 逻辑与视觉双重记忆</div>
+    </header>
 
-    <!-- Navigation -->
+    <!-- 导航栏 -->
     <div class="nav-pills">
-        <div class="nav-btn active" onclick="showSection('roots')">🌲 核心词根树</div>
-        <div class="nav-btn" onclick="showSection('suffixes')">🏭 词缀工厂</div>
-        <div class="nav-btn" onclick="showSection('prefixes')">⚡ 前缀反转镜</div>
+        <div class="nav-btn active-root" onclick="switchTab(this, 'roots', 'active-root')">🌲 词根树</div>
+        <div class="nav-btn" onclick="switchTab(this, 'suffixes', 'active-suffix')">🏭 词缀工厂</div>
+        <div class="nav-btn" onclick="switchTab(this, 'prefixes', 'active-prefix')">⚡ 前缀镜像</div>
+        <div class="nav-btn" onclick="switchTab(this, 'highfreq', 'active-high')">🔥 高频必考</div>
+        <div class="nav-btn" onclick="switchTab(this, 'categories', 'active-cat')">📚 场景分类</div>
     </div>
 
-    <!-- Section 1: Root Families -->
+    <!-- 1. 核心词根树 -->
     <div id="roots" class="section active">
-        <h2 style="color: var(--primary);">点击卡片，发现家族秘密</h2>
         <div class="grid-container">
-            <!-- Card 1: ACT -->
+            <!-- ACT -->
             <div class="flip-card" onclick="this.classList.toggle('flipped')">
                 <div class="flip-card-inner">
                     <div class="flip-card-front">
+                        <div style="font-size:3em">🎬</div>
                         <h3>ACT</h3>
                         <p>行动 / 做</p>
-                        <small>点击翻转 ➜</small>
                     </div>
                     <div class="flip-card-back">
-                        <h4>家族成员</h4>
                         <ul class="word-list">
-                            <li><b>act</b> (v.) 行动/表演</li>
-                            <li><b>action</b> (n.) 行为</li>
-                            <li><b>active</b> (adj.) 积极的</li>
-                            <li><b>activity</b> (n.) 活动</li>
+                            <li><b>act</b> 行动/表演</li>
+                            <li><b>action</b> 行为</li>
+                            <li><b>active</b> 积极的</li>
+                            <li><b>activity</b> 活动</li>
                         </ul>
                     </div>
                 </div>
             </div>
-
-            <!-- Card 2: WORK -->
+            <!-- VIS -->
             <div class="flip-card" onclick="this.classList.toggle('flipped')">
                 <div class="flip-card-inner">
                     <div class="flip-card-front">
-                        <h3>WORK</h3>
-                        <p>工作 / 劳动</p>
-                        <small>点击翻转 ➜</small>
-                    </div>
-                    <div class="flip-card-back">
-                        <h4>家族成员</h4>
-                        <ul class="word-list">
-                            <li><b>worker</b> (n.) 工人</li>
-                            <li><b>homework</b> (n.) 作业</li>
-                            <li><b>teamwork</b> (n.) 团队合作</li>
-                            <li><b>workplace</b> (n.) 车间</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card 3: VIS/VID -->
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front">
+                        <div style="font-size:3em">👀</div>
                         <h3>VIS / VID</h3>
                         <p>看</p>
-                        <small>点击翻转 ➜</small>
                     </div>
                     <div class="flip-card-back">
-                        <h4>家族成员</h4>
                         <ul class="word-list">
-                            <li><b>visit</b> (v.) 参观(走去看)</li>
-                            <li><b>video</b> (n.) 视频</li>
-                            <li><b>television</b> (n.) 电视</li>
-                            <li><b>visitor</b> (n.) 游客</li>
+                            <li><b>visit</b> 参观</li>
+                            <li><b>vision</b> 视力</li>
+                            <li><b>video</b> 视频</li>
+                            <li><b>television</b> 电视</li>
                         </ul>
                     </div>
                 </div>
             </div>
-
-            <!-- Card 4: CARE -->
+            <!-- WORK -->
             <div class="flip-card" onclick="this.classList.toggle('flipped')">
                 <div class="flip-card-inner">
                     <div class="flip-card-front">
-                        <h3>CARE</h3>
-                        <p>关心 / 在意</p>
-                        <small>点击翻转 ➜</small>
+                        <div style="font-size:3em">👷</div>
+                        <h3>WORK</h3>
+                        <p>工作</p>
                     </div>
                     <div class="flip-card-back">
-                        <h4>家族成员</h4>
                         <ul class="word-list">
-                            <li><b>careful</b> (adj.) 小心的</li>
-                            <li><b>careless</b> (adj.) 粗心的</li>
-                            <li><b>carefully</b> (adv.) 小心地</li>
+                            <li><b>worker</b> 工人</li>
+                            <li><b>homework</b> 作业</li>
+                            <li><b>housework</b> 家务</li>
+                            <li><b>teamwork</b> 合作</li>
                         </ul>
                     </div>
                 </div>
             </div>
-
-             <!-- Card 5: PORT -->
-             <div class="flip-card" onclick="this.classList.toggle('flipped')">
+            <!-- PORT -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
                 <div class="flip-card-inner">
                     <div class="flip-card-front">
+                        <div style="font-size:3em">🚢</div>
                         <h3>PORT</h3>
                         <p>拿 / 运</p>
-                        <small>点击翻转 ➜</small>
                     </div>
                     <div class="flip-card-back">
-                        <h4>家族成员</h4>
                         <ul class="word-list">
-                            <li><b>passport</b> (n.) 护照</li>
-                            <li><b>airport</b> (n.) 机场</li>
-                            <li><b>report</b> (v.) 报告</li>
-                            <li><b>import</b> (v.) 进口</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-             <!-- Card 6: USE -->
-             <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front">
-                        <h3>USE</h3>
-                        <p>使用</p>
-                        <small>点击翻转 ➜</small>
-                    </div>
-                    <div class="flip-card-back">
-                        <h4>家族成员</h4>
-                        <ul class="word-list">
-                            <li><b>useful</b> (adj.) 有用的</li>
-                            <li><b>useless</b> (adj.) 无用的</li>
-                            <li><b>user</b> (n.) 用户</li>
-                            <li><b>used</b> (adj.) 二手的</li>
+                            <li><b>passport</b> 护照</li>
+                            <li><b>airport</b> 机场</li>
+                            <li><b>report</b> 报告</li>
+                            <li><b>transport</b> 运输</li>
                         </ul>
                     </div>
                 </div>
@@ -341,174 +204,214 @@
         </div>
     </div>
 
-    <!-- Section 2: Suffix Factory -->
+    <!-- 2. 词缀工厂 -->
     <div id="suffixes" class="section">
-        <h2 style="color: var(--secondary);">词缀组装车间</h2>
-        
-        <div class="suffix-row">
+        <div class="factory-row">
             <div class="equation">
-                <span class="part">Teach</span>
-                <span class="plus">+</span>
-                <span class="part suffix">-er (人)</span>
-                <span class="plus">=</span>
-                <span class="result">Teacher</span>
+                <span class="part">Teach (教)</span> + <span class="part">-er (人)</span> = <span class="result">Teacher 👨‍🏫</span>
             </div>
-            <span class="meaning-tag">老师</span>
         </div>
-
-        <div class="suffix-row">
+        <div class="factory-row">
             <div class="equation">
-                <span class="part">Visit</span>
-                <span class="plus">+</span>
-                <span class="part suffix">-or (人)</span>
-                <span class="plus">=</span>
-                <span class="result">Visitor</span>
+                <span class="part">Visit (参观)</span> + <span class="part">-or (人)</span> = <span class="result">Visitor 🚶‍♂️</span>
             </div>
-            <span class="meaning-tag">参观者</span>
         </div>
-
-        <div class="suffix-row">
+        <div class="factory-row">
             <div class="equation">
-                <span class="part">Art</span>
-                <span class="plus">+</span>
-                <span class="part suffix">-ist (专家)</span>
-                <span class="plus">=</span>
-                <span class="result">Artist</span>
+                <span class="part">Care (关心)</span> + <span class="part">-ful (充满)</span> = <span class="result">Careful ⚠️</span>
             </div>
-            <span class="meaning-tag">艺术家</span>
         </div>
-
-        <div class="suffix-row">
+        <div class="factory-row">
             <div class="equation">
-                <span class="part">Help</span>
-                <span class="plus">+</span>
-                <span class="part suffix">-ful (充满)</span>
-                <span class="plus">=</span>
-                <span class="result">Helpful</span>
+                <span class="part">Home (家)</span> + <span class="part">-less (无)</span> = <span class="result">Homeless ⛺</span>
             </div>
-            <span class="meaning-tag">有帮助的</span>
         </div>
-
-        <div class="suffix-row">
+        <div class="factory-row">
             <div class="equation">
-                <span class="part">Home</span>
-                <span class="plus">+</span>
-                <span class="part suffix">-less (无)</span>
-                <span class="plus">=</span>
-                <span class="result">Homeless</span>
+                <span class="part">Ill (病)</span> + <span class="part">-ness (名词)</span> = <span class="result">Illness 🤒</span>
             </div>
-            <span class="meaning-tag">无家可归的</span>
         </div>
-
-        <div class="suffix-row">
+        <div class="factory-row">
             <div class="equation">
-                <span class="part">Ill</span>
-                <span class="plus">+</span>
-                <span class="part suffix">-ness (名词)</span>
-                <span class="plus">=</span>
-                <span class="result">Illness</span>
+                <span class="part">Develop (发展)</span> + <span class="part">-ment (名词)</span> = <span class="result">Development 🏗️</span>
             </div>
-            <span class="meaning-tag">疾病</span>
-        </div>
-
-        <div class="suffix-row">
-            <div class="equation">
-                <span class="part">Develop</span>
-                <span class="plus">+</span>
-                <span class="part suffix">-ment (名词)</span>
-                <span class="plus">=</span>
-                <span class="result">Development</span>
-            </div>
-            <span class="meaning-tag">发展</span>
-        </div>
-
-        <div class="tip-box">
-            💡 <b>小窍门：</b> 考试时看到 <b>-tion, -ment, -ness</b> 结尾的一定是名词；看到 <b>-ful, -less</b> 结尾的一定是形容词！
         </div>
     </div>
 
-    <!-- Section 3: Prefix Mirror -->
+    <!-- 3. 前缀镜像 -->
     <div id="prefixes" class="section">
-        <h2 style="color: var(--accent);">前缀：意思的反转</h2>
-        <div class="mirror-container">
-            
+        <div class="mirror-grid">
             <div class="mirror-box">
-                <h3 style="color: #e74c3c;">un- (不)</h3>
-                <div class="word-pair">
-                    <span class="positive">Happy</span>
-                    <span class="arrow">➜</span>
-                    <span class="negative">Unhappy</span>
-                </div>
-                <div class="word-pair">
-                    <span class="positive">Fair</span>
-                    <span class="arrow">➜</span>
-                    <span class="negative">Unfair</span>
-                </div>
+                <h3>🚫 Un- (不)</h3>
+                <div class="pair"><span>😊 Happy</span> ➜ <span style="color:#e74c3c">Unhappy 😢</span></div>
+                <div class="pair"><span>⚖️ Fair</span> ➜ <span style="color:#e74c3c">Unfair 😒</span></div>
             </div>
-
             <div class="mirror-box">
-                <h3 style="color: #e74c3c;">im- (不)</h3>
-                <p style="font-size: 0.8em; color:#888;">(通常用于 m, p, b 开头的词)</p>
-                <div class="word-pair">
-                    <span class="positive">Possible</span>
-                    <span class="arrow">➜</span>
-                    <span class="negative">Impossible</span>
-                </div>
-                <div class="word-pair">
-                    <span class="positive">Polite</span>
-                    <span class="arrow">➜</span>
-                    <span class="negative">Impolite</span>
-                </div>
+                <h3>🔙 Re- (再/回)</h3>
+                <div class="pair"><span>📖 View</span> ➜ <span style="color:#27ae60">Review (复习)</span></div>
+                <div class="pair"><span>🔄 Cycle</span> ➜ <span style="color:#27ae60">Recycle (回收)</span></div>
             </div>
-
             <div class="mirror-box">
-                <h3 style="color: #e74c3c;">dis- (分离/不)</h3>
-                <div class="word-pair">
-                    <span class="positive">Like</span>
-                    <span class="arrow">➜</span>
-                    <span class="negative">Dislike</span>
-                </div>
-                <div class="word-pair">
-                    <span class="positive">Cover (盖)</span>
-                    <span class="arrow">➜</span>
-                    <span class="negative">Discover (发现)</span>
-                </div>
+                <h3>🕵️ Dis- (分离/不)</h3>
+                <div class="pair"><span>❤️ Like</span> ➜ <span style="color:#e74c3c">Dislike 💔</span></div>
+                <div class="pair"><span>📦 Cover</span> ➜ <span style="color:#27ae60">Discover (发现)</span></div>
             </div>
-
-            <div class="mirror-box">
-                <h3 style="color: #2ecc71;">re- (再/回)</h3>
-                <div class="word-pair">
-                    <span class="positive">View (看)</span>
-                    <span class="arrow">➜</span>
-                    <span class="positive">Review (复习)</span>
-                </div>
-                <div class="word-pair">
-                    <span class="positive">Turn (转)</span>
-                    <span class="arrow">➜</span>
-                    <span class="positive">Return (返回)</span>
-                </div>
-            </div>
-
         </div>
+    </div>
+
+    <!-- 4. 高频词汇 (新增板块) -->
+    <div id="highfreq" class="section">
+        <p style="text-align:center; color:#666;">🔥 考试出现频率最高的Top核心词，必须做到"秒反应"</p>
+        <div class="flash-grid">
+            <!-- Verbs -->
+            <div class="flash-card">
+                <span class="flash-icon">💡</span>
+                <span class="flash-word">Consider</span>
+                <span class="flash-meaning">考虑 / 认为</span>
+                <div class="flash-tag">动词</div>
+            </div>
+            <div class="flash-card">
+                <span class="flash-icon">🎢</span>
+                <span class="flash-word">Experience</span>
+                <span class="flash-meaning">经历 / 经验</span>
+                <div class="flash-tag">名/动</div>
+            </div>
+            <div class="flash-card">
+                <span class="flash-icon">🗣️</span>
+                <span class="flash-word">Suggest</span>
+                <span class="flash-meaning">建议</span>
+                <div class="flash-tag">动词</div>
+            </div>
+            <div class="flash-card">
+                <span class="flash-icon">🛠️</span>
+                <span class="flash-word">Provide</span>
+                <span class="flash-meaning">提供</span>
+                <div class="flash-tag">动词</div>
+            </div>
+            <!-- Adjectives -->
+            <div class="flash-card">
+                <span class="flash-icon">💊</span>
+                <span class="flash-word">Necessary</span>
+                <span class="flash-meaning">必要的</span>
+                <div class="flash-tag">形容词</div>
+            </div>
+            <div class="flash-card">
+                <span class="flash-icon">👑</span>
+                <span class="flash-word">Popular</span>
+                <span class="flash-meaning">受欢迎的</span>
+                <div class="flash-tag">形容词</div>
+            </div>
+             <div class="flash-card">
+                <span class="flash-icon">🌍</span>
+                <span class="flash-word">Foreign</span>
+                <span class="flash-meaning">外国的</span>
+                <div class="flash-tag">形容词</div>
+            </div>
+             <div class="flash-card">
+                <span class="flash-icon">🏙️</span>
+                <span class="flash-word">Modern</span>
+                <span class="flash-meaning">现代的</span>
+                <div class="flash-tag">形容词</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. 分类词汇 (新增板块) -->
+    <div id="categories" class="section">
+        
+        <div class="cat-shelf">
+            <div class="shelf-title">🏫 校园与教育 (School & Education)</div>
+            <div class="shelf-items">
+                <div class="word-chip"><span class="chip-emoji">🎒</span> schoolbag (书包)</div>
+                <div class="word-chip"><span class="chip-emoji">👨‍🏫</span> teacher (老师)</div>
+                <div class="word-chip"><span class="chip-emoji">🙋</span> student (学生)</div>
+                <div class="word-chip"><span class="chip-emoji">👯</span> classmate (同学)</div>
+                <div class="word-chip"><span class="chip-emoji">📚</span> library (图书馆)</div>
+                <div class="word-chip"><span class="chip-emoji">🧪</span> laboratory (实验室)</div>
+                <div class="word-chip"><span class="chip-emoji">📝</span> exam (考试)</div>
+                <div class="word-chip"><span class="chip-emoji">📖</span> subject (学科)</div>
+                <div class="word-chip"><span class="chip-emoji">🔢</span> math (数学)</div>
+                <div class="word-chip"><span class="chip-emoji">🏃</span> P.E. (体育)</div>
+            </div>
+        </div>
+
+        <div class="cat-shelf">
+            <div class="shelf-title">🍔 食物与饮料 (Food & Drink)</div>
+            <div class="shelf-items">
+                <div class="word-chip"><span class="chip-emoji">🥟</span> dumpling (饺子)</div>
+                <div class="word-chip"><span class="chip-emoji">🍜</span> noodle (面条)</div>
+                <div class="word-chip"><span class="chip-emoji">🍚</span> rice (米饭)</div>
+                <div class="word-chip"><span class="chip-emoji">🍞</span> bread (面包)</div>
+                <div class="word-chip"><span class="chip-emoji">🥓</span> meat (肉)</div>
+                <div class="word-chip"><span class="chip-emoji">🥬</span> vegetable (蔬菜)</div>
+                <div class="word-chip"><span class="chip-emoji">🍎</span> fruit (水果)</div>
+                <div class="word-chip"><span class="chip-emoji">🥤</span> juice (果汁)</div>
+                <div class="word-chip"><span class="chip-emoji">🧂</span> salt (盐)</div>
+                <div class="word-chip"><span class="chip-emoji">🍽️</span> restaurant (餐馆)</div>
+            </div>
+        </div>
+
+        <div class="cat-shelf">
+            <div class="shelf-title">🦁 动物与自然 (Nature & Animals)</div>
+            <div class="shelf-items">
+                <div class="word-chip"><span class="chip-emoji">🐼</span> panda (熊猫)</div>
+                <div class="word-chip"><span class="chip-emoji">🐯</span> tiger (老虎)</div>
+                <div class="word-chip"><span class="chip-emoji">🐘</span> elephant (大象)</div>
+                <div class="word-chip"><span class="chip-emoji">🐵</span> monkey (猴子)</div>
+                <div class="word-chip"><span class="chip-emoji">🐇</span> rabbit (兔子)</div>
+                <div class="word-chip"><span class="chip-emoji">🌳</span> tree (树)</div>
+                <div class="word-chip"><span class="chip-emoji">🌸</span> flower (花)</div>
+                <div class="word-chip"><span class="chip-emoji">🏔️</span> mountain (山)</div>
+                <div class="word-chip"><span class="chip-emoji">🌊</span> river (河)</div>
+                <div class="word-chip"><span class="chip-emoji">🌧️</span> rain (雨)</div>
+            </div>
+        </div>
+
+        <div class="cat-shelf">
+            <div class="shelf-title">🏥 身体与健康 (Body & Health)</div>
+            <div class="shelf-items">
+                <div class="word-chip"><span class="chip-emoji">👀</span> eye (眼睛)</div>
+                <div class="word-chip"><span class="chip-emoji">🦷</span> tooth (牙齿)</div>
+                <div class="word-chip"><span class="chip-emoji">🦵</span> leg (腿)</div>
+                <div class="word-chip"><span class="chip-emoji">🤕</span> hurt (受伤)</div>
+                <div class="word-chip"><span class="chip-emoji">💊</span> medicine (药)</div>
+                <div class="word-chip"><span class="chip-emoji">👩‍⚕️</span> doctor (医生)</div>
+                <div class="word-chip"><span class="chip-emoji">🌡️</span> fever (发烧)</div>
+                <div class="word-chip"><span class="chip-emoji">💪</span> strong (强壮的)</div>
+            </div>
+        </div>
+
+        <div class="cat-shelf">
+            <div class="shelf-title">🏠 家庭与社会 (Family & Society)</div>
+            <div class="shelf-items">
+                <div class="word-chip"><span class="chip-emoji">👨‍👩‍👧</span> parents (父母)</div>
+                <div class="word-chip"><span class="chip-emoji">👴</span> grandfather (祖父)</div>
+                <div class="word-chip"><span class="chip-emoji">👵</span> grandmother (祖母)</div>
+                <div class="word-chip"><span class="chip-emoji">👮</span> police (警察)</div>
+                <div class="word-chip"><span class="chip-emoji">🤝</span> friend (朋友)</div>
+                <div class="word-chip"><span class="chip-emoji">🗺️</span> neighbour (邻居)</div>
+                <div class="word-chip"><span class="chip-emoji">🏙️</span> city (城市)</div>
+                <div class="word-chip"><span class="chip-emoji">🏛️</span> government (政府)</div>
+            </div>
+        </div>
+
     </div>
 
 </div>
 
 <script>
-    function showSection(id) {
-        // Hide all sections
-        document.querySelectorAll('.section').forEach(sec => {
-            sec.classList.remove('active');
-        });
-        // Deactivate all buttons
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.classList.remove('active');
+    function switchTab(btn, sectionId, activeClass) {
+        // 隐藏所有板块
+        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        // 移除所有按钮激活状态
+        document.querySelectorAll('.nav-btn').forEach(b => {
+            b.className = 'nav-btn'; // 重置类名
         });
 
-        // Show selected section
-        document.getElementById(id).classList.add('active');
-        // Activate selected button
-        event.target.classList.add('active');
+        // 显示当前板块
+        document.getElementById(sectionId).classList.add('active');
+        // 激活当前按钮
+        btn.classList.add(activeClass);
     }
 </script>
 
