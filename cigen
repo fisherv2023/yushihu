@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语单词词根词缀记忆 - 初中版</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --secondary: #f5a623;
+            --accent: #7ed321;
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --text: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* Navigation Pills */
+        .nav-pills {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .nav-btn {
+            padding: 10px 25px;
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--primary);
+            transition: all 0.3s;
+        }
+
+        .nav-btn.active, .nav-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Section Styles */
+        .section {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- 1. Flip Cards Style (Roots) --- */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .flip-card {
+            background-color: transparent;
+            width: 100%;
+            height: 220px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 15px;
+        }
+
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .flip-card-front {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .flip-card-front h3 { font-size: 2.5em; margin: 0; }
+        .flip-card-front p { font-size: 1.2em; opacity: 0.9; }
+
+        .flip-card-back {
+            background-color: white;
+            color: var(--text);
+            transform: rotateY(180deg);
+            border: 2px solid var(--primary);
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .word-list { list-style: none; padding: 0; text-align: left; width: 80%; }
+        .word-list li { border-bottom: 1px dashed #eee; padding: 5px 0; font-size: 0.95em; }
+        .word-list b { color: var(--primary); }
+
+        /* --- 2. Suffix Builder Style --- */
+        .suffix-row {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .equation {
+            font-size: 1.5em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .part { padding: 5px 10px; background: #e1f0ff; border-radius: 5px; color: var(--primary); }
+        .plus { color: #aaa; }
+        .suffix { background: #fff0d4; color: var(--secondary); }
+        .result { color: var(--accent); font-size: 1.1em; }
+        .meaning-tag { font-size: 0.6em; background: #eee; padding: 2px 6px; border-radius: 4px; color: #666; margin-left: 10px; vertical-align: middle; }
+
+        /* --- 3. Prefix Mirror Style --- */
+        .mirror-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .mirror-box {
+            background: white;
+            width: 280px;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .mirror-box:hover { transform: translateY(-5px); }
+
+        .word-pair {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            font-size: 1.2em;
+        }
+
+        .arrow { font-size: 1.5em; color: var(--secondary); }
+        .negative { color: #e74c3c; font-weight: bold; }
+        .positive { color: var(--accent); }
+
+        .tip-box {
+            background: #dff9fb;
+            border-left: 5px solid #22a6b3;
+            padding: 15px;
+            margin-top: 30px;
+            border-radius: 5px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎓 单词魔法实验室</h1>
+    <p style="text-align: center; color: #666;">基于初中英语2000词考纲定制 · 词根词缀记忆法</p>
+
+    <!-- Navigation -->
+    <div class="nav-pills">
+        <div class="nav-btn active" onclick="showSection('roots')">🌲 核心词根树</div>
+        <div class="nav-btn" onclick="showSection('suffixes')">🏭 词缀工厂</div>
+        <div class="nav-btn" onclick="showSection('prefixes')">⚡ 前缀反转镜</div>
+    </div>
+
+    <!-- Section 1: Root Families -->
+    <div id="roots" class="section active">
+        <h2 style="color: var(--primary);">点击卡片，发现家族秘密</h2>
+        <div class="grid-container">
+            <!-- Card 1: ACT -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>ACT</h3>
+                        <p>行动 / 做</p>
+                        <small>点击翻转 ➜</small>
+                    </div>
+                    <div class="flip-card-back">
+                        <h4>家族成员</h4>
+                        <ul class="word-list">
+                            <li><b>act</b> (v.) 行动/表演</li>
+                            <li><b>action</b> (n.) 行为</li>
+                            <li><b>active</b> (adj.) 积极的</li>
+                            <li><b>activity</b> (n.) 活动</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: WORK -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>WORK</h3>
+                        <p>工作 / 劳动</p>
+                        <small>点击翻转 ➜</small>
+                    </div>
+                    <div class="flip-card-back">
+                        <h4>家族成员</h4>
+                        <ul class="word-list">
+                            <li><b>worker</b> (n.) 工人</li>
+                            <li><b>homework</b> (n.) 作业</li>
+                            <li><b>teamwork</b> (n.) 团队合作</li>
+                            <li><b>workplace</b> (n.) 车间</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: VIS/VID -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>VIS / VID</h3>
+                        <p>看</p>
+                        <small>点击翻转 ➜</small>
+                    </div>
+                    <div class="flip-card-back">
+                        <h4>家族成员</h4>
+                        <ul class="word-list">
+                            <li><b>visit</b> (v.) 参观(走去看)</li>
+                            <li><b>video</b> (n.) 视频</li>
+                            <li><b>television</b> (n.) 电视</li>
+                            <li><b>visitor</b> (n.) 游客</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: CARE -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>CARE</h3>
+                        <p>关心 / 在意</p>
+                        <small>点击翻转 ➜</small>
+                    </div>
+                    <div class="flip-card-back">
+                        <h4>家族成员</h4>
+                        <ul class="word-list">
+                            <li><b>careful</b> (adj.) 小心的</li>
+                            <li><b>careless</b> (adj.) 粗心的</li>
+                            <li><b>carefully</b> (adv.) 小心地</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+             <!-- Card 5: PORT -->
+             <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>PORT</h3>
+                        <p>拿 / 运</p>
+                        <small>点击翻转 ➜</small>
+                    </div>
+                    <div class="flip-card-back">
+                        <h4>家族成员</h4>
+                        <ul class="word-list">
+                            <li><b>passport</b> (n.) 护照</li>
+                            <li><b>airport</b> (n.) 机场</li>
+                            <li><b>report</b> (v.) 报告</li>
+                            <li><b>import</b> (v.) 进口</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+             <!-- Card 6: USE -->
+             <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>USE</h3>
+                        <p>使用</p>
+                        <small>点击翻转 ➜</small>
+                    </div>
+                    <div class="flip-card-back">
+                        <h4>家族成员</h4>
+                        <ul class="word-list">
+                            <li><b>useful</b> (adj.) 有用的</li>
+                            <li><b>useless</b> (adj.) 无用的</li>
+                            <li><b>user</b> (n.) 用户</li>
+                            <li><b>used</b> (adj.) 二手的</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Suffix Factory -->
+    <div id="suffixes" class="section">
+        <h2 style="color: var(--secondary);">词缀组装车间</h2>
+        
+        <div class="suffix-row">
+            <div class="equation">
+                <span class="part">Teach</span>
+                <span class="plus">+</span>
+                <span class="part suffix">-er (人)</span>
+                <span class="plus">=</span>
+                <span class="result">Teacher</span>
+            </div>
+            <span class="meaning-tag">老师</span>
+        </div>
+
+        <div class="suffix-row">
+            <div class="equation">
+                <span class="part">Visit</span>
+                <span class="plus">+</span>
+                <span class="part suffix">-or (人)</span>
+                <span class="plus">=</span>
+                <span class="result">Visitor</span>
+            </div>
+            <span class="meaning-tag">参观者</span>
+        </div>
+
+        <div class="suffix-row">
+            <div class="equation">
+                <span class="part">Art</span>
+                <span class="plus">+</span>
+                <span class="part suffix">-ist (专家)</span>
+                <span class="plus">=</span>
+                <span class="result">Artist</span>
+            </div>
+            <span class="meaning-tag">艺术家</span>
+        </div>
+
+        <div class="suffix-row">
+            <div class="equation">
+                <span class="part">Help</span>
+                <span class="plus">+</span>
+                <span class="part suffix">-ful (充满)</span>
+                <span class="plus">=</span>
+                <span class="result">Helpful</span>
+            </div>
+            <span class="meaning-tag">有帮助的</span>
+        </div>
+
+        <div class="suffix-row">
+            <div class="equation">
+                <span class="part">Home</span>
+                <span class="plus">+</span>
+                <span class="part suffix">-less (无)</span>
+                <span class="plus">=</span>
+                <span class="result">Homeless</span>
+            </div>
+            <span class="meaning-tag">无家可归的</span>
+        </div>
+
+        <div class="suffix-row">
+            <div class="equation">
+                <span class="part">Ill</span>
+                <span class="plus">+</span>
+                <span class="part suffix">-ness (名词)</span>
+                <span class="plus">=</span>
+                <span class="result">Illness</span>
+            </div>
+            <span class="meaning-tag">疾病</span>
+        </div>
+
+        <div class="suffix-row">
+            <div class="equation">
+                <span class="part">Develop</span>
+                <span class="plus">+</span>
+                <span class="part suffix">-ment (名词)</span>
+                <span class="plus">=</span>
+                <span class="result">Development</span>
+            </div>
+            <span class="meaning-tag">发展</span>
+        </div>
+
+        <div class="tip-box">
+            💡 <b>小窍门：</b> 考试时看到 <b>-tion, -ment, -ness</b> 结尾的一定是名词；看到 <b>-ful, -less</b> 结尾的一定是形容词！
+        </div>
+    </div>
+
+    <!-- Section 3: Prefix Mirror -->
+    <div id="prefixes" class="section">
+        <h2 style="color: var(--accent);">前缀：意思的反转</h2>
+        <div class="mirror-container">
+            
+            <div class="mirror-box">
+                <h3 style="color: #e74c3c;">un- (不)</h3>
+                <div class="word-pair">
+                    <span class="positive">Happy</span>
+                    <span class="arrow">➜</span>
+                    <span class="negative">Unhappy</span>
+                </div>
+                <div class="word-pair">
+                    <span class="positive">Fair</span>
+                    <span class="arrow">➜</span>
+                    <span class="negative">Unfair</span>
+                </div>
+            </div>
+
+            <div class="mirror-box">
+                <h3 style="color: #e74c3c;">im- (不)</h3>
+                <p style="font-size: 0.8em; color:#888;">(通常用于 m, p, b 开头的词)</p>
+                <div class="word-pair">
+                    <span class="positive">Possible</span>
+                    <span class="arrow">➜</span>
+                    <span class="negative">Impossible</span>
+                </div>
+                <div class="word-pair">
+                    <span class="positive">Polite</span>
+                    <span class="arrow">➜</span>
+                    <span class="negative">Impolite</span>
+                </div>
+            </div>
+
+            <div class="mirror-box">
+                <h3 style="color: #e74c3c;">dis- (分离/不)</h3>
+                <div class="word-pair">
+                    <span class="positive">Like</span>
+                    <span class="arrow">➜</span>
+                    <span class="negative">Dislike</span>
+                </div>
+                <div class="word-pair">
+                    <span class="positive">Cover (盖)</span>
+                    <span class="arrow">➜</span>
+                    <span class="negative">Discover (发现)</span>
+                </div>
+            </div>
+
+            <div class="mirror-box">
+                <h3 style="color: #2ecc71;">re- (再/回)</h3>
+                <div class="word-pair">
+                    <span class="positive">View (看)</span>
+                    <span class="arrow">➜</span>
+                    <span class="positive">Review (复习)</span>
+                </div>
+                <div class="word-pair">
+                    <span class="positive">Turn (转)</span>
+                    <span class="arrow">➜</span>
+                    <span class="positive">Return (返回)</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function showSection(id) {
+        // Hide all sections
+        document.querySelectorAll('.section').forEach(sec => {
+            sec.classList.remove('active');
+        });
+        // Deactivate all buttons
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Show selected section
+        document.getElementById(id).classList.add('active');
+        // Activate selected button
+        event.target.classList.add('active');
+    }
+</script>
+
+</body>
+</html>
