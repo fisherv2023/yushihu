@@ -75,7 +75,7 @@
       }
     }
 
-    /* ==================== 新增 AI 部分 ==================== */
+    /* AI 按钮样式 */
     #aiButton {
       display: block;
       margin: 25px auto;
@@ -100,7 +100,7 @@
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7);
+      background: rgba(0,0,0,0.75);
       z-index: 9999;
       align-items: center;
       justify-content: center;
@@ -109,7 +109,7 @@
       background: white;
       width: 90%;
       max-width: 720px;
-      max-height: 85vh;
+      max-height: 88vh;
       overflow-y: auto;
       border-radius: 12px;
       padding: 25px;
@@ -121,6 +121,12 @@
       margin-bottom: 15px;
       border-bottom: 1px solid #eee;
       padding-bottom: 10px;
+    }
+    #qrCodeArea {
+      margin-top: 25px;
+      text-align: center;
+      padding: 15px;
+      border-top: 1px dashed #ddd;
     }
   </style>
 </head>
@@ -160,7 +166,7 @@
 
   <hr>
 
-  <!-- ==================== AI 按钮放在表格上方 ==================== -->
+  <!-- AI 按钮（放在表格上方） -->
   <button id="aiButton" onclick="showAIModal()">
     🤖 艺小贝AI智能志愿填报
   </button>
@@ -562,16 +568,20 @@
   </footer>
 
 
-  <!-- ==================== AI 弹窗 ==================== -->
+<!-- AI 弹窗 -->
   <div id="aiModal">
     <div id="aiModalContent">
       <div class="modal-header">
         <h2>艺小贝AI智能志愿填报</h2>
-        <button onclick="closeAIModal()" style="font-size:20px; background:none; border:none; cursor:pointer;">×</button>
+        <button onclick="closeAIModal()" style="font-size:24px;background:none;border:none;cursor:pointer;">×</button>
       </div>
-      <div id="aiResult" style="line-height:1.8; font-size:15.5px;"></div>
+      <div id="aiResult" style="line-height:1.75; font-size:15.8px; color:#222;"></div>
+      
+      <!-- 二维码预留区域 -->
+      <div id="qrCodeArea"></div>
+      
       <div style="text-align:center; margin-top:20px;">
-        <button onclick="closeAIModal()" style="padding:10px 25px; background:#666; color:white; border:none; border-radius:6px;">关闭</button>
+        <button onclick="closeAIModal()" style="padding:10px 30px; background:#666; color:white; border:none; border-radius:6px;">关闭</button>
       </div>
     </div>
   </div>
@@ -597,21 +607,21 @@
     document.getElementById('artScore').addEventListener('input', calculateNewScore);
     document.getElementById('inputNewScore').addEventListener('input', calculateRequiredCultureScore);
     document.getElementById('inputArtScore').addEventListener('input', calculateRequiredCultureScore);
-
     calculateNewScore();
 
-    // ==================== 新增 AI 功能 ====================
+    // AI 智能志愿填报
     async function showAIModal() {
       const modal = document.getElementById('aiModal');
       const resultDiv = document.getElementById('aiResult');
       modal.style.display = 'flex';
-      resultDiv.innerHTML = '<p style="color:#0066ff; text-align:center;">正在生成简洁版志愿参考，请稍等...</p>';
+      resultDiv.innerHTML = '<p style="color:#0066ff; text-align:center;">正在生成参考意见，请稍等...</p>';
 
       const culture = document.getElementById('cultureScore').value || '未知';
       const art = document.getElementById('artScore').value || '未知';
       const composite = document.getElementById('newScore').textContent || '未知';
 
-      const prompt = `我是2026年沈阳中考美术生，文化课${culture}分，专业课${art}分，综合分约${composite}分。请用简洁语言给出志愿填报建议：冲刺、稳妥、保底学校及关键策略。`;
+      const prompt = `我是2026年沈阳中考美术生，文化课${culture}分，专业课${art}分，综合分约${composite}分。
+请严格只参考我下面列出的学校（不要出现其他任何学校），用简洁语言给出冲刺、稳妥、保底建议。最后加一段声明：本分析由AI生成，仅供参考，考生和家长需结合最新招生政策和实际情况填报。`;
 
       try {
         const res = await fetch('https://deepseek-volunteer.yuyang918.workers.dev', {
@@ -622,7 +632,7 @@
 
         const data = await res.json();
         if (data.success) {
-          resultDiv.innerHTML = data.content.replace(/\n/g, '<br>');
+          resultDiv.innerHTML = data.content.replace(/\*\*/g, '').replace(/\n/g, '<br>');
         } else {
           resultDiv.innerHTML = `<span style="color:red;">生成失败：${data.error}</span>`;
         }
