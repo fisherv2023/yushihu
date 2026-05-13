@@ -63,7 +63,11 @@
     <input type="number" id="artScore" min="0" max="100" value="80" placeholder="输入专业课分数">
   </div>
   <div class="result"><p>综合分：<span id="newScore">-</span></p></div>
-
+ 
+  <button id="aiButton" onclick="showAIModal()">
+    🤖 艺小贝AI智能志愿填报
+  </button>
+  
   <hr>
 
   <h2>倒推文化课成绩</h2>
@@ -78,10 +82,6 @@
   <div class="result"><p>所需文化课成绩：<span id="requiredCultureScore">-</span></p></div>
 
   <hr>
-
-  <button id="aiButton" onclick="showAIModal()">
-    🤖 艺小贝AI智能志愿填报
-  </button>
 
   <h2 style="text-align: center;">沈阳部分招收美术特长生的高中名单</h2>
   <table>
