@@ -29,7 +29,6 @@
       label, input { flex: 1 0 100%; }
     }
 
-    /* AI按钮 */
     #aiButton {
       display: block; margin: 25px auto; padding: 14px 32px;
       background: linear-gradient(135deg, #0066ff, #00aaee);
@@ -39,7 +38,6 @@
     }
     #aiButton:hover { transform: translateY(-2px); }
 
-    /* 弹窗 */
     #aiModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; }
     #aiModalContent { background: white; width: 90%; max-width: 720px; max-height: 88vh;
@@ -522,7 +520,6 @@
     document.getElementById('inputArtScore').addEventListener('input', calculateRequiredCultureScore);
     calculateNewScore();
 
-    // ==================== AI 志愿填报（已按最新要求优化） ====================
     async function showAIModal() {
       const modal = document.getElementById('aiModal');
       const resultDiv = document.getElementById('aiResult');
@@ -537,6 +534,7 @@
 请严格只使用以下学校进行分析，不要出现任何其他学校：
 东北育才悲鸿美术学校、沈阳市第二十中学和平湾分校、沈阳市第十七中学、沈阳市同泽女子中学、沈阳市第九中学、沈阳实验中学、沈阳市第二十六中学、沈阳市第二十八中学、辽宁省实验中学、沈阳市第二十四中学、沈阳市第十五中学、沈阳市第三十一中学、沈阳市第三十六中学、沈阳市第五十三中学、沈阳市浑南区广全实验学校、沈阳市奉天高级中学、沈阳市私立洪庆中学、沈阳市第一七六中学、沈阳市绿岛学校、沈阳市浑南区高级中学、沈阳市志成中学、沈阳桃源私立高级中学、沈阳矿务局中学、沈阳市第七十六中学、沈阳市翔宇中学、沈阳市中山私立高级中学、沈阳市新北方私立高中、沈阳市辽中区第二高级中学、新民市第一高级中学、沈阳飞跃实验中学、沈阳市崇文中学、沈阳市私立科汇高级中学、汇置万博实验学校、沈阳市新世纪私立中学。
 
+重要规则：有些学校有“文化课提档线（含体育&实验）”，必须先达到该提档线才有资格，再看综合分从高到低录取。没有提档线的学校只看综合分。
 美术生可填5个平行志愿，请按照“冲刺2所、稳妥2所、保底1所”的原则给出具体学校建议。
 用简洁语言输出，只包含以下内容：
 - 冲刺学校（2所）
