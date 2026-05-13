@@ -65,7 +65,7 @@
   <div class="result"><p>综合分：<span id="newScore">-</span></p></div>
  
   <button id="aiButton" onclick="showAIModal()">
-    🤖 艺小贝AI智能志愿填报
+    👩🏻 艺小贝AI智能志愿填报
   </button>
   
   <hr>
@@ -176,22 +176,33 @@ ${schoolsText}
 - 保底学校（1所）
 - 声明：本分析由AI生成，仅供参考，考生和家长需结合最新招生政策和实际情况填报。`;
 
-      try {
-        const res = await fetch('https://deepseek-volunteer.yuyang918.workers.dev', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt })
-        });
-        const data = await res.json();
-        if (data.success) {
-          resultDiv.innerHTML = data.content.replace(/\*\*/g, '').replace(/\n/g, '<br>');
-        } else {
-          resultDiv.innerHTML = `<span style="color:red;">生成失败：${data.error || '未知错误'}</span>`;
-        }
-      } catch (err) {
-        resultDiv.innerHTML = `<span style="color:red;">网络错误，请检查网络后重试</span>`;
-      }
-    }
+try {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
+
+  const res = await fetch('https://deepseek-volunteer.yuyang918.workers.dev', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+    signal: controller.signal
+  });
+
+  clearTimeout(timeoutId);
+
+  const data = await res.json();
+  if (data.success) {
+    resultDiv.innerHTML = data.content
+      .replace(/\*\*/g, '')
+      .replace(/###/g, '')
+      .replace(/##/g, '')
+      .replace(/#/g, '')
+      .replace(/\n/g, '<br>');
+  } else {
+    resultDiv.innerHTML = `<span style="color:red;">生成失败：${data.error || '未知错误'}</span>`;
+  }
+} catch (err) {
+  resultDiv.innerHTML = `<span style="color:red;">请求超时或网络问题，请切换WiFi后重试</span>`;
+}
 
     function closeAIModal() {
       document.getElementById('aiModal').style.display = 'none';
