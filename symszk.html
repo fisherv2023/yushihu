@@ -13,121 +13,40 @@
       background-color: #f9f9f9;
       color: #333;
     }
-    h1 {
-      text-align: center;
-      color: #2c3e50;
-    }
-    .input-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 20px;
-      align-items: center;
-    }
-    label {
-      flex: 1 0 150px;
-    }
-    input {
-      flex: 1 0 200px;
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    .result {
-      font-size: 1.1em;
-      margin: 10px 0;
-      color: #333;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 30px;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: center;
-    }
-    th {
-      background-color: #2c3e50;
-      color: white;
-    }
-    footer {
-      text-align: center;
-      margin-top: 40px;
-      font-size: 0.9rem;
-      color: #aaa;
-    }
-    footer a {
-      text-decoration: none;
-      color: #aaa;
-    }
-    footer a:hover {
-      color: #888;
-    }
+    h1 { text-align: center; color: #2c3e50; }
+    .input-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; }
+    label { flex: 1 0 150px; }
+    input { flex: 1 0 200px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    .result { font-size: 1.1em; margin: 10px 0; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #2c3e50; color: white; }
+    footer { text-align: center; margin-top: 40px; font-size: 0.9rem; color: #aaa; }
+    footer a { text-decoration: none; color: #aaa; }
+    footer a:hover { color: #888; }
     @media (max-width: 600px) {
-      .input-group {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      label, input {
-        flex: 1 0 100%;
-      }
+      .input-group { flex-direction: column; align-items: flex-start; }
+      label, input { flex: 1 0 100%; }
     }
 
-    /* AI 按钮样式 */
+    /* AI按钮 */
     #aiButton {
-      display: block;
-      margin: 25px auto;
-      padding: 14px 32px;
+      display: block; margin: 25px auto; padding: 14px 32px;
       background: linear-gradient(135deg, #0066ff, #00aaee);
-      color: white;
-      font-size: 17px;
-      font-weight: bold;
-      border: none;
-      border-radius: 50px;
-      cursor: pointer;
+      color: white; font-size: 17px; font-weight: bold;
+      border: none; border-radius: 50px; cursor: pointer;
       box-shadow: 0 4px 15px rgba(0,102,255,0.3);
     }
-    #aiButton:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0,102,255,0.4);
-    }
+    #aiButton:hover { transform: translateY(-2px); }
 
-    /* 弹窗样式 */
-    #aiModal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.75);
-      z-index: 9999;
-      align-items: center;
-      justify-content: center;
-    }
-    #aiModalContent {
-      background: white;
-      width: 90%;
-      max-width: 720px;
-      max-height: 88vh;
-      overflow-y: auto;
-      border-radius: 12px;
-      padding: 25px;
-    }
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 10px;
-    }
-    #qrCodeArea {
-      margin-top: 25px;
-      text-align: center;
-      padding: 15px;
-      border-top: 1px dashed #ddd;
-    }
+    /* 弹窗 */
+    #aiModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; }
+    #aiModalContent { background: white; width: 90%; max-width: 720px; max-height: 88vh;
+      overflow-y: auto; border-radius: 12px; padding: 25px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    #qrCodeArea { margin-top: 25px; text-align: center; padding: 15px; border-top: 1px dashed #ddd; }
   </style>
 </head>
 <body>
@@ -145,9 +64,7 @@
     <label for="artScore">专业课成绩（满分100）：</label>
     <input type="number" id="artScore" min="0" max="100" value="80" placeholder="输入专业课分数">
   </div>
-  <div class="result">
-    <p>综合分：<span id="newScore">-</span></p>
-  </div>
+  <div class="result"><p>综合分：<span id="newScore">-</span></p></div>
 
   <hr>
 
@@ -160,13 +77,10 @@
     <label for="inputArtScore">专业课成绩：</label>
     <input type="number" id="inputArtScore" placeholder="输入专业课成绩">
   </div>
-  <div class="result">
-    <p>所需文化课成绩：<span id="requiredCultureScore">-</span></p>
-  </div>
+  <div class="result"><p>所需文化课成绩：<span id="requiredCultureScore">-</span></p></div>
 
   <hr>
 
-  <!-- AI 按钮（放在表格上方） -->
   <button id="aiButton" onclick="showAIModal()">
     🤖 艺小贝AI智能志愿填报
   </button>
@@ -568,7 +482,7 @@
   </footer>
 
 
-<!-- AI 弹窗 -->
+<!-- AI弹窗 -->
   <div id="aiModal">
     <div id="aiModalContent">
       <div class="modal-header">
@@ -577,7 +491,6 @@
       </div>
       <div id="aiResult" style="line-height:1.75; font-size:15.8px; color:#222;"></div>
       
-      <!-- 二维码预留区域 -->
       <div id="qrCodeArea"></div>
       
       <div style="text-align:center; margin-top:20px;">
@@ -609,7 +522,7 @@
     document.getElementById('inputArtScore').addEventListener('input', calculateRequiredCultureScore);
     calculateNewScore();
 
-    // AI 智能志愿填报
+    // ==================== AI 志愿填报（已按最新要求优化） ====================
     async function showAIModal() {
       const modal = document.getElementById('aiModal');
       const resultDiv = document.getElementById('aiResult');
@@ -621,7 +534,15 @@
       const composite = document.getElementById('newScore').textContent || '未知';
 
       const prompt = `我是2026年沈阳中考美术生，文化课${culture}分，专业课${art}分，综合分约${composite}分。
-请严格只参考我下面列出的学校（不要出现其他任何学校），用简洁语言给出冲刺、稳妥、保底建议。最后加一段声明：本分析由AI生成，仅供参考，考生和家长需结合最新招生政策和实际情况填报。`;
+请严格只使用以下学校进行分析，不要出现任何其他学校：
+东北育才悲鸿美术学校、沈阳市第二十中学和平湾分校、沈阳市第十七中学、沈阳市同泽女子中学、沈阳市第九中学、沈阳实验中学、沈阳市第二十六中学、沈阳市第二十八中学、辽宁省实验中学、沈阳市第二十四中学、沈阳市第十五中学、沈阳市第三十一中学、沈阳市第三十六中学、沈阳市第五十三中学、沈阳市浑南区广全实验学校、沈阳市奉天高级中学、沈阳市私立洪庆中学、沈阳市第一七六中学、沈阳市绿岛学校、沈阳市浑南区高级中学、沈阳市志成中学、沈阳桃源私立高级中学、沈阳矿务局中学、沈阳市第七十六中学、沈阳市翔宇中学、沈阳市中山私立高级中学、沈阳市新北方私立高中、沈阳市辽中区第二高级中学、新民市第一高级中学、沈阳飞跃实验中学、沈阳市崇文中学、沈阳市私立科汇高级中学、汇置万博实验学校、沈阳市新世纪私立中学。
+
+美术生可填5个平行志愿，请按照“冲刺2所、稳妥2所、保底1所”的原则给出具体学校建议。
+用简洁语言输出，只包含以下内容：
+- 冲刺学校（2所）
+- 稳妥学校（2所）
+- 保底学校（1所）
+- 声明：本分析由AI生成，仅供参考，考生和家长需结合最新招生政策和实际情况填报。`;
 
       try {
         const res = await fetch('https://deepseek-volunteer.yuyang918.workers.dev', {
@@ -634,10 +555,10 @@
         if (data.success) {
           resultDiv.innerHTML = data.content.replace(/\*\*/g, '').replace(/\n/g, '<br>');
         } else {
-          resultDiv.innerHTML = `<span style="color:red;">生成失败：${data.error}</span>`;
+          resultDiv.innerHTML = `<span style="color:red;">生成失败：${data.error || '未知错误'}</span>`;
         }
       } catch (err) {
-        resultDiv.innerHTML = `<span style="color:red;">网络错误，请稍后再试</span>`;
+        resultDiv.innerHTML = `<span style="color:red;">网络错误，请检查网络后重试</span>`;
       }
     }
 
