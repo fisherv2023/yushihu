@@ -114,15 +114,37 @@ async function showAIModal() {
   const art = document.getElementById('artScore').value || '未知';
   const composite = parseFloat(document.getElementById('newScore').textContent) || 0;
 
-  // ==================== 1. 优先尝试 AI ====================
+  // ==================== 优先尝试 AI ====================
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 18000);
 
+    // 构建严格的 prompt
+    let schoolsText = schoolData.map(s => 
+      `${s.名称}（代号${s.代号}，提档线${s.文化课提档线 || '无'}，最低综合分${s.最低综合分 || '无'}，招生${s.招生人数 || '未知'}人）`
+    ).join('\n');
+
+    const prompt = `我是2026年沈阳中考美术生，文化课${culture}分，专业课${art}分，综合分约${composite}分。
+
+以下是**唯一允许使用的学校列表**（必须严格只从下面选择，不要出现任何其他学校）：
+${schoolsText}
+
+报考规则：
+- 有文化课提档线的学校必须先达到提档线才有资格
+- 优先推荐招生人数多、公办、表格靠前的优质学校
+- 私立学校只作为保底，不重点推荐
+- 美术生可填5个平行志愿，请严格按照“冲刺2所、稳妥2所、保底1所”推荐
+
+用简洁语言输出，只包含以下内容：
+- 冲刺学校（2所）
+- 稳妥学校（2所）
+- 保底学校（1所）
+- 声明：本分析由AI生成，仅供参考，考生和家长需结合最新招生政策和实际情况填报。`;
+
     const res = await fetch('https://yushihu.vercel.app/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: `我是2026年沈阳中考美术生，文化课${culture}分，专业课${art}分，综合分约${composite}分。请按“冲刺2所、稳妥2所、保底1所”给出建议。` }),
+      body: JSON.stringify({ prompt }),
       signal: controller.signal
     });
 
@@ -139,11 +161,11 @@ async function showAIModal() {
       return;
     }
   } catch (err) {
-    console.log("AI超时或失败，切换到本地智能模板");
+    console.log("AI超时，切换到本地模板");
   }
 
-  // ==================== 2. AI失败 → 智能本地模板 ====================
-  resultDiv.innerHTML = `<p style="color:#0066ff;">AI分析超时，已为你生成快速精准参考建议：</p>`;
+  // ==================== 本地智能模板（已优化） ====================
+  resultDiv.innerHTML = `<p style="color:#0066ff;">AI分析超时，已为你生成快速参考建议：</p>`;
 
   let advice = `<strong>综合分约${composite}分 志愿参考：</strong><br><br>`;
 
@@ -162,10 +184,10 @@ async function showAIModal() {
   } else {
     advice += `冲刺（2所）：沈阳市第二十四中学、沈阳市第九中学<br>`;
     advice += `稳妥（2所）：沈阳市第七十六中学、沈阳市第五十三中学<br>`;
-    advice += `保底（1所）：沈阳实验中学 / 沈阳市绿岛学校<br>`;
+    advice += `保底（1所）：沈阳实验中学<br>`;
   }
 
-  advice += `<br><span style="color:#666; font-size:14px;">声明：本分析由AI生成（或本地模板快速生成），仅供参考，考生和家长需结合最新招生政策和实际情况填报。</span>`;
+  advice += `<br><span style="color:#666; font-size:14px;">声明：本分析由AI生成（或本地模板快速生成），仅供参考，请结合最新招生政策和实际情况填报。</span>`;
 
   resultDiv.innerHTML += advice;
 }
