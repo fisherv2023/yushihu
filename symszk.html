@@ -108,7 +108,7 @@
       const modal = document.getElementById('aiModal');
       const resultDiv = document.getElementById('aiResult');
       modal.style.display = 'flex';
-      resultDiv.innerHTML = '<p style="color:#0066ff; text-align:center;">正在生成参考意见，请稍等...</p>';
+      resultDiv.innerHTML = '<p style="color:#0066ff; text-align:center;">正在生成参考意见，请稍等（最长20秒）...</p>';
 
       const culture = document.getElementById('cultureScore').value || '未知';
       const art = document.getElementById('artScore').value || '未知';
@@ -122,7 +122,7 @@
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 18000);
+        const timeoutId = setTimeout(() => controller.abort(), 25000); // 延长到25秒
 
         const res = await fetch('https://deepseek-volunteer.yuyang918.workers.dev', {
           method: 'POST',
@@ -132,8 +132,8 @@
         });
 
         clearTimeout(timeoutId);
-        const data = await res.json();
 
+        const data = await res.json();
         if (data.success) {
           resultDiv.innerHTML = data.content
             .replace(/\*\*/g, '')
@@ -145,7 +145,8 @@
           resultDiv.innerHTML = `<span style="color:red;">生成失败：${data.error || '未知错误'}</span>`;
         }
       } catch (err) {
-        resultDiv.innerHTML = `<span style="color:red;">请求超时或网络问题，请切换WiFi后重试</span>`;
+        console.error(err);
+        resultDiv.innerHTML = `<span style="color:red;">请求超时（移动网络常见），请切换到WiFi后重试，或稍等几分钟再试</span>`;
       }
     }
 
