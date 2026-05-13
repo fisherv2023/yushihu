@@ -108,7 +108,7 @@ async function showAIModal() {
   const modal = document.getElementById('aiModal');
   const resultDiv = document.getElementById('aiResult');
   modal.style.display = 'flex';
-  resultDiv.innerHTML = '<p style="color:#0066ff; text-align:center;">正在尝试AI分析，请稍等...</p>';
+  resultDiv.innerHTML = '<p style="color:#0066ff; text-align:center;">正在尝试使用AI分析，请稍等...</p>';
 
   const culture = document.getElementById('cultureScore').value || '未知';
   const art = document.getElementById('artScore').value || '未知';
@@ -165,29 +165,37 @@ ${schoolsText}
   }
 
   // ==================== 本地智能模板（已优化） ====================
-  resultDiv.innerHTML = `<p style="color:#0066ff;">AI分析超时，已为你生成快速参考建议：</p>`;
+resultDiv.innerHTML = `<p style="color:#0066ff;">AI分析超时（建议用电脑打开网页），为你生成快速参考建议：</p>`;
 
-  let advice = `<strong>综合分约${composite}分 志愿参考：</strong><br><br>`;
+  let advice = `<strong>综合分约${composite}分 志愿参考（冲2稳2保1）：</strong><br><br>`;
 
-  if (composite >= 580) {
+  if (composite >= 590) {
     advice += `冲刺（2所）：东北育才悲鸿美术学校、辽宁省实验中学<br>`;
     advice += `稳妥（2所）：沈阳市第九中学、沈阳市第三十一中学<br>`;
     advice += `保底（1所）：沈阳市第二十四中学<br>`;
+
+  } else if (composite >= 570) {
+    advice += `冲刺（2所）：东北育才悲鸿美术学校、沈阳市第九中学<br>`;
+    advice += `稳妥（2所）：沈阳市第三十一中学、沈阳市第三十六中学<br>`;
+    advice += `保底（1所）：沈阳市第二十四中学<br>`;
+
   } else if (composite >= 550) {
     advice += `冲刺（2所）：沈阳市第九中学、沈阳市第三十六中学<br>`;
     advice += `稳妥（2所）：沈阳市第二十四中学、沈阳市第十五中学<br>`;
     advice += `保底（1所）：沈阳市第五十三中学<br>`;
-  } else if (composite >= 520) {
+
+  } else if (composite >= 530) {
     advice += `冲刺（2所）：沈阳市第二十四中学、沈阳市第七十六中学<br>`;
     advice += `稳妥（2所）：沈阳市浑南区广全实验学校、沈阳市第三十一中学<br>`;
     advice += `保底（1所）：沈阳实验中学<br>`;
+
   } else {
     advice += `冲刺（2所）：沈阳市第二十四中学、沈阳市第九中学<br>`;
     advice += `稳妥（2所）：沈阳市第七十六中学、沈阳市第五十三中学<br>`;
-    advice += `保底（1所）：沈阳实验中学<br>`;
+    advice += `保底（1所）：沈阳实验中学 / 沈阳市绿岛学校<br>`;
   }
 
-  advice += `<br><span style="color:#666; font-size:14px;">声明：本分析由AI生成（或本地模板快速生成），仅供参考，请结合最新招生政策和实际情况填报。</span>`;
+  advice += `<br><span style="color:#666; font-size:14px;">声明：本分析由AI生成（或站内算法快速生成），仅供参考，考生和家长需结合最新招生政策和实际情况填报。</span>`;
 
   resultDiv.innerHTML += advice;
 }
