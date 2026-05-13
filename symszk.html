@@ -5,14 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>2026年沈阳中考美术综合分计算器</title>
   <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      max-width: 800px;
-      margin: 20px auto;
-      padding: 20px;
-      background-color: #f9f9f9;
-      color: #333;
-    }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; background-color: #f9f9f9; color: #333; }
     h1 { text-align: center; color: #2c3e50; }
     .input-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; }
     label { flex: 1 0 150px; }
@@ -24,61 +17,33 @@
     footer { text-align: center; margin-top: 40px; font-size: 0.9rem; color: #aaa; }
     footer a { text-decoration: none; color: #aaa; }
     footer a:hover { color: #888; }
-    @media (max-width: 600px) {
-      .input-group { flex-direction: column; align-items: flex-start; }
-      label, input { flex: 1 0 100%; }
-    }
+    @media (max-width: 600px) { .input-group { flex-direction: column; align-items: flex-start; } label, input { flex: 1 0 100%; } }
 
-    #aiButton {
-      display: block; margin: 25px auto; padding: 14px 32px;
-      background: linear-gradient(135deg, #0066ff, #00aaee);
-      color: white; font-size: 17px; font-weight: bold;
-      border: none; border-radius: 50px; cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0,102,255,0.3);
-    }
+    #aiButton { display: block; margin: 25px auto; padding: 14px 32px; background: linear-gradient(135deg, #0066ff, #00aaee); color: white; font-size: 17px; font-weight: bold; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,102,255,0.3); }
     #aiButton:hover { transform: translateY(-2px); }
 
-    #aiModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; }
-    #aiModalContent { background: white; width: 90%; max-width: 720px; max-height: 88vh;
-      overflow-y: auto; border-radius: 12px; padding: 25px; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    #aiModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; }
+    #aiModalContent { background: white; width: 90%; max-width: 720px; max-height: 88vh; overflow-y: auto; border-radius: 12px; padding: 25px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
     #qrCodeArea { margin-top: 25px; text-align: center; padding: 15px; border-top: 1px dashed #ddd; }
   </style>
 </head>
 <body>
   <h1>2026年沈阳中考美术综合分计算器</h1>
-  <p style="text-align: center; font-size: 1.1rem; color: #666; margin-top: -10px; margin-bottom: 30px;">
-    艺贝少儿美术教育，助力沈阳美术中考！
-  </p>
+  <p style="text-align: center; font-size: 1.1rem; color: #666; margin-top: -10px; margin-bottom: 30px;">艺贝少儿美术教育，助力沈阳美术中考！</p>
 
   <h2>计算综合成绩</h2>
-  <div class="input-group">
-    <label for="cultureScore">文化课成绩（满分790）：</label>
-    <input type="number" id="cultureScore" min="90" max="790" value="650" placeholder="输入文化课分数">
-  </div>
-  <div class="input-group">
-    <label for="artScore">专业课成绩（满分100）：</label>
-    <input type="number" id="artScore" min="0" max="100" value="80" placeholder="输入专业课分数">
-  </div>
+  <div class="input-group"><label for="cultureScore">文化课成绩（满分790）：</label><input type="number" id="cultureScore" min="90" max="790" value="650" placeholder="输入文化课分数"></div>
+  <div class="input-group"><label for="artScore">专业课成绩（满分100）：</label><input type="number" id="artScore" min="0" max="100" value="80" placeholder="输入专业课分数"></div>
   <div class="result"><p>综合分：<span id="newScore">-</span></p></div>
- 
-  <button id="aiButton" onclick="showAIModal()">
-    👩🏻 艺小贝AI智能志愿填报
-  </button>
+
+    <button id="aiButton" onclick="showAIModal()">👩🏻 艺小贝AI智能志愿填报</button>
   
   <hr>
 
   <h2>倒推文化课成绩</h2>
-  <div class="input-group">
-    <label for="inputNewScore">综合分：</label>
-    <input type="number" id="inputNewScore" placeholder="输入综合分">
-  </div>
-  <div class="input-group">
-    <label for="inputArtScore">专业课成绩：</label>
-    <input type="number" id="inputArtScore" placeholder="输入专业课成绩">
-  </div>
+  <div class="input-group"><label for="inputNewScore">综合分：</label><input type="number" id="inputNewScore" placeholder="输入综合分"></div>
+  <div class="input-group"><label for="inputArtScore">专业课成绩：</label><input type="number" id="inputArtScore" placeholder="输入专业课成绩"></div>
   <div class="result"><p>所需文化课成绩：<span id="requiredCultureScore">-</span></p></div>
 
   <hr>
@@ -86,18 +51,9 @@
   <h2 style="text-align: center;">沈阳部分招收美术特长生的高中名单</h2>
   <table>
     <thead>
-      <tr>
-        <th>学校代号</th>
-        <th>学校名称</th>
-        <th>招生人数</th>
-        <th>文化课提档线（含体育&实验）</th>
-        <th>25年最低综合分</th>
-        <th>备注</th>
-      </tr>
+      <tr><th>学校代号</th><th>学校名称</th><th>招生人数</th><th>文化课提档线（含体育&实验）</th><th>25年最低综合分</th><th>备注</th></tr>
     </thead>
-    <tbody id="schoolTableBody">
-      <!-- 表格内容将由JS动态生成 -->
-    </tbody>
+    <tbody id="schoolTableBody"></tbody>
   </table>
 
   <footer>
@@ -122,21 +78,19 @@
   <script>
     let schoolData = [];
 
-    // 加载 schools.json 并同步显示表格
     async function loadSchools() {
       try {
         const res = await fetch('schools.json');
         const data = await res.json();
-        schoolData = data.schools;
+        schoolData = data.schools || [];
 
-        // 动态生成表格
         const tbody = document.getElementById('schoolTableBody');
         tbody.innerHTML = '';
         schoolData.forEach(s => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${s.代号}</td>
-            <td>${s.名称}</td>
+            <td>${s.代号 || ''}</td>
+            <td>${s.名称 || ''}</td>
             <td>${s.招生人数 || ''}</td>
             <td>${s.文化课提档线 || ''}</td>
             <td>${s.最低综合分 || ''}</td>
@@ -146,6 +100,7 @@
         });
       } catch (e) {
         console.error('加载 schools.json 失败', e);
+        document.getElementById('schoolTableBody').innerHTML = '<tr><td colspan="6">学校数据加载失败，请检查 schools.json 文件</td></tr>';
       }
     }
 
@@ -163,52 +118,42 @@
         `${s.名称} | 提档线:${s.文化课提档线 || '无'} | 最低综合分:${s.最低综合分 || '无'} | 备注:${s.备注 || ''}`
       ).join('\n');
 
-      const prompt = `我是2026年沈阳中考美术生，文化课${culture}分，专业课${art}分，综合分约${composite}分。
+      const prompt = `我是2026年沈阳中考美术生，文化课${culture}分，专业课${art}分，综合分约${composite}分。\n以下是最新学校数据（严格只使用以下数据）：\n${schoolsText}\n\n规则：有文化课提档线的学校必须先达到提档线才有资格，再看综合分录取。没有提档线的只看综合分。\n美术生可填5个平行志愿，请按照“冲刺2所、稳妥2所、保底1所”的原则推荐。\n用简洁语言输出，只包含以下内容：\n- 冲刺学校（2所）\n- 稳妥学校（2所）\n- 保底学校（1所）\n- 声明：本分析由AI生成，仅供参考，考生和家长需结合最新招生政策和实际情况填报。`;
 
-以下是最新学校数据（严格只使用以下数据）：
-${schoolsText}
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 18000);
 
-规则：有文化课提档线的学校必须先达到提档线才有资格，再看综合分录取。没有提档线的只看综合分。
-美术生可填5个平行志愿，请按照“冲刺2所、稳妥2所、保底1所”的原则推荐。
-用简洁语言输出，只包含以下内容：
-- 冲刺学校（2所）
-- 稳妥学校（2所）
-- 保底学校（1所）
-- 声明：本分析由AI生成，仅供参考，考生和家长需结合最新招生政策和实际情况填报。`;
+        const res = await fetch('https://deepseek-volunteer.yuyang918.workers.dev', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt }),
+          signal: controller.signal
+        });
 
-try {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
+        clearTimeout(timeoutId);
+        const data = await res.json();
 
-  const res = await fetch('https://deepseek-volunteer.yuyang918.workers.dev', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt }),
-    signal: controller.signal
-  });
-
-  clearTimeout(timeoutId);
-
-  const data = await res.json();
-  if (data.success) {
-    resultDiv.innerHTML = data.content
-      .replace(/\*\*/g, '')
-      .replace(/###/g, '')
-      .replace(/##/g, '')
-      .replace(/#/g, '')
-      .replace(/\n/g, '<br>');
-  } else {
-    resultDiv.innerHTML = `<span style="color:red;">生成失败：${data.error || '未知错误'}</span>`;
-  }
-} catch (err) {
-  resultDiv.innerHTML = `<span style="color:red;">请求超时或网络问题，请切换WiFi后重试</span>`;
-}
+        if (data.success) {
+          resultDiv.innerHTML = data.content
+            .replace(/\*\*/g, '')
+            .replace(/###/g, '')
+            .replace(/##/g, '')
+            .replace(/#/g, '')
+            .replace(/\n/g, '<br>');
+        } else {
+          resultDiv.innerHTML = `<span style="color:red;">生成失败：${data.error || '未知错误'}</span>`;
+        }
+      } catch (err) {
+        resultDiv.innerHTML = `<span style="color:red;">请求超时或网络问题，请切换WiFi后重试</span>`;
+      }
+    }
 
     function closeAIModal() {
       document.getElementById('aiModal').style.display = 'none';
     }
 
-    // 原有计算功能
+    // 计算功能
     function calculateNewScore() {
       const c = parseFloat(document.getElementById('cultureScore').value);
       const a = parseFloat(document.getElementById('artScore').value);
