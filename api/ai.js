@@ -27,8 +27,8 @@ export default async function handler(req, res) {
           { role: "system", content: "你是一位经验丰富的沈阳中考志愿填报专家，回答要简洁、准确、严格按照提供的数据。" },
           { role: "user", content: prompt }
         ],
-        temperature: 0.65,
-        max_tokens: 1200
+        temperature: 0.6,
+        max_tokens: 800
       })
     });
 
