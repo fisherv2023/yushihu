@@ -104,51 +104,60 @@
       }
     }
 
-    async function showAIModal() {
-      const modal = document.getElementById('aiModal');
-      const resultDiv = document.getElementById('aiResult');
-      modal.style.display = 'flex';
-      resultDiv.innerHTML = '<p style="color:#0066ff; text-align:center;">正在生成参考意见，请稍等（最长20秒）...</p>';
+async function showAIModal() {
+  const modal = document.getElementById('aiModal');
+  const resultDiv = document.getElementById('aiResult');
+  modal.style.display = 'flex';
+  resultDiv.innerHTML = '<p style="color:#0066ff; text-align:center;">正在生成简短参考意见，请稍等...</p>';
 
-      const culture = document.getElementById('cultureScore').value || '未知';
-      const art = document.getElementById('artScore').value || '未知';
-      const composite = document.getElementById('newScore').textContent || '未知';
+  const culture = document.getElementById('cultureScore').value || '未知';
+  const art = document.getElementById('artScore').value || '未知';
+  const composite = document.getElementById('newScore').textContent || '未知';
 
-      let schoolsText = schoolData.map(s => 
-        `${s.名称} | 提档线:${s.文化课提档线 || '无'} | 最低综合分:${s.最低综合分 || '无'} | 备注:${s.备注 || ''}`
-      ).join('\n');
+  let schoolsText = schoolData.map(s => 
+    `${s.名称} | 提档:${s.文化课提档线 || '无'} | 综分:${s.最低综合分 || '无'}`
+  ).join('\n');
 
-      const prompt = `我是2026年沈阳中考美术生，文化课${culture}分，专业课${art}分，综合分约${composite}分。\n以下是最新学校数据（严格只使用以下数据）：\n${schoolsText}\n\n规则：有文化课提档线的学校必须先达到提档线才有资格，再看综合分录取。没有提档线的只看综合分。\n美术生可填5个平行志愿，请按照“冲刺2所、稳妥2所、保底1所”的原则推荐。\n用简洁语言输出，只包含以下内容：\n- 冲刺学校（2所）\n- 稳妥学校（2所）\n- 保底学校（1所）\n- 声明：本分析由AI生成，仅供参考，考生和家长需结合最新招生政策和实际情况填报。`;
+  const prompt = `我是2026年沈阳中考美术生，文化课${culture}分，专业课${art}分，综合分约${composite}分。\n以下是学校数据：\n${schoolsText}\n\n请按“冲刺2所、稳妥2所、保底1所”简洁推荐。`;
 
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000); // 延长到25秒
+  let attempts = 0;
+  const maxAttempts = 2;
 
-          const res = await fetch('https://yushihu.vercel.app/api/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt }),
-          signal: controller.signal
-        });
+  while (attempts < maxAttempts) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-        clearTimeout(timeoutId);
+      const res = await fetch('https://yushihu.vercel.app/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+        signal: controller.signal
+      });
 
-        const data = await res.json();
-        if (data.success) {
-          resultDiv.innerHTML = data.content
-            .replace(/\*\*/g, '')
-            .replace(/###/g, '')
-            .replace(/##/g, '')
-            .replace(/#/g, '')
-            .replace(/\n/g, '<br>');
-        } else {
-          resultDiv.innerHTML = `<span style="color:red;">生成失败：${data.error || '未知错误'}</span>`;
-        }
-      } catch (err) {
-        console.error(err);
-        resultDiv.innerHTML = `<span style="color:red;">请求超时（移动网络常见），请切换到WiFi后重试，或稍等几分钟再试</span>`;
+      clearTimeout(timeoutId);
+      const data = await res.json();
+
+      if (data.success) {
+        resultDiv.innerHTML = data.content
+          .replace(/\*\*/g, '')
+          .replace(/###/g, '')
+          .replace(/##/g, '')
+          .replace(/#/g, '')
+          .replace(/\n/g, '<br>');
+        return;
+      }
+    } catch (err) {
+      attempts++;
+      if (attempts < maxAttempts) {
+        resultDiv.innerHTML = `<p style="color:#0066ff;">网络不稳定，正在重试第${attempts}次...</p>`;
+        await new Promise(r => setTimeout(r, 2000));
+      } else {
+        resultDiv.innerHTML = `<span style="color:red;">移动网络不稳定，请切换WiFi后重试</span>`;
       }
     }
+  }
+}
 
     function closeAIModal() {
       document.getElementById('aiModal').style.display = 'none';
