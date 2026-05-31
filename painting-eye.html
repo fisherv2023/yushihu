@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>画眼 - Painting Eye</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#111;color:#fff;font-family:-apple-system,sans-serif;overflow:hidden;touch-action:none;user-select:none}
+canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh}
+.top-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;position:fixed;top:0;left:0;right:0;z-index:10;pointer-events:none}
+.top-bar span{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:6px;padding:3px 8px}
+.ml{font-size:18px;font-weight:600;letter-spacing:.04em;background:rgba(0,0,0,.35)}
+.sub{opacity:.5;font-size:12px}
+.cap{width:64px;height:64px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;display:flex;align-items:center;justify-content:center;position:fixed;bottom:40px;left:50%;transform:translateX(-50%);z-index:20}
+.cap::after{content:'';width:54px;height:54px;border-radius:50%;background:#fff}
+.ctrls{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:20;display:none;gap:24px}
+.ctrl{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer}
+.chips{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:5px;overflow-x:auto;padding:0 8px;max-width:100vw;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{padding:5px 12px;border-radius:18px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-size:12px;white-space:nowrap;cursor:pointer;transition:.15s}
+.chip.on{background:#fff;color:#111;border-color:#fff}
+.badge{position:fixed;top:50%;right:10px;transform:translateY(-50%);z-index:10;padding:4px 9px;border-radius:10px;background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;font-variant-numeric:tabular-nums;display:none}
+.hint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;opacity:.6;text-align:center;pointer-events:none;z-index:30;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="top-bar"><span class="ml" id="ml">BLUR 模糊</span><span class="sub">画眼</span></div>
+<div class="badge" id="bd">4</div>
+<div class="hint" id="hint">轻触下方按钮拍照<br>↑↓ 切换效果  ←→ 调节强度</div>
+<div class="ctrls" id="ctrls"><div class="ctrl" onclick="retake()">📷</div><div class="ctrl" onclick="save()">💾</div></div>
+<div class="cap" id="cap" onclick="snap()"></div>
+<div class="chips" id="chips">
+  <div class="chip on" data-m="0">模糊</div>
+  <div class="chip" data-m="1">马赛克</div>
+  <div class="chip" data-m="2">色块</div>
+  <div class="chip" data-m="3">灰度</div>
+  <div class="chip" data-m="4">原图</div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+let mode=0, level=4, videoTex, canvasTex, vid;
+const MODE_NAMES=['BLUR 模糊','MOSAIC 马赛克','POSTER 色块','GRAY 灰度','ORIGINAL 原图'];
+const canvas=document.getElementById('c');
+const ml=document.getElementById('ml');
+const bd=document.getElementById('bd');
+const hint=document.getElementById('hint');
+const ctrls=document.getElementById('ctrls');
+const cap=document.getElementById('cap');
+const chips=document.querySelectorAll('.chip');
+
+const renderer=new THREE.WebGLRenderer({canvas});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth,window.innerHeight);
+const scene=new THREE.Scene();
+const cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+
+const u={
+  tDiffuse:{value:null},
+  uMode:{value:0},
+  uLevel:{value:4},
+  uRes:{value:new THREE.Vector2(window.innerWidth,window.innerHeight)},
+};
+
+const mat=new THREE.ShaderMaterial({uniforms:u,
+  vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`
+    uniform sampler2D tDiffuse;uniform int uMode;uniform float uLevel;uniform vec2 uRes;
+    varying vec2 v;
+    vec4 blur(sampler2D t,vec2 uv,float r){vec4 c=vec4(0);float s=0.;int R=int(r*12.);for(int x=-12;x<=12;x++)for(int y=-12;y<=12;y++){if(abs(x)+abs(y)>R)continue;c+=texture2D(t,uv+vec2(x,y)/uRes);s+=1.;}return c/s;}
+    vec4 mosaic(sampler2D t,vec2 uv,float r){float g=max(2.,2.+r*40.);vec2 q=floor(uv*g*vec2(uRes.x/uRes.y,1.))/(g*vec2(uRes.x/uRes.y,1.));return texture2D(t,q);}
+    vec4 poster(sampler2D t,vec2 uv,float r){
+      // First apply light blur to reduce sensor noise
+      vec4 c=vec4(0);float s=0.;int R=2;for(int x=-2;x<=2;x++)for(int y=-2;y<=2;y++){c+=texture2D(t,uv+vec2(x,y)/uRes);s+=1.;}c/=s;
+      // Quantize to flat color bands
+      float lv=max(2.,floor(2.+r*1.5));
+      c.rgb=floor(c.rgb*lv+.5)/lv;
+      return c;
+    }
+    vec4 gray(sampler2D t,vec2 uv,float r){vec4 c=texture2D(t,uv);float g=dot(c.rgb,vec3(.299,.587,.114));return mix(c,vec4(vec3(g),c.a),clamp(r/10.,0.,1.));}
+    vec4 original(sampler2D t,vec2 uv,float r){return texture2D(t,uv);}
+    void main(){
+      vec4 col;
+      if(uMode==0)col=blur(tDiffuse,v,uLevel);
+      else if(uMode==1)col=mosaic(tDiffuse,v,uLevel);
+      else if(uMode==2)col=poster(tDiffuse,v,uLevel);
+      else if(uMode==3)col=gray(tDiffuse,v,uLevel);
+      else col=original(tDiffuse,v,uLevel);
+      gl_FragColor=col;
+    }`
+});
+scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),mat));
+
+const dc=document.createElement('canvas');dc.width=2;dc.height=2;
+dc.getContext('2d').fillStyle='#1a1a1a';dc.getContext('2d').fillRect(0,0,2,2);
+u.tDiffuse.value=new THREE.CanvasTexture(dc);
+
+function render(){u.uMode.value=mode;u.uLevel.value=level;renderer.render(scene,cam);requestAnimationFrame(render);}
+render();
+
+function updateUI(){ml.textContent=MODE_NAMES[mode];chips.forEach((c,i)=>c.classList.toggle('on',i===mode));bd.textContent=level;}
+
+async function startCam(){
+  const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}});
+  vid=document.createElement('video');vid.srcObject=s;vid.playsInline=true;await vid.play();
+  videoTex=new THREE.VideoTexture(vid);videoTex.colorSpace=THREE.SRGBColorSpace;
+  u.tDiffuse.value=videoTex;hint.style.display='block';
+}
+startCam();
+
+window.snap=function(){
+  if(!vid)return;
+  const w=vid.videoWidth||window.innerWidth,h=vid.videoHeight||window.innerHeight;
+  const tc=document.createElement('canvas');tc.width=w;tc.height=h;
+  tc.getContext('2d').drawImage(vid,0,0,w,h);
+  canvasTex=new THREE.CanvasTexture(tc);canvasTex.colorSpace=THREE.SRGBColorSpace;
+  u.tDiffuse.value=canvasTex;
+  cap.style.display='none';ctrls.style.display='flex';bd.style.display='block';hint.style.display='none';
+};
+
+window.retake=function(){
+  if(videoTex)u.tDiffuse.value=videoTex;
+  cap.style.display='flex';ctrls.style.display='none';bd.style.display='none';hint.style.display='block';
+};
+
+window.save=function(){
+  let pm=mode;mode=4;renderer.render(scene,cam);mode=pm;
+  renderer.render(scene,cam);
+  const a=document.createElement('a');a.download='painting-eye.png';
+  a.href=renderer.domElement.toDataURL();a.click();
+};
+
+// touch
+let sy=0,sx=0;
+document.addEventListener('touchstart',e=>{sy=e.touches[0].clientY;sx=e.touches[0].clientX;},{passive:true});
+document.addEventListener('touchend',e=>{
+  const dy=sy-e.changedTouches[0].clientY,dx=sx-e.changedTouches[0].clientX;
+  if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>30){mode=(mode+(dy>0?1:-1)+5)%5;updateUI();}
+  else if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>20){level=Math.max(1,Math.min(10,level+(dx>0?1:-1)));updateUI();}
+});
+
+chips.forEach(c=>c.addEventListener('click',()=>{mode=+c.dataset.m;updateUI();}));
+
+// keyboard
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowUp'){mode=(mode+4)%5;updateUI();}
+  if(e.key==='ArrowDown'){mode=(mode+1)%5;updateUI();}
+  if(e.key==='ArrowLeft'){level=Math.max(1,level-1);updateUI();}
+  if(e.key==='ArrowRight'){level=Math.min(10,level+1);updateUI();}
+  if(e.key===' '){e.preventDefault();snap();}
+  if(e.key==='r')retake();
+  if(e.key==='s')save();
+});
+
+window.addEventListener('resize',()=>{renderer.setSize(window.innerWidth,window.innerHeight);u.uRes.value.set(window.innerWidth,window.innerHeight);});
+updateUI();
+</script>
+</body>
+</html>
