@@ -45,12 +45,8 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh}
   <div class="desc">画眼需要使用相机来<br>辅助观察绘画对象</div>
   <button class="btn" id="permBtn">开启相机</button>
   <div class="help" id="permHelp" style="display:none">
-    相机权限被拒绝<br><br>
-    <b>iOS / Safari</b><br>
-    设置 → Safari → 相机 → 允许<br><br>
-    <b>Android / Chrome</b><br>
-    设置 → 应用 → Chrome → 权限 → 相机<br><br>
-    <a href="javascript:location.reload()">设置后点此刷新</a>
+    <div id="permGuide"></div>
+    <p style="margin-top:16px"><a href="javascript:location.reload()">设置后点此刷新</a></p>
   </div>
 </div>
 
@@ -135,6 +131,30 @@ render();
 
 function updateUI(){ml.textContent=MODE_NAMES[mode];chips.forEach((c,i)=>c.classList.toggle('on',i===mode));bd.textContent=level;}
 
+// ── 相机权限引导（自动检测浏览器/系统）──
+function detectEnv(){
+  const ua=navigator.userAgent;
+  let os='',browser='',safari='';
+  if(/iPhone|iPad|iPod/.test(ua)){os='iOS';safari=!navigator.standalone&&!window.MSStream&&/Safari/.test(ua)&&!/CriOS|FxiOS|OPiOS|mercury/.test(ua);
+  }else if(/Android/.test(ua))os='Android';else os='电脑';
+  if(/Firefox|FxiOS/.test(ua))browser='Firefox';else if(/Edg/.test(ua))browser='Edge';
+  else if(/OPR|Opera/.test(ua))browser='Opera';else if(/CriOS/.test(ua))browser='Chrome(iOS)';
+  else if(/Chrome/.test(ua)&&!/Edg/.test(ua))browser='Chrome';else if(safari)browser='Safari';
+  else browser='浏览器';
+  const guide=document.getElementById('permGuide');
+  if(os==='iOS'){
+    if(browser==='Safari'){
+      guide.innerHTML='<b>设置 → App → Safari</b><br>找到「相机」→ 选择「允许」';
+    }else{
+      guide.innerHTML='<b>设置 → '+browser+'</b><br>找到「相机」权限并开启';
+    }
+    guide.innerHTML+='<br><br>也可：设置 → 隐私与安全性 → 相机<br>开启「'+browser+'」的开关';
+  }else if(os==='Android'){
+    guide.innerHTML='<b>设置 → 应用 → '+browser+'</b><br>权限 → 相机 → 允许';
+  }else{
+    guide.innerHTML='请检查浏览器是否允许访问摄像头<br>通常在地址栏左侧有权限图标';
+  }
+}
 // ── 相机启动（需用户手势触发）──
 async function startCamera(){
   try{
@@ -152,6 +172,7 @@ async function startCamera(){
     hint.style.display='block';
   }catch(e){
     console.error(e);
+    detectEnv();
     permHelp.style.display='block';
     permBtn.textContent='重新尝试';
   }
