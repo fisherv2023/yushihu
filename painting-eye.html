@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>画眼 - Painting Eye</title>
@@ -23,14 +23,40 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh}
 .chip{padding:5px 12px;border-radius:18px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-size:12px;white-space:nowrap;cursor:pointer;transition:.15s}
 .chip.on{background:#fff;color:#111;border-color:#fff}
 .badge{position:fixed;top:50%;right:10px;transform:translateY(-50%);z-index:10;padding:4px 9px;border-radius:10px;background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;font-variant-numeric:tabular-nums;display:none}
+/* Permission overlay */
+.overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);pointer-events:all}
+.overlay .icon{font-size:64px;margin-bottom:20px}
+.overlay .title{font-size:20px;font-weight:600;margin-bottom:8px}
+.overlay .desc{font-size:14px;opacity:.6;margin-bottom:24px;text-align:center;line-height:1.6}
+.overlay .btn{display:inline-block;padding:14px 40px;border-radius:26px;border:none;background:#fff;color:#111;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:20px}
+.overlay .btn:hover{opacity:.9}
+.overlay .help{font-size:12px;opacity:.4;text-align:center;line-height:1.8}
+.overlay .help a{color:#6ab;text-decoration:none}
 .hint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;opacity:.6;text-align:center;pointer-events:none;z-index:30;text-shadow:0 1px 4px rgba(0,0,0,.8)}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+
+<!-- 相机权限引导 -->
+<div class="overlay" id="permOverlay">
+  <div class="icon">📷</div>
+  <div class="title">需要相机权限</div>
+  <div class="desc">画眼需要使用相机来<br>辅助观察绘画对象</div>
+  <button class="btn" id="permBtn">开启相机</button>
+  <div class="help" id="permHelp" style="display:none">
+    相机权限被拒绝<br><br>
+    <b>iOS / Safari</b><br>
+    设置 → Safari → 相机 → 允许<br><br>
+    <b>Android / Chrome</b><br>
+    设置 → 应用 → Chrome → 权限 → 相机<br><br>
+    <a href="javascript:location.reload()">设置后点此刷新</a>
+  </div>
+</div>
+
 <div class="top-bar"><span class="ml" id="ml">BLUR 模糊</span><span class="sub">画眼</span></div>
 <div class="badge" id="bd">4</div>
-<div class="hint" id="hint">轻触下方按钮拍照<br>↑↓ 切换效果  ←→ 调节强度</div>
+<div class="hint" id="hint" style="display:none">轻触下方按钮拍照<br>↑↓ 切换效果  ←→ 调节强度</div>
 <div class="ctrls" id="ctrls"><div class="ctrl" onclick="retake()">📷</div><div class="ctrl" onclick="save()">💾</div></div>
 <div class="cap" id="cap" onclick="snap()"></div>
 <div class="chips" id="chips">
@@ -56,8 +82,11 @@ const hint=document.getElementById('hint');
 const ctrls=document.getElementById('ctrls');
 const cap=document.getElementById('cap');
 const chips=document.querySelectorAll('.chip');
+const permOverlay=document.getElementById('permOverlay');
+const permBtn=document.getElementById('permBtn');
+const permHelp=document.getElementById('permHelp');
 
-const renderer=new THREE.WebGLRenderer({canvas});
+const renderer=new THREE.WebGLRenderer({canvas,preserveDrawingBuffer:true});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
 renderer.setSize(window.innerWidth,window.innerHeight);
 const scene=new THREE.Scene();
@@ -78,9 +107,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
     vec4 blur(sampler2D t,vec2 uv,float r){vec4 c=vec4(0);float s=0.;int R=int(r*12.);for(int x=-12;x<=12;x++)for(int y=-12;y<=12;y++){if(abs(x)+abs(y)>R)continue;c+=texture2D(t,uv+vec2(x,y)/uRes);s+=1.;}return c/s;}
     vec4 mosaic(sampler2D t,vec2 uv,float r){float g=max(2.,2.+r*40.);vec2 q=floor(uv*g*vec2(uRes.x/uRes.y,1.))/(g*vec2(uRes.x/uRes.y,1.));return texture2D(t,q);}
     vec4 poster(sampler2D t,vec2 uv,float r){
-      // First apply light blur to reduce sensor noise
       vec4 c=vec4(0);float s=0.;int R=2;for(int x=-2;x<=2;x++)for(int y=-2;y<=2;y++){c+=texture2D(t,uv+vec2(x,y)/uRes);s+=1.;}c/=s;
-      // Quantize to flat color bands
       float lv=max(2.,floor(2.+r*1.5));
       c.rgb=floor(c.rgb*lv+.5)/lv;
       return c;
@@ -108,14 +135,37 @@ render();
 
 function updateUI(){ml.textContent=MODE_NAMES[mode];chips.forEach((c,i)=>c.classList.toggle('on',i===mode));bd.textContent=level;}
 
-async function startCam(){
-  const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}});
-  vid=document.createElement('video');vid.srcObject=s;vid.playsInline=true;await vid.play();
-  videoTex=new THREE.VideoTexture(vid);videoTex.colorSpace=THREE.SRGBColorSpace;
-  u.tDiffuse.value=videoTex;hint.style.display='block';
+// ── 相机启动（需用户手势触发）──
+async function startCamera(){
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}});
+    vid=document.createElement('video');
+    vid.srcObject=s;
+    vid.setAttribute('playsinline','');
+    vid.setAttribute('webkit-playsinline','');
+    vid.muted=true;
+    await vid.play();
+    videoTex=new THREE.VideoTexture(vid);
+    videoTex.colorSpace=THREE.SRGBColorSpace;
+    u.tDiffuse.value=videoTex;
+    permOverlay.style.display='none';
+    hint.style.display='block';
+  }catch(e){
+    console.error(e);
+    permHelp.style.display='block';
+    permBtn.textContent='重新尝试';
+  }
 }
-startCam();
 
+// 点击"开启相机"按钮
+permBtn.addEventListener('click',startCamera);
+
+// 也尝试自动启动（桌面浏览器可能不需要手势）
+if(!('ontouchstart' in window)){
+  setTimeout(startCamera,500);
+}
+
+// ── snap/retake/save ──
 window.snap=function(){
   if(!vid)return;
   const w=vid.videoWidth||window.innerWidth,h=vid.videoHeight||window.innerHeight;
@@ -138,7 +188,7 @@ window.save=function(){
   a.href=renderer.domElement.toDataURL();a.click();
 };
 
-// touch
+// ── touch gestures ──
 let sy=0,sx=0;
 document.addEventListener('touchstart',e=>{sy=e.touches[0].clientY;sx=e.touches[0].clientX;},{passive:true});
 document.addEventListener('touchend',e=>{
@@ -149,7 +199,6 @@ document.addEventListener('touchend',e=>{
 
 chips.forEach(c=>c.addEventListener('click',()=>{mode=+c.dataset.m;updateUI();}));
 
-// keyboard
 document.addEventListener('keydown',e=>{
   if(e.key==='ArrowUp'){mode=(mode+4)%5;updateUI();}
   if(e.key==='ArrowDown'){mode=(mode+1)%5;updateUI();}
