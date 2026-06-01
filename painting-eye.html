@@ -3,171 +3,144 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>画眼 - Painting Eye</title>
+<title>画眼</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;color:#fff;font-family:-apple-system,sans-serif;overflow:hidden;touch-action:manipulation;user-select:none}
-canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1}
-.top{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;pointer-events:none}
-.top .ml{font-size:15px;font-weight:600;letter-spacing:.03em;text-shadow:0 1px 3px rgba(0,0,0,.5)}
-.top .sub{font-size:15px;font-weight:400;opacity:.75;text-shadow:0 1px 3px rgba(0,0,0,.5)}
-.slider-panel{position:fixed;top:12vh;right:4px;bottom:20vh;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;pointer-events:all}
-.slider-panel.show{display:flex}
-.slider-panel .s-label{font-size:10px;opacity:.4;writing-mode:vertical-rl;letter-spacing:.3em}
-.slider-panel input[type=range]{-webkit-appearance:none;appearance:none;width:min(45vh,240px);height:4px;border-radius:2px;background:rgba(255,255,255,.22);outline:none;writing-mode:bt-lr;direction:rtl;transform:rotate(-90deg);transform-origin:center center}
-.slider-panel input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,.15);box-shadow:0 0 8px rgba(0,0,0,.25)}
-.slider-panel .s-val{font-size:12px;font-variant-numeric:tabular-nums;opacity:.75}
-.bottom{position:fixed;bottom:18px;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:center;gap:0;padding:0 12px}
-.menu{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:4px 0;max-width:calc(50vw - 48px);flex-shrink:1}
-.menu::-webkit-scrollbar{display:none}
-.menu-item{padding:5px 11px;border-radius:18px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.45);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font-size:11px;white-space:nowrap;cursor:pointer;transition:.15s;flex-shrink:0;pointer-events:all}
-.menu-item.on{background:#fff;color:#111;border-color:#fff}
-.menu-item.native{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.08)}
-.cap-btn{width:54px;height:54px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin:0 6px;z-index:21;pointer-events:all}
-.cap-btn::after{content:'';width:44px;height:44px;border-radius:50%;background:#fff}
-.aux-btns{display:none;gap:16px}
-.aux-btns.show{display:flex}
-.aux-btn{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;pointer-events:all;opacity:.5;transition:.2s}
-.aux-btn.active{opacity:1;border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.15)}
-.action-row{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:20;display:none;gap:18px}
-.action-row.show{display:flex}
-.action-btn{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;pointer-events:all}
-.grid-overlay{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}
-.grid-overlay.show{display:block}
-.grid-line{position:absolute;background:rgba(255,255,255,.12)}
-.grid-line.h{left:0;right:0;height:1px}
-.grid-line.v{top:0;bottom:0;width:1px}
-.frame-overlay{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}
-.frame-overlay.show{display:block}
-.frame-overlay .f-mask{position:absolute;inset:0;background:rgba(0,0,0,.4);-webkit-mask:radial-gradient(ellipse 28% 42% at 50% 50%,transparent 100%,#000 100%);mask:radial-gradient(ellipse 28% 42% at 50% 50%,transparent 100%,#000 100%)}
-.frame-overlay .f-border{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-.frame-overlay .f-border::after{content:'';width:60%;aspect-ratio:3/4;border:1px solid rgba(255,255,255,.3);border-radius:2px}
-.perm-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.perm-overlay .icon{font-size:54px;margin-bottom:20px}
-.perm-overlay .title{font-size:20px;font-weight:600;margin-bottom:8px}
-.perm-overlay .desc{font-size:14px;opacity:.6;margin-bottom:24px;text-align:center;line-height:1.6}
-.perm-overlay .btn{display:inline-block;padding:14px 40px;border-radius:26px;border:none;background:#fff;color:#111;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:20px}
-.perm-overlay .help{font-size:12px;opacity:.4;text-align:center;line-height:1.8;display:none}
-.perm-overlay .help a{color:#6ab;text-decoration:none}
-.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:50;padding:10px 20px;border-radius:12px;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:14px;display:none;animation:fade 2s forwards}
-@keyframes fade{0%,70%{opacity:1}100%{opacity:0}}
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#000; color:#fff; font-family:-apple-system,sans-serif; overflow:hidden; touch-action:manipulation; }
+  canvas { display:block; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:1; }
+
+  .top { position:fixed; top:0; left:0; right:0; z-index:10; padding:12px 16px; display:flex; justify-content:space-between; pointer-events:none; }
+  .top .ml { font-size:15px; font-weight:600; letter-spacing:0.02em; text-shadow:0 1px 3px rgba(0,0,0,.5); }
+
+  /* 模式选择器 */
+  .mode-selector { position:fixed; bottom:20px; left:16px; z-index:20; }
+  .mode-current { padding:8px 16px; border-radius:20px; border:1px solid rgba(255,255,255,.25); background:rgba(0,0,0,.45); backdrop-filter:blur(12px); font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; }
+  .mode-current .arrow { font-size:10px; opacity:.6; transition:transform .2s; }
+  .mode-current.open .arrow { transform:rotate(180deg); }
+  .mode-menu { position:absolute; bottom:48px; left:0; background:rgba(0,0,0,.6); backdrop-filter:blur(12px); border-radius:12px; border:1px solid rgba(255,255,255,.15); padding:4px; display:none; min-width:100px; }
+  .mode-menu.show { display:block; }
+  .mode-option { padding:8px 14px; font-size:13px; border-radius:8px; cursor:pointer; }
+  .mode-option:hover { background:rgba(255,255,255,.1); }
+  .mode-option.active { background:rgba(255,255,255,.15); }
+
+  /* 右侧滑杆 */
+  .slider-panel { position:fixed; top:15vh; right:6px; bottom:22vh; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; }
+  .slider-label { font-size:11px; opacity:.5; writing-mode:vertical-rl; letter-spacing:1px; }
+  .slider { -webkit-appearance:none; width:min(42vh,220px); height:4px; border-radius:3px; background:rgba(255,255,255,.22); writing-mode:bt-lr; transform:rotate(-90deg); transform-origin:center; }
+  .slider::-webkit-slider-thumb { -webkit-appearance:none; width:28px; height:28px; border-radius:50%; background:#fff; border:2px solid rgba(0,0,0,.2); }
+  .slider-value { font-size:12px; font-variant-numeric:tabular-nums; opacity:.75; }
+
+  /* 辅助工具 */
+  .aux-tools { position:fixed; bottom:22vh; right:10px; z-index:20; display:flex; flex-direction:column; gap:8px; }
+  .aux-btn { width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.2); background:rgba(0,0,0,.4); backdrop-filter:blur(10px); display:flex; align-items:center;justify-content:center; font-size:13px; cursor:pointer; opacity:.6; transition:.2s; }
+  .aux-btn.active { opacity:1; border-color:rgba(255,255,255,.5); }
+
+  /* 拍照按钮 */
+  .cap-btn { width:56px; height:56px; border-radius:50%; border:3px solid #fff; background:rgba(255,255,255,.2); backdrop-filter:blur(10px); position:fixed; bottom:36px; left:50%; transform:translateX(-50%); z-index:30; cursor:pointer; }
+  .cap-btn::after { content:''; width:44px; height:44px; border-radius:50%; background:#fff; }
+
+  /* 拍照后操作 */
+  .action-bar { position:fixed; bottom:100px; left:50%; transform:translateX(-50%); z-index:30; display:none; gap:16px; }
+  .action-bar.show { display:flex; }
+  .action-btn { padding:8px 20px; border-radius:22px; border:1px solid rgba(255,255,255,.3); background:rgba(0,0,0,.45); backdrop-filter:blur(10px); font-size:14px; cursor:pointer; }
 </style>
 </head>
 <body>
+
 <canvas id="c"></canvas>
 
-<div class="perm-overlay" id="perm">
-  <div class="icon">📷</div>
-  <div class="title">需要相机权限</div>
-  <div class="desc">画眼需要使用相机来<br>辅助观察绘画对象</div>
-  <button class="btn" id="permBtn">开启相机</button>
-  <div class="help" id="permHelp"><div id="permGuide"></div><p style="margin-top:16px"><a href="javascript:location.reload()">设置后点此刷新</a></p></div>
+<div class="top">
+  <span class="ml" id="modeLabel">模糊</span>
+  <span style="opacity:.6">画眼</span>
 </div>
 
-<div class="grid-overlay" id="grid"><div class="grid-line h" style="top:33.33%"></div><div class="grid-line h" style="top:66.66%"></div><div class="grid-line v" style="left:33.33%"></div><div class="grid-line v" style="left:66.66%"></div></div>
-<div class="frame-overlay" id="frame"><div class="f-mask"></div><div class="f-border"></div></div>
-<div class="top"><span class="ml" id="ml">BLUR</span><span class="sub">画眼</span></div>
+<!-- 模式选择器 -->
+<div class="mode-selector" id="modeSelector">
+  <div class="mode-current" id="modeCurrent">
+    <span id="currentModeText">模糊</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="mode-menu" id="modeMenu">
+    <div class="mode-option" data-mode="0">模糊</div>
+    <div class="mode-option" data-mode="1">马赛克</div>
+    <div class="mode-option" data-mode="2">色块</div>
+    <div class="mode-option" data-mode="3">灰度</div>
+    <div class="mode-option" data-mode="4">原图</div>
+  </div>
+</div>
 
+<!-- 右侧滑杆 -->
 <div class="slider-panel" id="sliderPanel">
-  <span class="s-label" id="sLabel">强度</span>
-  <input type="range" id="slider" min="1" max="10" value="4" oninput="onSlider()">
-  <span class="s-val" id="sliderVal">4</span>
+  <span class="slider-label" id="sliderLabel">强度</span>
+  <input type="range" class="slider" id="slider" min="1" max="10" value="4" oninput="updateLevel()">
+  <span class="slider-value" id="sliderValue">4</span>
 </div>
 
-<div class="toast" id="toast"></div>
-
-<div class="action-row" id="actionRow">
-  <div class="action-btn" onclick="retake()">📷</div>
-  <div class="action-btn" onclick="save()">💾</div>
+<!-- 辅助工具 -->
+<div class="aux-tools">
+  <div class="aux-btn" id="gridBtn" onclick="toggleGrid()" title="三等分线">▦</div>
+  <div class="aux-btn" id="frameBtn" onclick="toggleFrame()" title="3:4取景框">⬜</div>
 </div>
 
-<div class="bottom">
-  <div class="menu" id="modeMenu">
-    <div class="menu-item on" data-m="0">模糊</div>
-    <div class="menu-item" data-m="1">马赛克</div>
-    <div class="menu-item" data-m="2">色块</div>
-    <div class="menu-item" data-m="3">灰度</div>
-    <div class="menu-item native" data-m="4">原图</div>
-  </div>
-  <div class="cap-btn" id="cap" onclick="snap()" style="display:none"></div>
-  <div class="aux-btns" id="auxBtns">
-    <div class="aux-btn" id="gridBtn" onclick="toggleGrid()" title="三等分线">▦</div>
-    <div class="aux-btn" id="frameBtn" onclick="toggleFrame()" title="3:4取景框">⬜</div>
-  </div>
+<!-- 拍照按钮 -->
+<div class="cap-btn" id="capBtn" onclick="capture()"></div>
+
+<!-- 拍照后操作 -->
+<div class="action-bar" id="actionBar">
+  <div class="action-btn" onclick="retake()">重拍</div>
+  <div class="action-btn" onclick="save()">保存</div>
 </div>
 
 <script type="importmap">
 {"imports":{"three":"https://unpkg.com/three@0.160/build/three.module.js"}}
 </script>
+
 <script type="module">
 import * as THREE from 'three';
 
-let mode=0, level=4, videoTex, canvasTex, vid, gridOn=false, frameOn=false;
-const MODE_NAMES=['BLUR','MOSAIC','POSTER','GRAY','ORIGINAL'];
-const MODE_LABELS={0:'模糊强度',1:'格子大小',2:'色块数量',3:'灰度 0-100%'};
-const canvas=document.getElementById('c');
-const ml=document.getElementById('ml');
-const cap=document.getElementById('cap');
-const menuItems=document.querySelectorAll('#modeMenu .menu-item');
-const sliderPanel=document.getElementById('sliderPanel');
-const slider=document.getElementById('slider');
-const sliderVal=document.getElementById('sliderVal');
-const sLabel=document.getElementById('sLabel');
-const perm=document.getElementById('perm');
-const permBtn=document.getElementById('permBtn');
-const permHelp=document.getElementById('permHelp');
-const toast=document.getElementById('toast');
-const grid=document.getElementById('grid');
-const frame=document.getElementById('frame');
-const gridBtn=document.getElementById('gridBtn');
-const frameBtn=document.getElementById('frameBtn');
-const auxBtns=document.getElementById('auxBtns');
-const actionRow=document.getElementById('actionRow');
+let mode = 0, level = 4, videoTex, canvasTex, vid, gridOn = false, frameOn = false;
+const MODE_NAMES = ['模糊', '马赛克', '色块', '灰度', '原图'];
 
-const renderer=new THREE.WebGLRenderer({canvas,preserveDrawingBuffer:true,antialias:false});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-renderer.setSize(window.innerWidth,window.innerHeight);
-const scene=new THREE.Scene();
-const cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+const canvas = document.getElementById('c');
+const modeLabel = document.getElementById('modeLabel');
+const capBtn = document.getElementById('capBtn');
+const actionBar = document.getElementById('actionBar');
+const sliderPanel = document.getElementById('sliderPanel');
+const slider = document.getElementById('slider');
+const sliderValue = document.getElementById('sliderValue');
+const sliderLabel = document.getElementById('sliderLabel');
+const modeCurrent = document.getElementById('modeCurrent');
+const modeMenu = document.getElementById('modeMenu');
+const gridBtn = document.getElementById('gridBtn');
+const frameBtn = document.getElementById('frameBtn');
 
-const u={
-  tDiffuse:{value:null},
-  uMode:{value:0},
-  uLevel:{value:4},
-  uRes:{value:new THREE.Vector2(window.innerWidth,window.innerHeight)},
-  uGamma:{value:2.2}, // 修复偏暗：gamma校正
+const renderer = new THREE.WebGLRenderer({ canvas, preserveDrawingBuffer: true, antialias: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+const scene = new THREE.Scene();
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+const uniforms = {
+  tDiffuse: { value: null },
+  uMode: { value: 0 },
+  uLevel: { value: 4 },
+  uRes: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
 };
 
-const mat=new THREE.ShaderMaterial({uniforms:u,
-  vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-  fragmentShader:`
-    uniform sampler2D tDiffuse;uniform int uMode;uniform float uLevel;uniform vec2 uRes;uniform float uGamma;
+const material = new THREE.ShaderMaterial({
+  uniforms,
+  vertexShader: `varying vec2 v; void main() { v = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `
+    uniform sampler2D tDiffuse; uniform int uMode; uniform float uLevel; uniform vec2 uRes;
     varying vec2 v;
-    vec4 blur(sampler2D t,vec2 uv,float r){
-      vec4 c=vec4(0);float s=0.;int R=int(r*10.);
-      for(int x=-10;x<=10;x++)for(int y=-10;y<=10;y++){if(abs(x)+abs(y)>R)continue;c+=texture2D(t,uv+vec2(x,y)/uRes);s+=1.;}return c/s;
-    }
-    vec4 mosaic(sampler2D t,vec2 uv,float r){
-      float g=max(1.,r*20.);vec2 q=floor(uv*g*vec2(uRes.x/uRes.y,1.))/(g*vec2(uRes.x/uRes.y,1.));
-      return texture2D(t,q);
-    }
+    vec4 blur(sampler2D t,vec2 uv,float r){vec4 c=vec4(0);float s=0.;int R=int(r*12.);for(int x=-12;x<=12;x++)for(int y=-12;y<=12;y++){if(abs(x)+abs(y)>R)continue;c+=texture2D(t,uv+vec2(x,y)/uRes);s+=1.;}return c/s;}
+    vec4 mosaic(sampler2D t,vec2 uv,float r){float g=max(2.,2.+r*40.);vec2 q=floor(uv*g*vec2(uRes.x/uRes.y,1.))/(g*vec2(uRes.x/uRes.y,1.));return texture2D(t,q);}
     vec4 poster(sampler2D t,vec2 uv,float r){
-      // 先读颜色
-      vec4 c=texture2D(t,uv);
-      // 色块数量: 2^(level) = 2~1024
-      float nBlocks=max(2.,pow(2.,r));
-      // 量化: 把 [0,1] 分成 nBlocks 份，取每份的中点
-      c.rgb=floor(c.rgb*nBlocks+.5)/nBlocks;
-      return c;
+      vec4 c=vec4(0);float s=0.;int R=2;for(int x=-2;x<=2;x++)for(int y=-2;y<=2;y++){c+=texture2D(t,uv+vec2(x,y)/uRes);s+=1.;}c/=s;
+      float n = pow(2., floor(uLevel)); c.rgb = floor(c.rgb * n + .5) / n; return c;
     }
-    vec4 gray(sampler2D t,vec2 uv,float r){
-      vec4 c=texture2D(t,uv);
-      float g=dot(c.rgb,vec3(.299,.587,.114));
-      float m=r/10.; // 0.1 ~ 1.0
-      return mix(c,vec4(vec3(g),c.a),m);
-    }
+    vec4 gray(sampler2D t,vec2 uv,float r){vec4 c=texture2D(t,uv);float g=dot(c.rgb,vec3(.299,.587,.114));return mix(c,vec4(vec3(g),c.a),r/10.);}
     vec4 original(sampler2D t,vec2 uv,float r){return texture2D(t,uv);}
     void main(){
       vec4 col;
@@ -176,102 +149,124 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       else if(uMode==2)col=poster(tDiffuse,v,uLevel);
       else if(uMode==3)col=gray(tDiffuse,v,uLevel);
       else col=original(tDiffuse,v,uLevel);
-      // gamma correction 修复偏暗
-      col.rgb=pow(col.rgb,vec3(1./uGamma));
-      gl_FragColor=col;
-    }`
+      gl_FragColor = col;
+    }
+  `
 });
-scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),mat));
 
-const dc=document.createElement('canvas');dc.width=2;dc.height=2;
-dc.getContext('2d').fillStyle='#1a1a1a';dc.getContext('2d').fillRect(0,0,2,2);
-u.tDiffuse.value=new THREE.CanvasTexture(dc);
+scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
 
-function render(){u.uMode.value=mode;u.uLevel.value=level;renderer.render(scene,cam);requestAnimationFrame(render);}
+const defaultCanvas = document.createElement('canvas');
+defaultCanvas.width = 2; defaultCanvas.height = 2;
+defaultCanvas.getContext('2d').fillStyle = '#1a1a1a';
+defaultCanvas.getContext('2d').fillRect(0, 0, 2, 2);
+uniforms.tDiffuse.value = new THREE.CanvasTexture(defaultCanvas);
+
+function render() {
+  uniforms.uMode.value = mode;
+  uniforms.uLevel.value = level;
+  renderer.render(scene, camera);
+  requestAnimationFrame(render);
+}
 render();
 
-function updateUI(){
-  ml.textContent=MODE_NAMES[mode];
-  menuItems.forEach((c,i)=>c.classList.toggle('on',i===mode));
-  slider.value=level;sliderVal.textContent=level;
-  sLabel.textContent=MODE_LABELS[mode]||'强度';
+function updateUI() {
+  document.getElementById('modeLabel').textContent = MODE_NAMES[mode];
+  document.querySelectorAll('.mode-option').forEach(el => {
+    el.classList.toggle('active', +el.dataset.mode === mode);
+  });
+  slider.value = level;
+  document.getElementById('sliderValue').textContent = level;
+  document.getElementById('sliderLabel').textContent = MODE_NAMES[mode] + ' 强度';
 }
 
-window.onSlider=function(){level=+slider.value;sliderVal.textContent=level;};
-
-window.toggleGrid=function(){gridOn=!gridOn;grid.classList.toggle('show',gridOn);gridBtn.classList.toggle('active',gridOn);};
-window.toggleFrame=function(){frameOn=!frameOn;frame.classList.toggle('show',frameOn);frameBtn.classList.toggle('active',frameOn);};
-
-// Double-tap fullscreen
-let lastTap=0;
-document.addEventListener('click',e=>{
-  if(e.target.closest('.cap-btn, .menu-item, .aux-btn, .action-btn, #perm, #sliderPanel')) return;
-  const now=Date.now();
-  if(now-lastTap<300){if(!document.fullscreenElement) document.documentElement.requestFullscreen();else document.exitFullscreen();}
-  lastTap=now;
+// 模式切换
+modeCurrent.addEventListener('click', () => {
+  modeMenu.classList.toggle('show');
+  modeCurrent.classList.toggle('open');
 });
 
-function detectEnv(){
-  const ua=navigator.userAgent;let os='',browser='',isSafari=false;
-  if(/iPhone|iPad|iPod/.test(ua)){os='iOS';isSafari=!!/Safari/.test(ua)&&!/CriOS|FxiOS|OPiOS|mercury/.test(ua);}
-  else if(/Android/.test(ua))os='Android';else os='电脑';
-  if(/Firefox|FxiOS/.test(ua))browser='Firefox';else if(/CriOS/.test(ua))browser='Chrome(iOS)';
-  else if(/Chrome/.test(ua)&&!/Edg/.test(ua))browser='Chrome';else if(isSafari)browser='Safari';else browser='浏览器';
-  const guide=document.getElementById('permGuide');
-  if(os==='iOS'){guide.innerHTML='<b>设置 → App → '+browser+'</b><br>找到「相机」并开启';}
-  else if(os==='Android'){guide.innerHTML='<b>设置 → 应用 → '+browser+'</b><br>权限 → 相机 → 允许';}
-  else{guide.innerHTML='请检查浏览器是否允许摄像头';}
-}
-
-async function startCamera(){
-  try{
-    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}});
-    vid=document.createElement('video');vid.srcObject=s;
-    vid.setAttribute('playsinline','');vid.setAttribute('webkit-playsinline','');vid.muted=true;
-    await vid.play();
-    videoTex=new THREE.VideoTexture(vid);videoTex.colorSpace=THREE.SRGBColorSpace;
-    u.tDiffuse.value=videoTex;
-    perm.style.display='none';cap.style.display='flex';auxBtns.classList.add('show');sliderPanel.classList.add('show');
-  }catch(e){console.error(e);detectEnv();permHelp.style.display='block';permBtn.textContent='重新尝试';}
-}
-permBtn.addEventListener('click',startCamera);
-if(!('ontouchstart' in window)) setTimeout(startCamera,500);
-
-window.snap=function(){
-  if(!vid) return;
-  const w=vid.videoWidth||window.innerWidth,h=vid.videoHeight||window.innerHeight;
-  const tc=document.createElement('canvas');tc.width=w;tc.height=h;
-  const ctx=tc.getContext('2d',{colorSpace:'srgb'});
-  ctx.drawImage(vid,0,0,w,h);
-  canvasTex=new THREE.CanvasTexture(tc);canvasTex.colorSpace=THREE.SRGBColorSpace;
-  u.tDiffuse.value=canvasTex;cap.style.display='none';actionRow.classList.add('show');
-};
-
-window.retake=function(){
-  if(videoTex) u.tDiffuse.value=videoTex;
-  cap.style.display='flex';actionRow.classList.remove('show');
-};
-
-window.save=function(){
-  renderer.render(scene,cam);
-  const url=renderer.domElement.toDataURL('image/png');
-  if(navigator.share){fetch(url).then(r=>r.blob()).then(b=>navigator.share({files:[new File([b],'painting-eye.png',{type:'image/png'})]}).catch(()=>fallback(url))).catch(()=>fallback(url));}
-  else fallback(url);
-};
-function fallback(u){const w=window.open('');w.document.write('<img src="'+u+'" style="width:100%"><p style="text-align:center;color:#666;font-size:14px;margin-top:10px">长按图片保存</p>');showToast('长按图片即可保存');}
-function showToast(t){toast.textContent=t;toast.style.display='block';toast.style.animation='none';toast.offsetHeight;toast.style.animation='fade 2s forwards';setTimeout(()=>toast.style.display='none',2000);}
-
-menuItems.forEach(c=>c.addEventListener('click',()=>{mode=+c.dataset.m;updateUI();}));
-
-document.addEventListener('keydown',e=>{
-  const m={'ArrowUp':()=>{mode=(mode+4)%5;updateUI();},'ArrowDown':()=>{mode=(mode+1)%5;updateUI();}};
-  if(m[e.key])m[e.key]();if(e.key==='ArrowLeft'){level=Math.max(1,level-1);slider.value=level;sliderVal.textContent=level;}
-  if(e.key==='ArrowRight'){level=Math.min(10,level+1);slider.value=level;sliderVal.textContent=level;}
-  if(e.key===' '){e.preventDefault();snap();}if(e.key==='r')retake();if(e.key==='s')save();
-  if(e.key==='g')toggleGrid();if(e.key==='f')toggleFrame();
+document.querySelectorAll('.mode-option').forEach(el => {
+  el.addEventListener('click', () => {
+    mode = +el.dataset.mode;
+    updateUI();
+    modeMenu.classList.remove('show');
+    modeCurrent.classList.remove('open');
+    sliderPanel.style.display = 'flex';
+  });
 });
 
-window.addEventListener('resize',()=>{renderer.setSize(window.innerWidth,window.innerHeight);u.uRes.value.set(window.innerWidth,window.innerHeight);});
+// 双击隐藏/显示滑杆
+let lastTap = 0;
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.mode-selector') || e.target.closest('.cap-btn') || e.target.closest('.action-btn')) return;
+  const now = Date.now();
+  if (now - lastTap < 300) {
+    sliderPanel.style.display = sliderPanel.style.display === 'none' ? 'flex' : 'none';
+  }
+  lastTap = now;
+});
+
+// 滑杆
+window.updateLevel = function() {
+  level = +slider.value;
+  document.getElementById('sliderValue').textContent = level;
+};
+
+// 拍照
+window.capture = function() {
+  if (!vid) return;
+  const w = vid.videoWidth || window.innerWidth;
+  const h = vid.videoHeight || window.innerHeight;
+  const tc = document.createElement('canvas');
+  tc.width = w; tc.height = h;
+  const ctx = tc.getContext('2d', { colorSpace: 'srgb' });
+  ctx.drawImage(vid, 0, 0, w, h);
+  canvasTex = new THREE.CanvasTexture(tc);
+  canvasTex.colorSpace = THREE.SRGBColorSpace;
+  uniforms.tDiffuse.value = canvasTex;
+  capBtn.style.display = 'none';
+  actionBar.classList.add('show');
+};
+
+window.retake = function() {
+  if (videoTex) uniforms.tDiffuse.value = videoTex;
+  capBtn.style.display = 'flex';
+  actionBar.classList.remove('show');
+};
+
+window.save = function() {
+  renderer.render(scene, camera);
+  const url = renderer.domElement.toDataURL('image/png');
+  if (navigator.share) {
+    fetch(url).then(r => r.blob()).then(blob => {
+      const file = new File([blob], 'painting-eye.png', { type: 'image/png' });
+      navigator.share({ files: [file] }).catch(() => fallbackSave(url));
+    }).catch(() => fallbackSave(url));
+  } else {
+    fallbackSave(url);
+  }
+};
+
+function fallbackSave(url) {
+  const w = window.open('');
+  w.document.write(`<img src="${url}" style="width:100%"><p style="text-align:center;color:#666;font-size:14px;margin-top:10px">长按图片保存到相册</p>`);
+}
+
+// 井字线
+window.toggleGrid = function() {
+  gridOn = !gridOn;
+  // 这里可以加 overlay 逻辑
+  gridBtn.classList.toggle('active', gridOn);
+};
+
+// 取景框
+window.toggleFrame = function() {
+  frameOn = !frameOn;
+  frameBtn.classList.toggle('active', frameOn);
+};
+
+// 初始化
 updateUI();
 </script>
 </body>
