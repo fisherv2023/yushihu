@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cg%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M0.75 0.75H8v2.5H3.25V8H0.75V0.75Zm11.2497 4c-2.24437 0 -3.82649 0.82591 -5.13611 2.10614 -0.94345 0.92228 -1.78729 2.13485 -2.64345 3.36506l-0.00001 0.0001 -0.00001 0 -0.00003 0 -0.00004 0.0001 -0.00003 0 -0.00003 0.0001 -0.00001 0c-0.24421 0.3509 -0.48943 0.7033 -0.73824 1.0507L2.96062 12l0.52111 0.7277c0.24882 0.3475 0.49405 0.6999 0.73826 1.0508l0.00009 0.0001 0.00001 0.0001 0.00001 0c0.85617 1.2303 1.70003 2.4429 2.64349 3.3651C8.17321 18.4241 9.75533 19.25 11.9997 19.25c2.2443 0 3.8264 -0.8259 5.1361 -2.1062 0.9434 -0.9222 1.7873 -2.1348 2.6435 -3.3651l0.0002 -0.0004c0.2442 -0.3509 0.4894 -0.7032 0.7381 -1.0506L21.0387 12l-0.5211 -0.7278c-0.2488 -0.3475 -0.4941 -0.6999 -0.7384 -1.0509 -0.8561 -1.23029 -1.7 -2.44287 -2.6434 -3.36516C15.8261 5.57591 14.244 4.75 11.9997 4.75Zm-5.62752 7.741 -0.00067 -0.001c-0.11087 -0.159 -0.22473 -0.3223 -0.34223 -0.49 0.11792 -0.1683 0.23217 -0.3322 0.34341 -0.4918 0.82227 -1.1794 1.48001 -2.12288 2.2385 -2.86435C9.51796 7.75743 10.4932 7.25 11.9997 7.25c1.5064 0 2.4817 0.50743 3.3885 1.39385 0.7584 0.74146 1.4162 1.68495 2.2384 2.86435l0.0001 0c0.1112 0.1596 0.2255 0.3235 0.3434 0.4918 -0.1179 0.1683 -0.2322 0.3321 -0.3434 0.4917 -0.8223 1.1795 -1.48 2.123 -2.2385 2.8644 -0.9068 0.8865 -1.8821 1.3939 -3.3885 1.3939 -1.5065 0 -2.48174 -0.5074 -3.38851 -1.3939 -0.7585 -0.7414 -1.41624 -1.6849 -2.23853 -2.8644l-0.00048 -0.0007ZM14 12c0 -1.1046 -0.8954 -2 -2 -2s-2 0.8954 -2 2 0.8954 2 2 2 2 -0.8954 2 -2ZM3.25 20.75V16H0.75v7.25H8v-2.5H3.25ZM20.75 16v4.75H16v2.5h7.25V16h-2.5ZM16 3.25h4.75V8h2.5V0.75H16v2.5Z' clip-rule='evenodd' stroke-width='1'%3E%3C/path%3E%3C/g%3E%3C/svg%3E">
 <title>Painting Eye</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -74,7 +75,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 <div class="top"><span id="mL">BLUR 4</span></div>
 
 <div class="perm" id="perm">
-  <div class="icon">📷</div><div class="title">Camera Access</div>
+  <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="48" height="48"><path d="M20.7134 8.12811L20.4668 8.69379C20.2864 9.10792 19.7136 9.10792 19.5331 8.69379L19.2866 8.12811C18.8471 7.11947 18.0555 6.31641 17.0677 5.87708L16.308 5.53922C15.8973 5.35653 15.8973 4.75881 16.308 4.57612L17.0252 4.25714C18.0384 3.80651 18.8442 2.97373 19.2761 1.93083L19.5293 1.31953C19.7058 0.893489 20.2942 0.893489 20.4706 1.31953L20.7238 1.93083C21.1558 2.97373 21.9616 3.80651 22.9748 4.25714L23.6919 4.57612C24.1027 4.75881 24.1027 5.35653 23.6919 5.53922L22.9323 5.87708C21.9445 6.31641 21.1529 7.11947 20.7134 8.12811ZM9 3H14V5H9.82843L7.82843 7H4V19H20V11H22V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V6C2 5.44772 2.44772 5 3 5H7L9 3ZM12 18C8.96243 18 6.5 15.5376 6.5 12.5C6.5 9.46243 8.96243 7 12 7C15.0376 7 17.5 9.46243 17.5 12.5C17.5 15.5376 15.0376 18 12 18ZM12 16C13.933 16 15.5 14.433 15.5 12.5C15.5 10.567 13.933 9 12 9C10.067 9 8.5 10.567 8.5 12.5C8.5 14.433 10.067 16 12 16Z"></path></svg></div><div class="title">Camera Access</div>
   <div class="desc">Painting Eye needs camera<br>to assist art observation</div>
   <button class="btn" id="permBtn">Allow Camera</button>
   <div class="help" id="permHelp"><div id="permGuide"></div><p style="margin-top:14px"><a href="javascript:location.reload()">Refresh after enabling</a></p></div>
@@ -97,8 +98,8 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 <div class="cap-btn" id="capBtn" onclick="snap()"></div>
 
 <div class="aux" id="aux">
-  <div class="aux-btn" id="gridBtn" onclick="tG()">▦</div>
-  <div class="aux-btn" id="frameBtn" onclick="tF()">⬜</div>
+    <div class="aux-btn" id="gridBtn" onclick="tG()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M4 10L8 10V14H4V10ZM4 19V16H8V19H4ZM10 19V16H14V19H10ZM16 19V16H20V19H16ZM16 14V10H20V14H16ZM16 8V5H20V8H16ZM14 5V8H10V5H14ZM14 10V14H10V10H14ZM4 8V5H8V8L4 8ZM3 3C2.44772 3 2 3.44772 2 4V20C2 20.5523 2.44772 21 3 21H21C21.5523 21 22 20.5523 22 20V4C22 3.44772 21.5523 3 21 3H3Z"></path></svg></div>
+    <div class="aux-btn" id="frameBtn" onclick="tF()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16ZM12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10C13.1046 10 14 10.8954 14 12C14 13.1046 13.1046 14 12 14Z"></path></svg></div>
 </div>
 
 <div class="slider-bar" id="sBar">
