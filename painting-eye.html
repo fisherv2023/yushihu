@@ -159,13 +159,13 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
     }
     vec4 mosaic(sampler2D t,vec2 uv,float r){float g=max(2.,2.+r*40.);vec2 q=floor(uv*g*vec2(uRes.x/uRes.y,1.))/(g*vec2(uRes.x/uRes.y,1.));return texture2D(t,q);}
     vec4 poster(sampler2D t,vec2 uv,float r){
-      // cartoon flat-color: vote for most common color in neighborhood
       vec4 best=texture2D(t,uv);float bestCnt=0.;
+      float range=r*.5; // r=1..10 → range=0.5..5
       for(int x=-4;x<=4;x+=2)for(int y=-4;y<=4;y+=2){
-        vec4 c=texture2D(t,uv+vec2(x,y)/uRes);
+        vec4 c=texture2D(t,uv+vec2(x,y)*range/uRes);
         float cnt=0.;
         for(int x2=-4;x2<=4;x2+=2)for(int y2=-4;y2<=4;y2+=2){
-          vec4 c2=texture2D(t,uv+vec2(x2,y2)/uRes);
+          vec4 c2=texture2D(t,uv+vec2(x2,y2)*range/uRes);
           if(length(c.rgb-c2.rgb)<.15)cnt+=1.;
         }
         if(cnt>bestCnt){bestCnt=cnt;best=c;}
