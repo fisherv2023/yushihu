@@ -159,21 +159,20 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
     }
     vec4 mosaic(sampler2D t,vec2 uv,float r){float g=max(2.,2.+r*40.);vec2 q=floor(uv*g*vec2(uRes.x/uRes.y,1.))/(g*vec2(uRes.x/uRes.y,1.));return texture2D(t,q);}
     vec4 poster(sampler2D t,vec2 uv,float r){
-      // Anisotropic Kuwahara: 4 sectors, pick lowest-variance, quantize
-      int R=int(r*2.); // r=1..10 → R=2..20
+      // Kuwahara: 4 sectors, pick lowest-variance, then quantize
+      float radius=float(int(r*2.)); // r=1..10 → radius=2..20
       float bestV=1e9;vec4 bestC=texture2D(t,uv);
       for(int q=0;q<4;q++){
         vec2 dir=q==0?vec2(-1.,1.):q==1?vec2(1.,1.):q==2?vec2(-1.,-1.):vec2(1.,-1.);
         vec4 sum=vec4(0);vec4 sq=vec4(0);float cnt=0.;
         for(int x=0;x<=4;x++)for(int y=0;y<=4;y++){
-          vec4 c=texture2D(t,uv+dir*vec2(x,y)*vec2(1.,uRes.x/uRes.y)/(uRes*.02)*float(R));
+          vec4 c=texture2D(t,uv+dir*vec2(float(x),float(y))*radius/uRes);
           sum+=c;sq+=c*c;cnt+=1.;
         }
         vec4 mean=sum/cnt;
         float v=dot(sq/cnt-mean*mean,vec4(1.));
         if(v<bestV){bestV=v;bestC=mean;}
       }
-      // quantize
       float n=pow(2.,floor(uLevel));
       bestC.rgb=floor(bestC.rgb*n+.5)/n;
       return bestC;
