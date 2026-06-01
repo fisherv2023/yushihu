@@ -159,23 +159,21 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
     }
     vec4 mosaic(sampler2D t,vec2 uv,float r){float g=max(2.,2.+r*40.);vec2 q=floor(uv*g*vec2(uRes.x/uRes.y,1.))/(g*vec2(uRes.x/uRes.y,1.));return texture2D(t,q);}
     vec4 poster(sampler2D t,vec2 uv,float r){
-      // vote-based: pick the most common color in neighborhood
-      float radius=float(int(r*2.5));
-      int R=int(radius);
-      vec4 best=texture2D(t,uv);float bestCnt=0.;
-      int st=max(1,R/3);
-      for(int x=-6;x<=6;x+=st)for(int y=-6;y<=6;y+=st){
-        vec4 c=texture2D(t,uv+vec2(float(x),float(y))*radius/uRes);
-        float cnt=0.;
-        for(int x2=-4;x2<=4;x2+=2)for(int y2=-4;y2<=4;y2+=2){
-          vec4 c2=texture2D(t,uv+vec2(float(x2),float(y2))*radius/uRes);
-          if(length(c.rgb-c2.rgb)<.12)cnt+=1.;
-        }
-        if(cnt>bestCnt){bestCnt=cnt;best=c;}
-      }
+      vec4 c=texture2D(t,uv);
+      // Quantize first to reduce to base colors
       float n=pow(2.,floor(uLevel));
-      best.rgb=floor(best.rgb*n+.5)/n;
-      return best;
+      c.rgb=floor(c.rgb*n+.5)/n;
+      // Then sample neighborhood: blend with nearby quantized pixels
+      float radius=float(int(r*3.));
+      int R=int(radius);
+      vec4 sum=vec4(0);float cnt=0.;
+      for(int x=-4;x<=4;x++)for(int y=-4;y<=4;y++){
+        if(abs(x)+abs(y)>R)continue;
+        vec4 s=texture2D(t,uv+vec2(float(x),float(y))/uRes);
+        s.rgb=floor(s.rgb*n+.5)/n;
+        sum+=s;cnt+=1.;
+      }
+      return sum/cnt;
     }
     vec4 gray(sampler2D t,vec2 uv,float r){vec4 c=texture2D(t,uv);float g=dot(c.rgb,vec3(.299,.587,.114));return mix(c,vec4(vec3(g),c.a),r/10.);}
     float lum(vec4 c){return dot(c.rgb,vec3(.2126,.7152,.0722));}
