@@ -65,12 +65,29 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 
 .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:50;padding:9px 18px;border-radius:10px;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:13px;display:none;animation:fade 2s forwards}
 @keyframes fade{0%,70%{opacity:1}100%{opacity:0}}
+/* Loading screen */
+.load{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:#000;transition:opacity .5s}
+.load.done{opacity:0;pointer-events:none}
+.load .pulse{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.12);animation:breathe 2s ease-in-out infinite}
+.load .p1{width:60px;height:60px;animation-delay:0s}
+.load .p2{width:100px;height:100px;animation-delay:.4s}
+.load .p3{width:150px;height:150px;animation-delay:.8s}
+.load .core{position:relative;z-index:1;width:36px;height:36px;filter:drop-shadow(0 0 8px rgba(255,255,255,.4))}
+.load .core svg{width:100%;height:100%}
+@keyframes breathe{0%,100%{transform:scale(.85);opacity:.3}50%{transform:scale(1.1);opacity:.7}}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 
-<div class="top"><span id="mL">BLUR 4</span></div>
+<div class="load" id="load">
+  <div class="pulse p1"></div>
+  <div class="pulse p2"></div>
+  <div class="pulse p3"></div>
+  <div class="core"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path fill="#fff" fill-rule="evenodd" d="M0.75 0.75H8v2.5H3.25V8H0.75V0.75Zm11.2497 4c-2.24437 0-3.82649.82591-5.13611 2.10614-.94345.92228-1.78729 2.13485-2.64345 3.36506l-.00001.0001-.00001 0-.00003 0-.00004.0001-.00003 0-.00003.0001-.00001 0c-.24421.3509-.48943.7033-.73824 1.0507L2.96062 12l.52111.7277c.24882.3475.49405.6999.73826 1.0508l.00009.0001.00001.0001.00001 0c.85617 1.2303 1.70003 2.4429 2.64349 3.3651C8.17321 18.4241 9.75533 19.25 11.9997 19.25c2.2443 0 3.8264-.8259 5.1361-2.1062.9434-.9222 1.7873-2.1348 2.6435-3.3651l.0002-.0004c.2442-.3509.4894-.7032.7381-1.0506L21.0387 12l-.5211-.7278c-.2488-.3475-.4941-.6999-.7384-1.0509-.8561-1.23029-1.7-2.44287-2.6434-3.36516C15.8261 5.57591 14.244 4.75 11.9997 4.75Zm-5.62752 7.741-.00067-.001c-.11087-.159-.22473-.3223-.34223-.49.11792-.1683.23217-.3322.34341-.4918.82227-1.1794 1.48001-2.12288 2.2385-2.86435C9.51796 7.75743 10.4932 7.25 11.9997 7.25c1.5064 0 2.4817.50743 3.3885 1.39385.7584.74146 1.4162 1.68495 2.2384 2.86435l.0001 0c.1112.1596.2255.3235.3434.4918-.1179.1683-.2322.3321-.3434.4917-.8223 1.1795-1.48 2.123-2.2385 2.8644-.9068.8865-1.8821 1.3939-3.3885 1.3939-1.5065 0-2.48174-.5074-3.38851-1.3939-.7585-.7414-1.41624-1.6849-2.23853-2.8644l-.00048-.0007ZM14 12c0-1.1046-.8954-2-2-2s-2 .8954-2 2 .8954 2 2 2 2-.8954 2-2ZM3.25 20.75V16H0.75v7.25H8v-2.5H3.25ZM20.75 16v4.75H16v2.5h7.25V16h-2.5ZM16 3.25h4.75V8h2.5V0.75H16v2.5Z" clip-rule="evenodd" stroke-width="1"/></svg></div>
+</div>
+
+<div class="top"><span id="mL">ORIGINAL 4</span></div>
 
 <div class="perm" id="perm">
   <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="48" height="48"><path d="M20.7134 8.12811L20.4668 8.69379C20.2864 9.10792 19.7136 9.10792 19.5331 8.69379L19.2866 8.12811C18.8471 7.11947 18.0555 6.31641 17.0677 5.87708L16.308 5.53922C15.8973 5.35653 15.8973 4.75881 16.308 4.57612L17.0252 4.25714C18.0384 3.80651 18.8442 2.97373 19.2761 1.93083L19.5293 1.31953C19.7058 0.893489 20.2942 0.893489 20.4706 1.31953L20.7238 1.93083C21.1558 2.97373 21.9616 3.80651 22.9748 4.25714L23.6919 4.57612C24.1027 4.75881 24.1027 5.35653 23.6919 5.53922L22.9323 5.87708C21.9445 6.31641 21.1529 7.11947 20.7134 8.12811ZM9 3H14V5H9.82843L7.82843 7H4V19H20V11H22V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V6C2 5.44772 2.44772 5 3 5H7L9 3ZM12 18C8.96243 18 6.5 15.5376 6.5 12.5C6.5 9.46243 8.96243 7 12 7C15.0376 7 17.5 9.46243 17.5 12.5C17.5 15.5376 15.0376 18 12 18ZM12 16C13.933 16 15.5 14.433 15.5 12.5C15.5 10.567 13.933 9 12 9C10.067 9 8.5 10.567 8.5 12.5C8.5 14.433 10.067 16 12 16Z"></path></svg></div><div class="title">Camera Access</div>
@@ -216,6 +233,8 @@ s.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),mat));
 const dc=document.createElement('canvas');dc.width=2;dc.height=2;dc.getContext('2d').fillStyle='#1a1a1a';dc.getContext('2d').fillRect(0,0,2,2);
 u.tDiffuse.value=new THREE.CanvasTexture(dc);
 (function R(){u.uMode.value=mode;u.uLevel.value=level;r.render(s,cam);requestAnimationFrame(R)})();
+// Hide loading screen after first render
+setTimeout(()=>document.getElementById('load').classList.add('done'),300);
 
 function upd(){document.getElementById('mL').textContent=N[mode]+' '+level;document.querySelectorAll('.mode-opt').forEach(e=>e.classList.toggle('sel',+e.dataset.m===mode));document.getElementById('mText').textContent=N[mode];slider.value=level;slider.style.setProperty('--sz',(12+level*2)+'px');}
 
