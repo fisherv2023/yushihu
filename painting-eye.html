@@ -1,122 +1,109 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>画眼</title>
+<title>Painting Eye</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;color:#fff;font-family:-apple-system,sans-serif;overflow:hidden;touch-action:manipulation}
 canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1}
-.top{position:fixed;top:0;left:0;right:0;z-index:10;padding:12px 16px;display:flex;justify-content:space-between;pointer-events:none}
-.top .ml{font-size:15px;font-weight:600;letter-spacing:.02em;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.top{position:fixed;top:12px;left:16px;z-index:10;pointer-events:none}
+.top span{font-size:14px;font-weight:600;letter-spacing:.03em;text-shadow:0 1px 3px rgba(0,0,0,.5)}
 
-/* 底部栏 — 水平对齐所有元素 */
-.bottom-bar{position:fixed;bottom:30px;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:0 12px;pointer-events:none}
-.bottom-bar>*{pointer-events:all}
+/* layout: everything relative to capture button */
+.cap-btn{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);z-index:30;width:60px;height:60px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;display:none}
+.cap-btn::after{content:'';position:absolute;top:5px;left:5px;width:44px;height:44px;border-radius:50%;background:#fff}
 
-/* 模式选择器（左） */
-.mode-sel{position:relative}
-.mode-cur{padding:8px 16px;border-radius:20px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px}
-.mode-cur .arrow{font-size:10px;opacity:.6;transition:transform .2s}
-.mode-cur.open .arrow{transform:rotate(180deg)}
-.mode-menu{position:absolute;bottom:46px;left:0;background:rgba(0,0,0,.7);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:14px;border:1px solid rgba(255,255,255,.15);padding:6px;display:none;min-width:100px}
+/* mode menu - left of capture */
+.mode-sel{position:fixed;bottom:48px;left:calc(50% - 80px);transform:translateX(-50%);z-index:20}
+.mode-cur{padding:6px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px}
+.mode-cur .arr{font-size:9px;opacity:.5;transition:transform .2s}
+.mode-cur.open .arr{transform:rotate(180deg)}
+.mode-menu{position:absolute;bottom:38px;left:-4px;background:rgba(0,0,0,.7);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:12px;border:1px solid rgba(255,255,255,.12);padding:4px;display:none;min-width:90px}
 .mode-menu.show{display:block}
-.mode-opt{padding:8px 14px;font-size:13px;border-radius:10px;cursor:pointer;transition:.15s}
-.mode-opt:active{background:rgba(255,255,255,.1)}
-.mode-opt.sel{background:rgba(255,255,255,.15)}
+.mode-opt{padding:6px 12px;font-size:12px;border-radius:8px;cursor:pointer}
+.mode-opt:active{background:rgba(255,255,255,.08)}
+.mode-opt.sel{background:rgba(255,255,255,.12)}
 
-/* 拍照按钮（中） */
-.cap-btn{width:54px;height:54px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;flex-shrink:0;display:none}
-.cap-btn::after{content:'';display:block;width:44px;height:44px;border-radius:50%;background:#fff}
+/* aux - right of capture */
+.aux{position:fixed;bottom:48px;right:calc(50% - 80px);transform:translateX(50%);z-index:20;display:flex;gap:6px}
+.aux-btn{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;opacity:.45;transition:.2s}
+.aux-btn.on{opacity:1;border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.1)}
 
-/* 辅助工具组（右） */
-.aux-group{display:flex;gap:10px}
-.aux-btn{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;opacity:.5;transition:.2s}
-.aux-btn.on{opacity:1;border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12)}
+/* horizontal slider below capture */
+.slider-bar{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:4px;width:70vw;max-width:320px}
+.slider{appearance:none;-webkit-appearance:none;flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.15);outline:none}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 4px rgba(255,255,255,.3);transition:width .1s,height .1s}
 
-/* 右侧滑杆面板 */
-.slider-panel{position:fixed;top:18vh;right:10px;bottom:22vh;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
-.slider-panel .s-label{font-size:10px;opacity:.45;writing-mode:horizontal-tb}
-.slider-panel input{display:block;width:min(42vh,200px);margin:0 auto}
-.slider{appearance:none;-webkit-appearance:none;width:min(42vh,200px);height:4px;border-radius:3px;background:rgba(255,255,255,.22);writing-mode:bt-lr;transform:rotate(-90deg);transform-origin:center}
-.slider::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,.2)}
-.slider-panel .s-val{font-size:12px;opacity:.7;font-variant-numeric:tabular-nums}
+/* action bar */
+.act{position:fixed;bottom:108px;left:50%;transform:translateX(-50%);z-index:30;display:none;gap:12px}
+.act.show{display:flex}
+.act-btn{padding:6px 18px;border-radius:18px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:13px;cursor:pointer}
 
-/* 拍照后操作 */
-.action-bar{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:30;display:none;gap:16px}
-.action-bar.show{display:flex}
-.action-btn{padding:8px 20px;border-radius:22px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:14px;cursor:pointer}
+/* perm overlay */
+.perm{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.perm .icon{font-size:48px;margin-bottom:18px}
+.perm .title{font-size:19px;font-weight:600;margin-bottom:6px}
+.perm .desc{font-size:13px;opacity:.55;margin-bottom:22px;text-align:center;line-height:1.5}
+.perm .btn{padding:13px 36px;border-radius:24px;border:none;background:#fff;color:#111;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:18px}
+.perm .help{font-size:11px;opacity:.35;text-align:center;line-height:1.7;display:none}
+.perm .help a{color:#6ab;text-decoration:none}
 
-/* 权限引导 */
-.perm-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.perm-overlay .icon{font-size:54px;margin-bottom:20px}
-.perm-overlay .title{font-size:20px;font-weight:600;margin-bottom:8px}
-.perm-overlay .desc{font-size:14px;opacity:.6;margin-bottom:24px;text-align:center;line-height:1.6}
-.perm-overlay .btn{padding:14px 40px;border-radius:26px;border:none;background:#fff;color:#111;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:20px}
-.perm-overlay .help{font-size:12px;opacity:.4;text-align:center;line-height:1.8;display:none}
-.perm-overlay .help a{color:#6ab;text-decoration:none}
+/* grid & frame */
+.gv{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}.gv.show{display:block}
+.gl{position:absolute;background:rgba(255,255,255,.08)}.gl.h{left:0;right:0;height:1px}.gl.v{top:0;bottom:0;width:1px}
+.fv{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}.fv.show{display:block}
+.fv .fm{position:absolute;inset:0;background:rgba(0,0,0,.35);-webkit-mask:radial-gradient(ellipse 28% 42% at 50% 50%,transparent 100%,#000 100%)}
+.fv .fb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.fv .fb::after{content:'';width:60%;aspect-ratio:3/4;border:1px solid rgba(255,255,255,.25);border-radius:2px}
 
-/* 叠加层 */
-.grid-ov,.frame-ov{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}
-.grid-ov.show,.frame-ov.show{display:block}
-.grid-l{position:absolute;background:rgba(255,255,255,.1)}.grid-l.h{left:0;right:0;height:1px}.grid-l.v{top:0;bottom:0;width:1px}
-.frame-ov .f-mask{position:absolute;inset:0;background:rgba(0,0,0,.4);-webkit-mask:radial-gradient(ellipse 28% 42% at 50% 50%,transparent 100%,#000 100%)}
-.frame-ov .f-b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-.frame-ov .f-b::after{content:'';width:60%;aspect-ratio:3/4;border:1px solid rgba(255,255,255,.3);border-radius:2px}
-
-.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:50;padding:10px 20px;border-radius:12px;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:14px;display:none;animation:fade 2s forwards}
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:50;padding:9px 18px;border-radius:10px;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:13px;display:none;animation:fade 2s forwards}
 @keyframes fade{0%,70%{opacity:1}100%{opacity:0}}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 
-<div class="top"><span class="ml" id="mLabel">模糊</span><span style="opacity:.5">画眼</span></div>
+<div class="top"><span id="mL">BLUR 4</span></div>
 
-<!-- 权限引导 -->
-<div class="perm-overlay" id="perm">
-  <div class="icon">📷</div><div class="title">需要相机权限</div>
-  <div class="desc">画眼需要使用相机<br>来辅助观察绘画对象</div>
-  <button class="btn" id="permBtn">开启相机</button>
-  <div class="help" id="permHelp"><div id="permGuide"></div><p style="margin-top:16px"><a href="javascript:location.reload()">设置后点此刷新</a></p></div>
+<div class="perm" id="perm">
+  <div class="icon">📷</div><div class="title">Camera Access</div>
+  <div class="desc">Painting Eye needs camera<br>to assist art observation</div>
+  <button class="btn" id="permBtn">Allow Camera</button>
+  <div class="help" id="permHelp"><div id="permGuide"></div><p style="margin-top:14px"><a href="javascript:location.reload()">Refresh after enabling</a></p></div>
 </div>
 
-<!-- 叠加 -->
-<div class="grid-ov" id="grid"><div class="grid-l h" style="top:33%"></div><div class="grid-l h" style="top:66%"></div><div class="grid-l v" style="left:33%"></div><div class="grid-l v" style="left:66%"></div></div>
-<div class="frame-ov" id="frame"><div class="f-mask"></div><div class="f-b"></div></div>
+<div class="gv" id="grid"><div class="gl h" style="top:33%"></div><div class="gl h" style="top:66%"></div><div class="gl v" style="left:33%"></div><div class="gl v" style="left:66%"></div></div>
+<div class="fv" id="frame"><div class="fm"></div><div class="fb"></div></div>
 
-<!-- 右侧滑杆 -->
-<div class="slider-panel" id="sPan">
-  <span class="s-label" id="sLabel">强度</span>
-  <input type="range" class="slider" id="slider" min="1" max="10" value="4" oninput="onSlide()">
-  <span class="s-val" id="sVal">4</span>
-</div>
-
-<!-- 底部栏 -->
-<div class="bottom-bar">
-  <div class="mode-sel" id="modeSel">
-    <div class="mode-cur" id="modeCur"><span id="curText">模糊</span><span class="arrow">▼</span></div>
-    <div class="mode-menu" id="modeMenu">
-      <div class="mode-opt sel" data-m="0">模糊</div>
-      <div class="mode-opt" data-m="1">马赛克</div>
-      <div class="mode-opt" data-m="2">色块</div>
-      <div class="mode-opt" data-m="3">灰度</div>
-      <div class="mode-opt" data-m="4">原图</div>
-    </div>
-  </div>
-  <div class="cap-btn" id="capBtn" onclick="snap()"></div>
-  <div class="aux-group">
-    <div class="aux-btn" id="gridBtn" onclick="tGrid()">▦</div>
-    <div class="aux-btn" id="frameBtn" onclick="tFrame()">⬜</div>
+<div class="mode-sel" id="mSel">
+  <div class="mode-cur" id="mCur"><span id="mText">BLUR</span><span class="arr">▼</span></div>
+  <div class="mode-menu" id="mMenu">
+    <div class="mode-opt sel" data-m="0">BLUR</div>
+    <div class="mode-opt" data-m="1">MOSAIC</div>
+    <div class="mode-opt" data-m="2">POSTER</div>
+    <div class="mode-opt" data-m="3">GRAY</div>
+    <div class="mode-opt" data-m="4">ORIGINAL</div>
   </div>
 </div>
 
-<div class="action-bar" id="actBar">
-  <div class="action-btn" onclick="retake()">📷 重拍</div>
-  <div class="action-btn" onclick="save()">💾 保存</div>
+<div class="cap-btn" id="capBtn" onclick="snap()"></div>
+
+<div class="aux" id="aux">
+  <div class="aux-btn" id="gridBtn" onclick="tG()">▦</div>
+  <div class="aux-btn" id="frameBtn" onclick="tF()">⬜</div>
+</div>
+
+<div class="slider-bar" id="sBar">
+  <input type="range" class="slider" id="slider" min="1" max="10" value="4" oninput="onS()">
+</div>
+
+<div class="act" id="act">
+  <div class="act-btn" onclick="retake()">Retake</div>
+  <div class="act-btn" onclick="save()">Save</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -127,22 +114,20 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 <script type="module">
 import * as THREE from 'three';
 
-// ── state ──
 let mode=0,level=4,vt,ct,vid,gOn=false,fOn=false;
-const N=['模糊','马赛克','色块','灰度','原图'];
+const N=['BLUR','MOSAIC','POSTER','GRAY','ORIGINAL'];
 const canvas=document.getElementById('c');
 const capBtn=document.getElementById('capBtn');
-const actBar=document.getElementById('actBar');
-const sPan=document.getElementById('sPan');
+const act=document.getElementById('act');
+const sBar=document.getElementById('sBar');
 const slider=document.getElementById('slider');
-const sLabel=document.getElementById('sLabel');
+const mSel=document.getElementById('mSel'),aux=document.getElementById('aux');
 const gridBtn=document.getElementById('gridBtn'),frameBtn=document.getElementById('frameBtn');
 const grid=document.getElementById('grid'),frame=document.getElementById('frame');
 const perm=document.getElementById('perm'),permBtn=document.getElementById('permBtn');
 const permHelp=document.getElementById('permHelp'),permGuide=document.getElementById('permGuide');
 const toast=document.getElementById('toast');
 
-// ── Three.js ──
 const r=new THREE.WebGLRenderer({canvas,preserveDrawingBuffer:true,antialias:false});
 r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(innerWidth,innerHeight);
 const s=new THREE.Scene(),cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
@@ -152,7 +137,11 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
   fragmentShader:`
     uniform sampler2D tDiffuse;uniform int uMode;uniform float uLevel;uniform vec2 uRes;
     varying vec2 v;
-    vec4 blur(sampler2D t,vec2 uv,float r){vec4 c=vec4(0);float s=0.;int R=int(r*12.);for(int x=-12;x<=12;x++)for(int y=-12;y<=12;y++){if(abs(x)+abs(y)>R)continue;c+=texture2D(t,uv+vec2(x,y)/uRes);s+=1.;}return c/s;}
+    vec4 blur(sampler2D t,vec2 uv,float r){
+      // r=1..10 → R=1..30 (much wider range, each level distinct)
+      vec4 c=vec4(0);float s=0.;int R=int(r*3.);
+      for(int x=-30;x<=30;x++)for(int y=-30;y<=30;y++){if(abs(x)+abs(y)>R)continue;c+=texture2D(t,uv+vec2(x,y)/uRes);s+=1.;}return c/s;
+    }
     vec4 mosaic(sampler2D t,vec2 uv,float r){float g=max(2.,2.+r*40.);vec2 q=floor(uv*g*vec2(uRes.x/uRes.y,1.))/(g*vec2(uRes.x/uRes.y,1.));return texture2D(t,q);}
     vec4 poster(sampler2D t,vec2 uv,float r){vec4 c=texture2D(t,uv);float n=pow(2.,floor(uLevel));c.rgb=floor(c.rgb*n+.5)/n;return c;}
     vec4 gray(sampler2D t,vec2 uv,float r){vec4 c=texture2D(t,uv);float g=dot(c.rgb,vec3(.299,.587,.114));return mix(c,vec4(vec3(g),c.a),r/10.);}
@@ -164,6 +153,8 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       else if(uMode==2)col=poster(tDiffuse,v,uLevel);
       else if(uMode==3)col=gray(tDiffuse,v,uLevel);
       else col=orig(tDiffuse,v,uLevel);
+      // gamma correction fix dark photo
+      col.rgb=pow(col.rgb,vec3(1./2.2));
       gl_FragColor=col;
     }`
 });
@@ -172,26 +163,27 @@ const dc=document.createElement('canvas');dc.width=2;dc.height=2;dc.getContext('
 u.tDiffuse.value=new THREE.CanvasTexture(dc);
 (function R(){u.uMode.value=mode;u.uLevel.value=level;r.render(s,cam);requestAnimationFrame(R)})();
 
-// ── UI ──
-function upd(){document.getElementById('mLabel').textContent=N[mode];document.querySelectorAll('.mode-opt').forEach(e=>e.classList.toggle('sel',+e.dataset.m===mode));slider.value=level;document.getElementById('sVal').textContent=level;sLabel.textContent='强度';}
-window.onSlide=function(){level=+slider.value;document.getElementById('sVal').textContent=level;};
-window.snap=function(){if(!vid)return;const w=vid.videoWidth||innerWidth,h=vid.videoHeight||innerHeight;const tc=document.createElement('canvas');tc.width=w;tc.height=h;const ctx=tc.getContext('2d',{colorSpace:'srgb'});ctx.drawImage(vid,0,0,w,h);ct=new THREE.CanvasTexture(tc);ct.colorSpace=THREE.SRGBColorSpace;u.tDiffuse.value=ct;capBtn.style.display='none';actBar.classList.add('show');};
-window.retake=function(){if(vt)u.tDiffuse.value=vt;capBtn.style.display='flex';actBar.classList.remove('show');};
+function upd(){document.getElementById('mL').textContent=N[mode]+' '+level;document.querySelectorAll('.mode-opt').forEach(e=>e.classList.toggle('sel',+e.dataset.m===mode));document.getElementById('mText').textContent=N[mode];slider.value=level;slider.style.setProperty('--sz',(12+level*2)+'px');}
+
+// slider thumb size changes with level
+window.onS=function(){level=+slider.value;slider.style.setProperty('--sz',(12+level*2)+'px');upd();};
+const style=document.createElement('style');style.textContent='.slider::-webkit-slider-thumb{width:var(--sz,14px);height:var(--sz,14px)}';document.head.appendChild(style);
+
+window.snap=function(){if(!vid)return;const w=vid.videoWidth||innerWidth,h=vid.videoHeight||innerHeight;const tc=document.createElement('canvas');tc.width=w;tc.height=h;const ctx=tc.getContext('2d',{colorSpace:'srgb'});ctx.drawImage(vid,0,0,w,h);ct=new THREE.CanvasTexture(tc);ct.colorSpace=THREE.SRGBColorSpace;u.tDiffuse.value=ct;capBtn.style.display='none';act.classList.add('show');};
+window.retake=function(){if(vt)u.tDiffuse.value=vt;capBtn.style.display='flex';act.classList.remove('show');};
 window.save=function(){r.render(s,cam);const url=r.domElement.toDataURL('image/png');if(navigator.share){fetch(url).then(r=>r.blob()).then(b=>navigator.share({files:[new File([b],'painting-eye.png',{type:'image/png'})]}).catch(()=>fb(url))).catch(()=>fb(url));}else fb(url);};
-function fb(url){const w=window.open('');w.document.write('<img src="'+url+'" style="width:100%"><p style="text-align:center;color:#666;font-size:14px;margin-top:10px">长按图片保存</p>');showT('长按图片即可保存');}
+function fb(url){const w=window.open('');w.document.write('<img src="'+url+'" style="width:100%"><p style="text-align:center;color:#666;font-size:13px;margin-top:10px">Long press to save</p>');showT('Long press to save');}
 function showT(t){toast.textContent=t;toast.style.display='block';toast.style.animation='none';toast.offsetHeight;toast.style.animation='fade 2s forwards';setTimeout(()=>toast.style.display='none',2000);}
-window.tGrid=function(){gOn=!gOn;grid.classList.toggle('show',gOn);gridBtn.classList.toggle('on',gOn);};
-window.tFrame=function(){fOn=!fOn;frame.classList.toggle('show',fOn);frameBtn.classList.toggle('on',fOn);};
+window.tG=function(){gOn=!gOn;grid.classList.toggle('show',gOn);gridBtn.classList.toggle('on',gOn);};
+window.tF=function(){fOn=!fOn;frame.classList.toggle('show',fOn);frameBtn.classList.toggle('on',fOn);};
 
-// ── 模式菜单 ──
-document.getElementById('modeCur').addEventListener('click',()=>{document.getElementById('modeMenu').classList.toggle('show');document.getElementById('modeCur').classList.toggle('open');});
-document.querySelectorAll('.mode-opt').forEach(e=>{e.addEventListener('click',()=>{mode=+e.dataset.m;upd();document.getElementById('modeMenu').classList.remove('show');document.getElementById('modeCur').classList.remove('open');});});
+document.getElementById('mCur').addEventListener('click',()=>{document.getElementById('mMenu').classList.toggle('show');document.getElementById('mCur').classList.toggle('open');});
+document.querySelectorAll('.mode-opt').forEach(e=>{e.addEventListener('click',()=>{mode=+e.dataset.m;upd();document.getElementById('mMenu').classList.remove('show');document.getElementById('mCur').classList.remove('open');});});
 
-// ── 双击全屏 ──
-let lt=0;document.addEventListener('click',e=>{if(e.target.closest('#modeSel,#capBtn,.action-btn,.aux-btn,#perm,#slider'))return;const n=Date.now();if(n-lt<300){sPan.style.display=sPan.style.display==='none'?'flex':'none';}lt=n;});
+// double-tap: hide everything except capture button
+let lt=0;document.addEventListener('click',e=>{if(e.target.closest('#capBtn,.act-btn,#perm'))return;const n=Date.now();if(n-lt<300){const els=[sBar,mSel,aux];els.forEach(el=>el.style.display=el.style.display==='none'?'':'none');}lt=n;});
 
-// ── 相机 ──
-function detectEnv(){const ua=navigator.userAgent;let os='',br='',isSafari=false;if(/iPhone|iPad|iPod/.test(ua)){os='iOS';isSafari=!!/Safari/.test(ua)&&!/CriOS|FxiOS|OPiOS|mercury/.test(ua);}else if(/Android/.test(ua))os='Android';else os='电脑';if(/Firefox|FxiOS/.test(ua))br='Firefox';else if(/CriOS/.test(ua))br='Chrome(iOS)';else if(/Chrome/.test(ua)&&!/Edg/.test(ua))br='Chrome';else if(isSafari)br='Safari';else br='浏览器';if(os==='iOS'){permGuide.innerHTML='<b>设置 → App → '+br+'</b><br>找到「相机」权限并开启';}else if(os==='Android'){permGuide.innerHTML='<b>设置 → 应用 → '+br+'</b><br>权限 → 相机 → 允许';}else{permGuide.innerHTML='请检查浏览器是否允许访问摄像头';}}
+function detectEnv(){const ua=navigator.userAgent;let os='',br='',isSafari=false;if(/iPhone|iPad|iPod/.test(ua)){os='iOS';isSafari=!!/Safari/.test(ua)&&!/CriOS|FxiOS|OPiOS|mercury/.test(ua);}else if(/Android/.test(ua))os='Android';else os='Desktop';if(/Firefox|FxiOS/.test(ua))br='Firefox';else if(/CriOS/.test(ua))br='Chrome(iOS)';else if(/Chrome/.test(ua)&&!/Edg/.test(ua))br='Chrome';else if(isSafari)br='Safari';else br='browser';if(os==='iOS'){permGuide.innerHTML='<b>Settings → Apps → '+br+'</b><br>Allow Camera';}else if(os==='Android'){permGuide.innerHTML='<b>Settings → Apps → '+br+'</b><br>Permissions → Camera → Allow';}else{permGuide.innerHTML='Check browser camera permissions';}}
 
 async function startCam(){
   try{
@@ -200,13 +192,12 @@ async function startCam(){
     await vid.play();
     vt=new THREE.VideoTexture(vid);vt.colorSpace=THREE.SRGBColorSpace;u.tDiffuse.value=vt;
     perm.style.display='none';capBtn.style.display='flex';
-  }catch(e){console.error(e);detectEnv();permHelp.style.display='block';permBtn.textContent='重新尝试';}
+  }catch(e){console.error(e);detectEnv();permHelp.style.display='block';permBtn.textContent='Retry';}
 }
 permBtn.addEventListener('click',startCam);
 if(!('ontouchstart' in window)) setTimeout(startCam,500);
 
-// ── 键盘 ──
-document.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){mode=(mode+1)%5;upd();}if(e.key==='ArrowUp'){mode=(mode+4)%5;upd();}if(e.key==='ArrowLeft'){level=Math.max(1,level-1);slider.value=level;document.getElementById('sVal').textContent=level;}if(e.key==='ArrowRight'){level=Math.min(10,level+1);slider.value=level;document.getElementById('sVal').textContent=level;}if(e.key===' '){e.preventDefault();snap();}});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){mode=(mode+4)%5;upd();}if(e.key==='ArrowDown'){mode=(mode+1)%5;upd();}if(e.key==='ArrowLeft'){level=Math.max(1,level-1);slider.value=level;upd();}if(e.key==='ArrowRight'){level=Math.min(10,level+1);slider.value=level;upd();}if(e.key===' '){e.preventDefault();snap();}if(e.key==='r')retake();if(e.key==='s')save();});
 
 addEventListener('resize',()=>{r.setSize(innerWidth,innerHeight);u.uRes.value.set(innerWidth,innerHeight);});
 upd();
