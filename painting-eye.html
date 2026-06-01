@@ -94,14 +94,14 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 <div class="mode-sel" id="mSel">
   <div class="mode-cur" id="mCur"><span id="mText">BLUR</span><span class="arr">▼</span></div>
   <div class="mode-menu" id="mMenu">
-    <div class="mode-opt sel" data-m="0">BLUR</div>
+    <div class="mode-opt" data-m="0">BLUR</div>
     <div class="mode-opt" data-m="1">MOSAIC</div>
     <div class="mode-opt" data-m="2">POSTER</div>
     <div class="mode-opt" data-m="3">GRAY</div>
     <div class="mode-opt" data-m="4">EDGE</div>
     <div class="mode-opt" data-m="5">TONE</div>
     <div class="mode-opt" data-m="6">DUO</div>
-    <div class="mode-opt" data-m="7" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:10px">ORIGINAL</div>
+    <div class="mode-opt sel" data-m="7" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:10px">ORIGINAL</div>
   </div>
 </div>
 
@@ -130,7 +130,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 <script type="module">
 import * as THREE from 'three';
 
-let mode=0,level=4,vt,ct,vid,gOn=false,fOn=false,pOn=false;
+let mode=7,level=4,vt,ct,vid,gOn=false,fOn=false,pOn=false;
 const N=['BLUR','MOSAIC','POSTER','GRAY','EDGE','TONE','DUO','ORIGINAL'];
 const canvas=document.getElementById('c');
 const capBtn=document.getElementById('capBtn');
@@ -159,16 +159,25 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
     }
     vec4 mosaic(sampler2D t,vec2 uv,float r){float g=max(2.,2.+r*40.);vec2 q=floor(uv*g*vec2(uRes.x/uRes.y,1.))/(g*vec2(uRes.x/uRes.y,1.));return texture2D(t,q);}
     vec4 poster(sampler2D t,vec2 uv,float r){
-      // quantize first → colors stay true to original
-      vec4 c=texture2D(t,uv);
+      // cartoon flat-color: edge-preserving then quantize
+      // sample neighborhood, collect colors, pick dominant
+      int R=int(r*2.); // r=1..10 → R=2..20
+      vec4 best=texture2D(t,uv);float bestCnt=0.;
+      // find the most common color in the neighborhood
+      for(int x=-4;x<=4;x+=2)for(int y=-4;y<=4;y+=2){
+        vec4 c=texture2D(t,uv+vec2(x,y)/uRes);
+        float cnt=0.;
+        for(int x2=-4;x2<=4;x2+=2)for(int y2=-4;y2<=4;y2+=2){
+          vec4 c2=texture2D(t,uv+vec2(x2,y2)/uRes);
+          float d=length(c.rgb-c2.rgb);
+          if(d<.15)cnt+=1.;
+        }
+        if(cnt>bestCnt){bestCnt=cnt;best=c;}
+      }
+      // quantize the dominant color
       float n=pow(2.,floor(uLevel));
-      c.rgb=floor(c.rgb*n+.5)/n;
-      // then blur only the edges between color blocks
-      float radius=float(int(r*3.));
-      vec4 sum=vec4(0);float cnt=0.;int R=int(radius);
-      for(int x=-6;x<=6;x++)for(int y=-6;y<=6;y++){if(abs(x)+abs(y)>R)continue;
-        vec4 s=texture2D(t,uv+vec2(x,y)/uRes);s.rgb=floor(s.rgb*n+.5)/n;sum+=s;cnt+=1.;}
-      return sum/cnt;
+      best.rgb=floor(best.rgb*n+.5)/n;
+      return best;
     }
     vec4 gray(sampler2D t,vec2 uv,float r){vec4 c=texture2D(t,uv);float g=dot(c.rgb,vec3(.299,.587,.114));return mix(c,vec4(vec3(g),c.a),r/10.);}
     float lum(vec4 c){return dot(c.rgb,vec3(.2126,.7152,.0722));}
