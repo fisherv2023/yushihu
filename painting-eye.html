@@ -55,7 +55,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 
 /* frame overlay → three concentric circles */
 .fv{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}.fv.show{display:block}
-.fv .fm{position:absolute;inset:0;background:rgba(0,0,0,.3)}
+.fv .fm{position:absolute;inset:0;background:transparent}
 .fv .rings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 .fv .rings div{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.25)}
 .fv .rings .r1{width:28vmin;height:28vmin}
@@ -92,9 +92,8 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
     <div class="mode-opt" data-m="2">POSTER</div>
     <div class="mode-opt" data-m="3">GRAY</div>
     <div class="mode-opt" data-m="4">EDGE</div>
-    <div class="mode-opt" data-m="5">OIL</div>
-    <div class="mode-opt" data-m="6">DUO</div>
-    <div class="mode-opt" data-m="7" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:10px">ORIGINAL</div>
+    <div class="mode-opt" data-m="5">DUO</div>
+    <div class="mode-opt" data-m="6" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:10px">ORIGINAL</div>
   </div>
 </div>
 
@@ -123,7 +122,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 import * as THREE from 'three';
 
 let mode=0,level=4,vt,ct,vid,gOn=false,fOn=false;
-const N=['BLUR','MOSAIC','POSTER','GRAY','EDGE','OIL','DUO','ORIGINAL'];
+const N=['BLUR','MOSAIC','POSTER','GRAY','EDGE','DUO','ORIGINAL'];
 const canvas=document.getElementById('c');
 const capBtn=document.getElementById('capBtn');
 const act=document.getElementById('act');
@@ -151,7 +150,17 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       for(int x=-30;x<=30;x++)for(int y=-30;y<=30;y++){if(abs(x)+abs(y)>R)continue;c+=texture2D(t,uv+vec2(x,y)/uRes);s+=1.;}return c/s;
     }
     vec4 mosaic(sampler2D t,vec2 uv,float r){float g=max(2.,2.+r*40.);vec2 q=floor(uv*g*vec2(uRes.x/uRes.y,1.))/(g*vec2(uRes.x/uRes.y,1.));return texture2D(t,q);}
-    vec4 poster(sampler2D t,vec2 uv,float r){vec4 c=texture2D(t,uv);float n=pow(2.,floor(uLevel));c.rgb=floor(c.rgb*n+.5)/n;return c;}
+    vec4 poster(sampler2D t,vec2 uv,float r){
+      // POSTER → oil brush stroke effect
+      float radius=float(int(r*3.));
+      vec4 sum=vec4(0);float cnt=0.;
+      int R=int(radius);
+      for(int x=-6;x<=6;x++)for(int y=-6;y<=6;y++){if(abs(x)+abs(y)>R)continue;sum+=texture2D(t,uv+vec2(x,y)/uRes);cnt+=1.;}
+      vec4 mean=sum/cnt;
+      float lv=4.+r*0.6;
+      mean.rgb=floor(mean.rgb*lv+.5)/lv;
+      return mean;
+    }
     vec4 gray(sampler2D t,vec2 uv,float r){vec4 c=texture2D(t,uv);float g=dot(c.rgb,vec3(.299,.587,.114));return mix(c,vec4(vec3(g),c.a),r/10.);}
     // shared helpers
     float lum(vec4 c){return dot(c.rgb,vec3(.2126,.7152,.0722));}
@@ -173,20 +182,6 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       float lv=step(th,edge);
       return mix(vec4(1.),vec4(0.,0.,0.,1.),lv); // white bg, black lines
     }
-    // OIL: simplified brush-stroke effect (no heavy nested loops)
-    vec4 oil(sampler2D t,vec2 uv,float r){
-      float radius=float(int(r*3.));
-      vec4 c=texture2D(t,uv);
-      vec4 sum=vec4(0);float cnt=0.;
-      // single-pass cross pattern for performance
-      int R=int(radius);
-      for(int x=-6;x<=6;x++)for(int y=-6;y<=6;y++){if(abs(x)+abs(y)>R)continue;sum+=texture2D(t,uv+vec2(x,y)/uRes);cnt+=1.;}
-      vec4 mean=sum/cnt;
-      // posterize the mean for brush-stroke look
-      float lv=4.+r*0.6;
-      mean.rgb=floor(mean.rgb*lv+.5)/lv;
-      return mean;
-    }
     // DUO: 2-tone thresholding
     vec4 duo(sampler2D t,vec2 uv,float r){
       vec4 c=texture2D(t,uv);
@@ -203,8 +198,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       else if(uMode==2)col=poster(tDiffuse,v,uLevel);
       else if(uMode==3)col=gray(tDiffuse,v,uLevel);
       else if(uMode==4)col=edge(tDiffuse,v,uLevel);
-      else if(uMode==5)col=oil(tDiffuse,v,uLevel);
-      else if(uMode==6)col=duo(tDiffuse,v,uLevel);
+      else if(uMode==5)col=duo(tDiffuse,v,uLevel);
       else col=orig(tDiffuse,v,uLevel);
       gl_FragColor=col;
     }`
@@ -248,7 +242,7 @@ async function startCam(){
 permBtn.addEventListener('click',startCam);
 if(!('ontouchstart' in window)) setTimeout(startCam,500);
 
-document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){mode=(mode+7)%8;upd();}if(e.key==='ArrowDown'){mode=(mode+1)%8;upd();}if(e.key==='ArrowLeft'){level=Math.max(1,level-1);slider.value=level;upd();}if(e.key==='ArrowRight'){level=Math.min(10,level+1);slider.value=level;upd();}if(e.key===' '){e.preventDefault();snap();}if(e.key==='r')retake();if(e.key==='s')save();});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){mode=(mode+6)%7;upd();}if(e.key==='ArrowDown'){mode=(mode+1)%7;upd();}if(e.key==='ArrowLeft'){level=Math.max(1,level-1);slider.value=level;upd();}if(e.key==='ArrowRight'){level=Math.min(10,level+1);slider.value=level;upd();}if(e.key===' '){e.preventDefault();snap();}if(e.key==='r')retake();if(e.key==='s')save();});
 
 addEventListener('resize',()=>{r.setSize(innerWidth,innerHeight);u.uRes.value.set(innerWidth,innerHeight);});
 upd();
