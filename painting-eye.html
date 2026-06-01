@@ -52,13 +52,17 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .perm .help{font-size:11px;opacity:.35;text-align:center;line-height:1.7;display:none}
 .perm .help a{color:#6ab;text-decoration:none}
 
-/* grid & frame */
+/* frame overlay → three concentric circles */
+.fv{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}.fv.show{display:block}
+.fv .fm{position:absolute;inset:0;background:rgba(0,0,0,.3)}
+.fv .rings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.fv .rings div{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.25)}
+.fv .rings .r1{width:18vmin;height:18vmin}
+.fv .rings .r2{width:24vmin;height:24vmin}
+.fv .rings .r3{width:48vmin;height:48vmin}
+/* grid */
 .gv{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}.gv.show{display:block}
 .gl{position:absolute;background:rgba(255,255,255,.08)}.gl.h{left:0;right:0;height:1px}.gl.v{top:0;bottom:0;width:1px}
-.fv{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}.fv.show{display:block}
-.fv .fm{position:absolute;inset:0;background:rgba(0,0,0,.35);-webkit-mask:radial-gradient(ellipse 28% 42% at 50% 50%,transparent 100%,#000 100%)}
-.fv .fb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-.fv .fb::after{content:'';width:60%;aspect-ratio:3/4;border:1px solid rgba(255,255,255,.25);border-radius:2px}
 
 .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:50;padding:9px 18px;border-radius:10px;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:13px;display:none;animation:fade 2s forwards}
 @keyframes fade{0%,70%{opacity:1}100%{opacity:0}}
@@ -77,7 +81,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 </div>
 
 <div class="gv" id="grid"><div class="gl h" style="top:33%"></div><div class="gl h" style="top:66%"></div><div class="gl v" style="left:33%"></div><div class="gl v" style="left:66%"></div></div>
-<div class="fv" id="frame"><div class="fm"></div><div class="fb"></div></div>
+<div class="fv" id="frame"><div class="fm"></div><div class="rings"><div class="r1"></div><div class="r2"></div><div class="r3"></div></div></div>
 
 <div class="mode-sel" id="mSel">
   <div class="mode-cur" id="mCur"><span id="mText">BLUR</span><span class="arr">▼</span></div>
@@ -153,8 +157,6 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       else if(uMode==2)col=poster(tDiffuse,v,uLevel);
       else if(uMode==3)col=gray(tDiffuse,v,uLevel);
       else col=orig(tDiffuse,v,uLevel);
-      // gamma correction fix dark photo
-      col.rgb=pow(col.rgb,vec3(1./2.2));
       gl_FragColor=col;
     }`
 });
