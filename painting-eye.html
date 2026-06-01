@@ -159,25 +159,24 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
     }
     vec4 mosaic(sampler2D t,vec2 uv,float r){float g=max(2.,2.+r*40.);vec2 q=floor(uv*g*vec2(uRes.x/uRes.y,1.))/(g*vec2(uRes.x/uRes.y,1.));return texture2D(t,q);}
     vec4 poster(sampler2D t,vec2 uv,float r){
-      // cartoon flat-color: edge-preserving then quantize
-      // sample neighborhood, collect colors, pick dominant
+      // Anisotropic Kuwahara: 4 sectors, pick lowest-variance, quantize
       int R=int(r*2.); // r=1..10 → R=2..20
-      vec4 best=texture2D(t,uv);float bestCnt=0.;
-      // find the most common color in the neighborhood
-      for(int x=-4;x<=4;x+=2)for(int y=-4;y<=4;y+=2){
-        vec4 c=texture2D(t,uv+vec2(x,y)/uRes);
-        float cnt=0.;
-        for(int x2=-4;x2<=4;x2+=2)for(int y2=-4;y2<=4;y2+=2){
-          vec4 c2=texture2D(t,uv+vec2(x2,y2)/uRes);
-          float d=length(c.rgb-c2.rgb);
-          if(d<.15)cnt+=1.;
+      float bestV=1e9;vec4 bestC=texture2D(t,uv);
+      for(int q=0;q<4;q++){
+        vec2 dir=q==0?vec2(-1.,1.):q==1?vec2(1.,1.):q==2?vec2(-1.,-1.):vec2(1.,-1.);
+        vec4 sum=vec4(0);vec4 sq=vec4(0);float cnt=0.;
+        for(int x=0;x<=4;x++)for(int y=0;y<=4;y++){
+          vec4 c=texture2D(t,uv+dir*vec2(x,y)*vec2(1.,uRes.x/uRes.y)/(uRes*.02)*float(R));
+          sum+=c;sq+=c*c;cnt+=1.;
         }
-        if(cnt>bestCnt){bestCnt=cnt;best=c;}
+        vec4 mean=sum/cnt;
+        float v=dot(sq/cnt-mean*mean,vec4(1.));
+        if(v<bestV){bestV=v;bestC=mean;}
       }
-      // quantize the dominant color
+      // quantize
       float n=pow(2.,floor(uLevel));
-      best.rgb=floor(best.rgb*n+.5)/n;
-      return best;
+      bestC.rgb=floor(bestC.rgb*n+.5)/n;
+      return bestC;
     }
     vec4 gray(sampler2D t,vec2 uv,float r){vec4 c=texture2D(t,uv);float g=dot(c.rgb,vec3(.299,.587,.114));return mix(c,vec4(vec3(g),c.a),r/10.);}
     float lum(vec4 c){return dot(c.rgb,vec3(.2126,.7152,.0722));}
