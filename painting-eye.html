@@ -120,7 +120,8 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
     <div class="mode-opt" data-m="4">EDGE</div>
     <div class="mode-opt" data-m="5">TONE</div>
     <div class="mode-opt" data-m="6">DUO</div>
-    <div class="mode-opt sel" data-m="7" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:10px">ORIGINAL</div>
+    <div class="mode-opt" data-m="7">STROKE</div>
+    <div class="mode-opt sel" data-m="8" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:10px">ORIGINAL</div>
   </div>
 </div>
 
@@ -149,8 +150,8 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 <script type="module">
 import * as THREE from 'three';
 
-let mode=7,level=4,vt,ct,vid,gOn=false,fOn=false,pOn=false;
-const N=['BLUR','MOSAIC','POSTER','GRAY','EDGE','TONE','DUO','ORIGINAL'];
+let mode=8,level=4,vt,ct,vid,gOn=false,fOn=false,pOn=false;
+const N=['BLUR','MOSAIC','POSTER','GRAY','EDGE','TONE','DUO','STROKE','ORIGINAL'];
 const canvas=document.getElementById('c');
 const capBtn=document.getElementById('capBtn');
 const act=document.getElementById('act');
@@ -217,6 +218,32 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       vec4 c=texture2D(t,uv);float l=dot(c.rgb,vec3(.299,.587,.114));
       return vec4(vec3(step(.1+.8*r/10.,l)),1.);
     }
+    // STROKE: directional brush strokes
+    vec4 stroke(sampler2D t,vec2 uv,float r){
+      vec4 c=texture2D(t,uv);
+      float l=lum(c);
+      // compute gradient direction
+      vec2 o=1./uRes;
+      float gx=lum(texture2D(t,uv+vec2(o.x,0.)))-lum(texture2D(t,uv+vec2(-o.x,0.)));
+      float gy=lum(texture2D(t,uv+vec2(0.,o.y)))-lum(texture2D(t,uv+vec2(0.,-o.y)));
+      // normalize direction & rotate 90° for stroke orientation
+      float angle=atan(gy,gx)+1.5708;
+      vec2 dir=vec2(cos(angle),sin(angle));
+      // sample along stroke direction
+      float strokeLen=r*1.5; // r=1..10 → 1.5..15
+      vec4 sum=vec4(0);float cnt=0.;
+      for(int i=-2;i<=2;i++){
+        vec4 s=texture2D(t,uv+dir*float(i)*strokeLen/uRes);
+        sum+=s;cnt+=1.;
+      }
+      vec4 strokeColor=sum/cnt;
+      // slight color boost for van Gogh feel
+      strokeColor.rgb=strokeColor.rgb*1.1;
+      // modulate by canvas-like noise
+      float nz=fract(sin(dot(uv*uRes,vec2(12.9898,78.233)))*43758.5453);
+      strokeColor.rgb=mix(strokeColor.rgb,c.rgb,nz*.15);
+      return strokeColor;
+    }
     vec4 orig(sampler2D t,vec2 uv,float r){return texture2D(t,uv);}
     void main(){
       vec4 col;
@@ -227,6 +254,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       else if(uMode==4)col=edge(tDiffuse,v,uLevel);
       else if(uMode==5)col=tone(tDiffuse,v,uLevel);
       else if(uMode==6)col=duo(tDiffuse,v,uLevel);
+      else if(uMode==7)col=stroke(tDiffuse,v,uLevel);
       else col=orig(tDiffuse,v,uLevel);
       gl_FragColor=col;
     }`
@@ -304,7 +332,7 @@ async function startCam(){
 permBtn.addEventListener('click',startCam);
 if(!('ontouchstart' in window)) setTimeout(startCam,500);
 
-document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){mode=(mode+7)%8;upd();}if(e.key==='ArrowDown'){mode=(mode+1)%8;upd();}if(e.key==='ArrowLeft'){level=Math.max(1,level-1);slider.value=level;upd();}if(e.key==='ArrowRight'){level=Math.min(10,level+1);slider.value=level;upd();}if(e.key===' '){e.preventDefault();snap();}if(e.key==='r')retake();if(e.key==='s')save();});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){mode=(mode+8)%9;upd();}if(e.key==='ArrowDown'){mode=(mode+1)%9;upd();}if(e.key==='ArrowLeft'){level=Math.max(1,level-1);slider.value=level;upd();}if(e.key==='ArrowRight'){level=Math.min(10,level+1);slider.value=level;upd();}if(e.key===' '){e.preventDefault();snap();}if(e.key==='r')retake();if(e.key==='s')save();});
 
 addEventListener('resize',()=>{r.setSize(innerWidth,innerHeight);u.uRes.value.set(innerWidth,innerHeight);});
 upd();
