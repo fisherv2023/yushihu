@@ -236,7 +236,6 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       else if(uMode==5)col=tone(tDiffuse,sUv,uLevel);
       else if(uMode==6)col=duo(tDiffuse,sUv,uLevel);
       else col=orig(tDiffuse,sUv,uLevel);
-      if(uFit==1)col.rgb=pow(col.rgb,vec3(2.2));
       gl_FragColor=col;
     }`
 });
@@ -267,7 +266,7 @@ window.loadImg=function(e){
   const img=new Image();img.onload=function(){
     const tc=document.createElement('canvas');tc.width=img.width;tc.height=img.height;
     tc.getContext('2d').drawImage(img,0,0);
-    ct=new THREE.CanvasTexture(tc);ct.colorSpace=THREE.SRGBColorSpace;
+    ct=new THREE.CanvasTexture(tc);ct.colorSpace=THREE.LinearSRGBColorSpace;
     u.uTexSize.value.set(img.width,img.height);u.uFit.value=1;
     u.tDiffuse.value=ct;capBtn.style.display='none';act.classList.add('show');
     mSel.style.display=aux.style.display=sBar.style.display='';
