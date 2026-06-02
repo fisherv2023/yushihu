@@ -206,13 +206,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       float l=lum(texture2D(t,uv+vec2(-o.x,0.))),r_=lum(texture2D(t,uv+vec2(o.x,0.)));
       float bl=lum(texture2D(t,uv+vec2(-o.x,-o.y))),b_=lum(texture2D(t,uv+vec2(0.,-o.y))),br=lum(texture2D(t,uv+vec2(o.x,-o.y)));
       float gx=-tl+tr-2.*l+2.*r_-bl+br,gy=tl+2.*t_+tr-bl-2.*b_-br;
-      float sobel=smoothstep(th*.5,th*1.5,sqrt(gx*gx+gy*gy));
-      float px=lum(texture2D(t,uv));
-      vec2 hp=v*uRes;
-      float hatch=fract((hp.x-hp.y)*0.06);
-      hatch=smoothstep((1.-px)*.8,(1.-px)*.8+.04,hatch);
-      float w=smoothstep(2.,6.,r);
-      return mix(mix(vec4(1.),vec4(0.,0.,0.,1.),hatch),mix(vec4(1.),vec4(0.,0.,0.,1.),sobel),w);
+      return mix(vec4(1.),vec4(0.,0.,0.,1.),smoothstep(th*.5,th*1.5,sqrt(gx*gx+gy*gy)));
     }
     // TONE: value zones — shadows blue, midtones clear, highlights warm
     vec4 tone(sampler2D t,vec2 uv,float r){
