@@ -108,6 +108,11 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
   <div class="gr-phi gr-v1" style="left:38.2%"></div>
   <div class="gr-phi gr-v2" style="left:61.8%"></div>
 </div>
+<div class="fv fib" id="fib">
+  <svg viewBox="0 0 720 720" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%">
+    <path d="M20.0,360.0 L27.1,339.1 L35.4,319.0 L44.8,299.9 L55.1,281.7 L66.3,264.6 L78.4,248.5 L91.1,233.5 L104.6,219.6 L118.6,206.8 L133.1,195.1 L148.0,184.6 L163.3,175.3 L178.8,167.0 L194.5,159.9 L210.3,153.9 L226.1,149.0 L241.9,145.2 L257.6,142.4 L273.2,140.7 L288.5,140.0 L303.6,140.2 L318.3,141.3 L332.6,143.3 L346.5,146.2 L360.0,149.9 L372.9,154.3 L385.3,159.4 L397.2,165.2 L408.4,171.6 L419.0,178.5 L428.9,185.9 L438.2,193.8 L446.8,202.1 L454.7,210.8 L461.9,219.8 L468.4,229.0 L474.2,238.4 L479.3,248.0 L483.7,257.7 L487.4,267.5 L490.4,277.3 L492.8,287.0 L494.5,296.7 L495.5,306.3 L496.0,315.8 L495.9,325.1 L495.2,334.2 L493.9,343.1 L492.1,351.7 L489.9,360.0 L487.1,368.0 L484.0,375.7 L480.4,383.0 L476.5,389.9 L472.2,396.4 L467.6,402.6 L462.7,408.3 L457.6,413.6 L452.2,418.5 L446.7,423.0 L441.0,427.0 L435.1,430.6 L429.2,433.7 L423.2,436.4 L417.2,438.7 L411.1,440.6 L405.1,442.0 L399.1,443.1 L393.2,443.8 L387.3,444.0 L381.6,444.0 L375.9,443.5 L370.5,442.8 L365.1,441.7 L360.0,440.3 L355.1,438.6 L350.3,436.6 L345.8,434.4 L341.5,432.0 L337.5,429.3 L333.7,426.5 L330.1,423.5 L326.9,420.3 L323.8,417.0 L321.1,413.6 L318.6,410.0 L316.4,406.4 L314.4,402.8 L312.8,399.1 L311.4,395.3 L310.2,391.6 L309.3,387.9 L308.6,384.2 L308.2,380.5 L308.1,376.9 L308.1,373.3 L308.4,369.8 L308.9,366.5 L309.5,363.2" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="1.5"/>
+  </svg>
+</div>
 <div class="fv diag" id="diag">
   <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%"><line x1="0" y1="0" x2="100" y2="100" stroke="rgba(255,255,255,.18)" stroke-width="1"/><line x1="100" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,.18)" stroke-width="1"/></svg>
 </div>
@@ -172,7 +177,7 @@ const act=document.getElementById('act');
 const sBar=document.getElementById('sBar');
 const slider=document.getElementById('slider');
 const mSel=document.getElementById('mSel'),aux=document.getElementById('aux');
-const gridBtn=document.getElementById('gridBtn'),frameBtn=document.getElementById('frameBtn'),palBtn=document.getElementById('palBtn'),spiral=document.getElementById('spiral'),diag=document.getElementById('diag');
+const gridBtn=document.getElementById('gridBtn'),frameBtn=document.getElementById('frameBtn'),palBtn=document.getElementById('palBtn'),spiral=document.getElementById('spiral'),fib=document.getElementById('fib'),diag=document.getElementById('diag');
 const grid=document.getElementById('grid'),frame=document.getElementById('frame'),pal=document.getElementById('palette');
 const perm=document.getElementById('perm'),permBtn=document.getElementById('permBtn');
 const permHelp=document.getElementById('permHelp'),permGuide=document.getElementById('permGuide');
@@ -267,7 +272,7 @@ window.save=function(){r.render(s,cam);const url=r.domElement.toDataURL('image/p
 function fb(url){const w=window.open('');w.document.write('<img src="'+url+'" style="width:100%"><p style="text-align:center;color:#666;font-size:13px;margin-top:10px">Long press to save</p>');showT('Long press to save');}
 function showT(t){toast.textContent=t;toast.style.display='block';toast.style.animation='none';toast.offsetHeight;toast.style.animation='fade 2s forwards';setTimeout(()=>toast.style.display='none',2000);}
 window.tG=function(){gOn=!gOn;grid.classList.toggle('show',gOn);gridBtn.classList.toggle('on',gOn);};
-window.tF=function(){fMode=(fMode+1)%4;frame.classList.toggle('show',fMode==1);spiral.classList.toggle('show',fMode==2);diag.classList.toggle('show',fMode==3);frameBtn.classList.toggle('on',fMode>0);};
+window.tF=function(){fMode=(fMode+1)%5;frame.classList.toggle('show',fMode==1);spiral.classList.toggle('show',fMode==2);fib.classList.toggle('show',fMode==3);diag.classList.toggle('show',fMode==4);frameBtn.classList.toggle('on',fMode>0);};
 
 // Photo upload
 window.pickImg=function(){document.getElementById('fileInput').click();};
