@@ -168,7 +168,7 @@ const perm=document.getElementById('perm'),permBtn=document.getElementById('perm
 const permHelp=document.getElementById('permHelp'),permGuide=document.getElementById('permGuide');
 const toast=document.getElementById('toast');
 
-const r=new THREE.WebGLRenderer({canvas,preserveDrawingBuffer:true,antialias:false});r.outputColorSpace=THREE.SRGBColorSpace;
+const r=new THREE.WebGLRenderer({canvas,preserveDrawingBuffer:true,antialias:false});
 r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(innerWidth,innerHeight);
 const s=new THREE.Scene(),cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
 const u={tDiffuse:{value:null},uMode:{value:0},uLevel:{value:4},uRes:{value:new THREE.Vector2(innerWidth,innerHeight)},uTexSize:{value:new THREE.Vector2(innerWidth,innerHeight)},uFit:{value:0}};
@@ -263,12 +263,14 @@ window.tF=function(){fOn=!fOn;frame.classList.toggle('show',fOn);frameBtn.classL
 window.pickImg=function(){document.getElementById('fileInput').click();};
 window.loadImg=function(e){
   const file=e.target.files[0];if(!file)return;
-  createImageBitmap(file).then(bmp=>{
-    const tex=new THREE.CanvasTexture(bmp);tex.colorSpace=THREE.SRGBColorSpace;tex.needsUpdate=true;
-    ct=tex;u.uTexSize.value.set(bmp.width,bmp.height);u.uFit.value=1;
+  const img=new Image();img.onload=function(){
+    const tc=document.createElement('canvas');tc.width=img.width;tc.height=img.height;
+    tc.getContext('2d').drawImage(img,0,0);
+    ct=new THREE.CanvasTexture(tc);ct.colorSpace=THREE.SRGBColorSpace;
+    u.uTexSize.value.set(img.width,img.height);u.uFit.value=1;
     u.tDiffuse.value=ct;capBtn.style.display='none';act.classList.add('show');
     mSel.style.display=aux.style.display=sBar.style.display='';
-  });
+  };img.src=URL.createObjectURL(file);
   e.target.value='';
 };
 
