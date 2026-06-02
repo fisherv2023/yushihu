@@ -171,11 +171,11 @@ const toast=document.getElementById('toast');
 const r=new THREE.WebGLRenderer({canvas,preserveDrawingBuffer:true,antialias:false});
 r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(innerWidth,innerHeight);
 const s=new THREE.Scene(),cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
-const u={tDiffuse:{value:null},uMode:{value:0},uLevel:{value:4},uRes:{value:new THREE.Vector2(innerWidth,innerHeight)}};
+const u={tDiffuse:{value:null},uMode:{value:0},uLevel:{value:4},uRes:{value:new THREE.Vector2(innerWidth,innerHeight)},uTexSize:{value:new THREE.Vector2(innerWidth,innerHeight)},uFit:{value:0}};
 const mat=new THREE.ShaderMaterial({uniforms:u,
   vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
   fragmentShader:`
-    uniform sampler2D tDiffuse;uniform int uMode;uniform float uLevel;uniform vec2 uRes;
+    uniform sampler2D tDiffuse;uniform int uMode;uniform float uLevel;uniform vec2 uRes;uniform vec2 uTexSize;uniform int uFit;
     varying vec2 v;
     vec4 blur(sampler2D t,vec2 uv,float r){
       vec4 c=vec4(0);float s=0.;int R=int(r*3.);
@@ -222,17 +222,20 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       vec4 c=texture2D(t,uv);float l=dot(c.rgb,vec3(.299,.587,.114));
       return vec4(vec3(step(.1+.8*r/10.,l)),1.);
     }
+    vec2 fitUV(vec2 uv){float tr=uTexSize.x/uTexSize.y;float sr=uRes.x/uRes.y;if(tr>sr){float s=sr/tr;uv.y=(uv.y-.5)/s+.5;}else{float s=tr/sr;uv.x=(uv.x-.5)/s+.5;}return uv;}
     vec4 orig(sampler2D t,vec2 uv,float r){return texture2D(t,uv);}
     void main(){
+      vec2 uv=uFit==1?fitUV(v):v;if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.){gl_FragColor=vec4(0.);return;}
+      vec2 sUv=clamp(uv,0.,1.);
       vec4 col;
-      if(uMode==0)col=blur(tDiffuse,v,uLevel);
-      else if(uMode==1)col=mosaic(tDiffuse,v,uLevel);
-      else if(uMode==2)col=poster(tDiffuse,v,uLevel);
-      else if(uMode==3)col=gray(tDiffuse,v,uLevel);
-      else if(uMode==4)col=edge(tDiffuse,v,uLevel);
-      else if(uMode==5)col=tone(tDiffuse,v,uLevel);
-      else if(uMode==6)col=duo(tDiffuse,v,uLevel);
-      else col=orig(tDiffuse,v,uLevel);
+      if(uMode==0)col=blur(tDiffuse,sUv,uLevel);
+      else if(uMode==1)col=mosaic(tDiffuse,sUv,uLevel);
+      else if(uMode==2)col=poster(tDiffuse,sUv,uLevel);
+      else if(uMode==3)col=gray(tDiffuse,sUv,uLevel);
+      else if(uMode==4)col=edge(tDiffuse,sUv,uLevel);
+      else if(uMode==5)col=tone(tDiffuse,sUv,uLevel);
+      else if(uMode==6)col=duo(tDiffuse,sUv,uLevel);
+      else col=orig(tDiffuse,sUv,uLevel);
       gl_FragColor=col;
     }`
 });
@@ -249,7 +252,7 @@ window.onS=function(){level=+slider.value;slider.style.setProperty('--sz',(12+le
 const style=document.createElement('style');style.textContent='.slider::-webkit-slider-thumb{width:var(--sz,14px);height:var(--sz,14px)}';document.head.appendChild(style);
 
 window.snap=function(){if(!vid)return;const rt=new THREE.WebGLRenderTarget(innerWidth,innerHeight);rt.texture.colorSpace=THREE.SRGBColorSpace;r.setRenderTarget(rt);r.render(s,cam);r.setRenderTarget(null);ct=rt.texture;u.tDiffuse.value=ct;capBtn.style.display='none';act.classList.add('show');};
-window.retake=function(){if(vt)u.tDiffuse.value=vt;capBtn.style.display='flex';act.classList.remove('show');};
+window.retake=function(){if(vt){u.tDiffuse.value=vt;u.uFit.value=0;}capBtn.style.display='flex';act.classList.remove('show');};
 window.save=function(){r.render(s,cam);const url=r.domElement.toDataURL('image/png');if(navigator.share){fetch(url).then(r=>r.blob()).then(b=>navigator.share({files:[new File([b],'painting-eye.png',{type:'image/png'})]}).catch(()=>fb(url))).catch(()=>fb(url));}else fb(url);};
 function fb(url){const w=window.open('');w.document.write('<img src="'+url+'" style="width:100%"><p style="text-align:center;color:#666;font-size:13px;margin-top:10px">Long press to save</p>');showT('Long press to save');}
 function showT(t){toast.textContent=t;toast.style.display='block';toast.style.animation='none';toast.offsetHeight;toast.style.animation='fade 2s forwards';setTimeout(()=>toast.style.display='none',2000);}
@@ -261,9 +264,8 @@ window.pickImg=function(){document.getElementById('fileInput').click();};
 window.loadImg=function(e){
   const file=e.target.files[0];if(!file)return;
   const img=new Image();img.onload=function(){
-    const tc=document.createElement('canvas');tc.width=img.width;tc.height=img.height;
-    tc.getContext('2d').drawImage(img,0,0);
-    ct=new THREE.CanvasTexture(tc);ct.colorSpace=THREE.SRGBColorSpace;
+    const tex=new THREE.Texture(img);tex.colorSpace=THREE.SRGBColorSpace;tex.needsUpdate=true;
+    ct=tex;u.uTexSize.value.set(img.width,img.height);u.uFit.value=1;
     u.tDiffuse.value=ct;capBtn.style.display='none';act.classList.add('show');
   };img.src=URL.createObjectURL(file);
   e.target.value='';
@@ -316,7 +318,7 @@ async function startCam(){
     vid=document.createElement('video');vid.srcObject=st;vid.setAttribute('playsinline','');vid.setAttribute('webkit-playsinline','');vid.muted=true;
     await vid.play();
     vt=new THREE.VideoTexture(vid);vt.colorSpace=THREE.SRGBColorSpace;u.tDiffuse.value=vt;
-    perm.style.display='none';capBtn.style.display='flex';
+    perm.style.display='none';u.uFit.value=0;capBtn.style.display='flex';
   }catch(e){console.error(e);detectEnv();permHelp.style.display='block';permBtn.textContent='Retry';}
 }
 permBtn.addEventListener('click',startCam);
