@@ -55,6 +55,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .perm .help a{color:#6ab;text-decoration:none}
 
 .fv{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}.fv.show{display:block}
+.gr-phi{position:absolute;background:rgba(255,255,255,.10)}.gr-phi.gr-h1,.gr-phi.gr-h2{left:0;right:0;height:1px}.gr-phi.gr-v1,.gr-phi.gr-v2{top:0;bottom:0;width:1px}
 .fv .fm{position:absolute;inset:0;background:transparent}
 .fv .rings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 .fv .rings div{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.25)}
@@ -101,6 +102,15 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 
 <div class="gv" id="grid"><div class="gl h" style="top:33%"></div><div class="gl h" style="top:66%"></div><div class="gl v" style="left:33%"></div><div class="gl v" style="left:66%"></div></div>
 <div class="fv" id="frame"><div class="fm"></div><div class="rings"><div class="r1"></div><div class="r2"></div><div class="r3"></div></div></div>
+<div class="fv spiral" id="spiral">
+  <div class="gr-phi gr-h1" style="top:38.2%"></div>
+  <div class="gr-phi gr-h2" style="top:61.8%"></div>
+  <div class="gr-phi gr-v1" style="left:38.2%"></div>
+  <div class="gr-phi gr-v2" style="left:61.8%"></div>
+</div>
+<div class="fv diag" id="diag">
+  <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%"><line x1="0" y1="0" x2="100" y2="100" stroke="rgba(255,255,255,.18)" stroke-width="1"/><line x1="100" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,.18)" stroke-width="1"/></svg>
+</div>
 
 <!-- PAL palette overlay -->
 <div class="palette" id="palette">
@@ -119,7 +129,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
         <div class="mode-opt" data-m="0">BLUR</div>
         <div class="mode-opt" data-m="1">MOSAIC</div>
         <div class="mode-opt" data-m="2">POSTER</div>
-        <div class="mode-opt" data-m="3">GRAY</div>
+        <div class="mode-opt" data-m="3">VALUE</div>
         <div class="mode-opt" data-m="4">EDGE</div>
         <div class="mode-opt" data-m="5">TONE</div>
         <div class="mode-opt" data-m="6">DUO</div>
@@ -154,15 +164,15 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 <script type="module">
 import * as THREE from 'three';
 
-let mode=7,level=4,vt,ct,vid,gOn=false,fOn=false,pOn=false;
-const N=['BLUR','MOSAIC','POSTER','GRAY','EDGE','TONE','DUO','ORIGINAL'];
+let mode=7,level=4,vt,ct,vid,gOn=false,fMode=0,pOn=false;
+const N=['BLUR','MOSAIC','POSTER','VALUE','EDGE','TONE','DUO','ORIGINAL'];
 const canvas=document.getElementById('c');
 const capBtn=document.getElementById('capBtn');
 const act=document.getElementById('act');
 const sBar=document.getElementById('sBar');
 const slider=document.getElementById('slider');
 const mSel=document.getElementById('mSel'),aux=document.getElementById('aux');
-const gridBtn=document.getElementById('gridBtn'),frameBtn=document.getElementById('frameBtn'),palBtn=document.getElementById('palBtn');
+const gridBtn=document.getElementById('gridBtn'),frameBtn=document.getElementById('frameBtn'),palBtn=document.getElementById('palBtn'),spiral=document.getElementById('spiral'),diag=document.getElementById('diag');
 const grid=document.getElementById('grid'),frame=document.getElementById('frame'),pal=document.getElementById('palette');
 const perm=document.getElementById('perm'),permBtn=document.getElementById('permBtn');
 const permHelp=document.getElementById('permHelp'),permGuide=document.getElementById('permGuide');
@@ -198,7 +208,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       best.rgb=floor(best.rgb*n+.5)/n;
       return best;
     }
-    vec4 gray(sampler2D t,vec2 uv,float r){vec4 c=texture2D(t,uv);float g=dot(c.rgb,vec3(.299,.587,.114));return mix(c,vec4(vec3(g),c.a),r/10.);}
+    vec4 gray(sampler2D t,vec2 uv,float r){vec4 c=texture2D(t,uv);float g=dot(c.rgb,vec3(.299,.587,.114));float n=1.+r;g=floor(g*n)/(n-1.);return vec4(vec3(g),c.a);}
     float lum(vec4 c){return dot(c.rgb,vec3(.2126,.7152,.0722));}
     vec4 edge(sampler2D t,vec2 uv,float r){
       float th=0.02+0.30*pow(r/10.,2.);vec2 o=1./uRes;
@@ -257,7 +267,7 @@ window.save=function(){r.render(s,cam);const url=r.domElement.toDataURL('image/p
 function fb(url){const w=window.open('');w.document.write('<img src="'+url+'" style="width:100%"><p style="text-align:center;color:#666;font-size:13px;margin-top:10px">Long press to save</p>');showT('Long press to save');}
 function showT(t){toast.textContent=t;toast.style.display='block';toast.style.animation='none';toast.offsetHeight;toast.style.animation='fade 2s forwards';setTimeout(()=>toast.style.display='none',2000);}
 window.tG=function(){gOn=!gOn;grid.classList.toggle('show',gOn);gridBtn.classList.toggle('on',gOn);};
-window.tF=function(){fOn=!fOn;frame.classList.toggle('show',fOn);frameBtn.classList.toggle('on',fOn);};
+window.tF=function(){fMode=(fMode+1)%4;frame.classList.toggle('show',fMode==1);spiral.classList.toggle('show',fMode==2);diag.classList.toggle('show',fMode==3);frameBtn.classList.toggle('on',fMode>0);};
 
 // Photo upload
 window.pickImg=function(){document.getElementById('fileInput').click();};
