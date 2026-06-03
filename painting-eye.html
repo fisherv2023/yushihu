@@ -196,11 +196,11 @@ const toast=document.getElementById('toast');
 const r=new THREE.WebGLRenderer({canvas,preserveDrawingBuffer:true,antialias:false});
 r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(innerWidth,innerHeight);
 const s=new THREE.Scene(),cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
-const u={tDiffuse:{value:null},uMode:{value:0},uLevel:{value:4},uRes:{value:new THREE.Vector2(innerWidth,innerHeight)},uTexSize:{value:new THREE.Vector2(innerWidth,innerHeight)},uFit:{value:0},uTime:{value:0}};
+const u={tDiffuse:{value:null},uMode:{value:0},uLevel:{value:4},uRes:{value:new THREE.Vector2(innerWidth,innerHeight)},uTexSize:{value:new THREE.Vector2(innerWidth,innerHeight)},uFit:{value:0},uTime:{value:0},uTouch:{value:new THREE.Vector3(-1,-1,0)}};
 const mat=new THREE.ShaderMaterial({uniforms:u,
   vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
   fragmentShader:`
-    uniform sampler2D tDiffuse;uniform int uMode;uniform float uLevel;uniform vec2 uRes;uniform vec2 uTexSize;uniform int uFit;uniform float uTime;
+    uniform sampler2D tDiffuse;uniform int uMode;uniform float uLevel;uniform vec2 uRes;uniform vec2 uTexSize;uniform int uFit;uniform float uTime;uniform vec3 uTouch;
     varying vec2 v;
     vec4 blur(sampler2D t,vec2 uv,float r){
       vec4 c=vec4(0);float s=0.;int R=int(r*3.);
@@ -253,6 +253,8 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
         float n1=sin(p.x*3.7+sin(p.y*2.3+uTime*.7))*cos(p.y*4.1+cos(p.x*2.7+uTime*.5));
         float n2=sin(p.y*3.9+cos(p.x*2.5+uTime*.6))*cos(p.x*3.8+sin(p.y*2.1+uTime*.8));
         w+=vec2(n1,n2)*a;a*=.55;sc*=2.2;}
+      if(uTouch.z>.5){vec2 d=uv-uTouch.xy;float dist=length(d);float f=exp(-dist*3.)*.06*s;
+        w+=vec2(-d.y,d.x)*f;}
       return texture2D(t,uv+w);}
     vec2 fitUV(vec2 uv){float tr=uTexSize.x/uTexSize.y;float sr=uRes.x/uRes.y;if(tr>sr){float s=sr/tr;uv.y=(uv.y-.5)/s+.5;}else{float s=tr/sr;uv.x=(uv.x-.5)/s+.5;}return uv;}
     vec4 orig(sampler2D t,vec2 uv,float r){return texture2D(t,uv);}
@@ -289,6 +291,17 @@ window.save=function(){r.render(s,cam);const url=r.domElement.toDataURL('image/p
 function fb(url){const w=window.open('');w.document.write('<img src="'+url+'" style="width:100%"><p style="text-align:center;color:#666;font-size:13px;margin-top:10px">Long press to save</p>');showT('Long press to save');}
 function showT(t){toast.textContent=t;toast.style.display='block';toast.style.animation='none';toast.offsetHeight;toast.style.animation='fade 2s forwards';setTimeout(()=>toast.style.display='none',2000);}
 window.tG=function(){gMode=(gMode+1)%4;grid.classList.toggle('show',gMode==1);gridDense.classList.toggle('show',gMode==2);gridUltra.classList.toggle('show',gMode==3);gridBtn.classList.toggle('on',gMode>0);};
+
+// Touch swirl interaction
+let touchActive=false;
+canvas.addEventListener('touchstart',e=>{e.preventDefault();touchActive=true;updateTouch(e.touches[0]);},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(touchActive)updateTouch(e.touches[0]);},{passive:false});
+canvas.addEventListener('touchend',()=>{touchActive=false;u.uTouch.value.z=0;});
+canvas.addEventListener('touchcancel',()=>{touchActive=false;u.uTouch.value.z=0;});
+canvas.addEventListener('mousedown',e=>{touchActive=true;updateTouch(e);});
+canvas.addEventListener('mousemove',e=>{if(touchActive)updateTouch(e);});
+canvas.addEventListener('mouseup',()=>{touchActive=false;u.uTouch.value.z=0;});
+function updateTouch(e){u.uTouch.value.set(e.clientX/innerWidth,1.-e.clientY/innerHeight,1.);}
 window.tF=function(){fMode=(fMode+1)%5;frame.classList.toggle('show',fMode==1);spiral.classList.toggle('show',fMode==2);fib.classList.toggle('show',fMode==3);diag.classList.toggle('show',fMode==4);frameBtn.classList.toggle('on',fMode>0);};
 
 // Photo upload
