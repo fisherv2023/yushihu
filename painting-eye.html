@@ -142,13 +142,13 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
       <div class="mode-menu" id="mMenu">
         <div class="mode-opt" data-m="0">BLUR</div>
         <div class="mode-opt" data-m="1">MOSAIC</div>
-        <div class="mode-opt" data-m="2">POSTER</div>
+        <div class="mode-opt" data-m="2">FLAT</div>
         <div class="mode-opt" data-m="3">VALUE</div>
         <div class="mode-opt" data-m="4">EDGE</div>
         <div class="mode-opt" data-m="5">TONE</div>
         <div class="mode-opt" data-m="6">DUO</div>
         <div class="mode-opt" data-m="7">SWIRL</div>
-        <div class="mode-opt" data-m="8">KUWARA</div>
+        <div class="mode-opt" data-m="8">OIL</div>
         <div class="mode-opt" data-m="9">DOF</div>
         <div class="mode-opt" data-m="10">STIPPLE</div>
         <div class="mode-opt" data-m="11">WARM</div>
@@ -184,7 +184,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 import * as THREE from 'three';
 
 let mode=12,level=4,vt,ct,vid,gMode=0,fMode=0,pOn=false;
-const N=['BLUR','MOSAIC','POSTER','VALUE','EDGE','TONE','DUO','SWIRL','KUWARA','DOF','STIPPLE','WARM','ORIGINAL'];
+const N=['BLUR','MOSAIC','FLAT','VALUE','EDGE','TONE','DUO','SWIRL','OIL','DOF','STIPPLE','WARM','ORIGINAL'];
 const canvas=document.getElementById('c');
 const capBtn=document.getElementById('capBtn');
 const act=document.getElementById('act');
@@ -261,11 +261,11 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
         w+=vec2(-d.y,d.x)*f;}
       return texture2D(t,uv+w);}
     vec4 kuwahara(sampler2D t,vec2 uv,float r){
-      int n=int(.5+r*.5);vec2 o=1./uRes;
+      int n=int(1.+r*.7);vec2 o=1./uRes;
       vec3 mn[4];vec3 m2[4];float cnt[4];
       mn[0]=mn[1]=mn[2]=mn[3]=vec3(0.);m2[0]=m2[1]=m2[2]=m2[3]=vec3(0.);
       cnt[0]=cnt[1]=cnt[2]=cnt[3]=0.;
-      for(int x=-5;x<=5;x++)for(int y=-5;y<=5;y++){
+      for(int x=-8;x<=8;x++)for(int y=-8;y<=8;y++){
         if(abs(x)>n||abs(y)>n)continue;
         vec3 c=texture2D(t,uv+vec2(float(x),float(y))*o).rgb;
         int q;if(x<=0&&y>=0)q=0;else if(x>=0&&y>=0)q=1;else if(x<=0&&y<=0)q=2;else q=3;
@@ -274,7 +274,12 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       for(int i=0;i<4;i++){if(cnt[i]<1.)continue;mn[i]/=cnt[i];m2[i]/=cnt[i];
         vec3 vv=m2[i]-mn[i]*mn[i];float v=dot(vv,vec3(1.));
         if(v<mv){mv=v;best=i;}}
-      return vec4(mn[best],1.);}
+      vec3 col=mn[best];
+      float g=dot(col,vec3(.299,.587,.114));
+      float gx=dot(texture2D(t,uv+vec2(o.x,0.)).rgb,vec3(.299,.587,.114));
+      float gy=dot(texture2D(t,uv+vec2(0.,o.y)).rgb,vec3(.299,.587,.114));
+      col+=vec3(gx-g+gy-g)*.12;
+      return vec4(col,1.);}
     vec4 dof(sampler2D t,vec2 uv,float r){
       float focus=.05+r*.08;vec2 c=vec2(.5);float d=length(uv-c);
       float blur=max(0.,d-focus)*15.;
