@@ -283,9 +283,12 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       vec4 c=texture2D(t,uv);
       float lv=1.5+r*.5;c.rgb=floor(c.rgb*lv+.5)/lv;
       float lum=dot(c.rgb,vec3(.299,.587,.114));
-      vec2 o=1./uRes;float lx=dot(texture2D(t,uv+vec2(o.x,0.)).rgb,vec3(.299,.587,.114));
-      float ly=dot(texture2D(t,uv+vec2(0.,o.y)).rgb,vec3(.299,.587,.114));
-      float edge=smoothstep(.07,.14,abs(lx-lum)+abs(ly-lum));
+      vec2 o=1./uRes;
+      vec4 cx=texture2D(t,uv+vec2(o.x,0.));cx.rgb=floor(cx.rgb*lv+.5)/lv;
+      vec4 cy=texture2D(t,uv+vec2(0.,o.y));cy.rgb=floor(cy.rgb*lv+.5)/lv;
+      float lx=dot(cx.rgb,vec3(.299,.587,.114));
+      float ly=dot(cy.rgb,vec3(.299,.587,.114));
+      float edge=smoothstep(.05,.10,abs(lx-lum)+abs(ly-lum));
       return vec4(mix(c.rgb,vec3(.05),edge*.85),c.a);}
     vec4 warmCool(sampler2D t,vec2 uv,float r){
       vec4 c=texture2D(t,uv);
