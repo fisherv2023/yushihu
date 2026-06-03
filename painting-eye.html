@@ -247,6 +247,13 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       vec4 c=texture2D(t,uv);float l=dot(c.rgb,vec3(.299,.587,.114));
       return vec4(vec3(step(.1+.8*r/10.,l)),1.);
     }
+    vec4 swirlFX(sampler2D t,vec2 uv,float r){
+      float s=r/10.;vec2 w=vec2(0.);float a=.025*s;float sc=4.;
+      for(int i=0;i<5;i++){vec2 p=uv*sc+float(i)*.7+uTime*.3;
+        float n1=sin(p.x*3.7+sin(p.y*2.3+uTime*.7))*cos(p.y*4.1+cos(p.x*2.7+uTime*.5));
+        float n2=sin(p.y*3.9+cos(p.x*2.5+uTime*.6))*cos(p.x*3.8+sin(p.y*2.1+uTime*.8));
+        w+=vec2(n1,n2)*a;a*=.55;sc*=2.2;}
+      return texture2D(t,uv+w);}
     vec2 fitUV(vec2 uv){float tr=uTexSize.x/uTexSize.y;float sr=uRes.x/uRes.y;if(tr>sr){float s=sr/tr;uv.y=(uv.y-.5)/s+.5;}else{float s=tr/sr;uv.x=(uv.x-.5)/s+.5;}return uv;}
     vec4 orig(sampler2D t,vec2 uv,float r){return texture2D(t,uv);}
     void main(){
