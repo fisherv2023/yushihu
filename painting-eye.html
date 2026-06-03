@@ -270,7 +270,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
     vec4 stipple(sampler2D t,vec2 uv,float r){
       float cs=.006+r*.004;vec2 c=floor(uv/cs)*cs;vec2 cc=c+cs*.5;
       vec2 lUv=(uv-c)/cs;
-      float d=length(lUv-vec2(.5));
+      vec2 dxy=lUv-vec2(.5);dxy.x*=uRes.x/uRes.y;float d=length(dxy);
       float dot=1.-smoothstep(.38,.42,d);
       vec4 col=texture2D(t,cc);
       col.rgb=col.rgb*1.15;
