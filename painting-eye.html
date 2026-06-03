@@ -314,7 +314,7 @@ function upd(){document.getElementById('mL').textContent=N[mode]+' '+level;docum
 window.onS=function(){level=+slider.value;slider.style.setProperty('--sz',(12+level*2)+'px');upd();};
 const style=document.createElement('style');style.textContent='.slider::-webkit-slider-thumb{width:var(--sz,14px);height:var(--sz,14px)}';document.head.appendChild(style);
 
-window.snap=function(){if(!vid)return;const rt=new THREE.WebGLRenderTarget(innerWidth,innerHeight);rt.texture.colorSpace=THREE.SRGBColorSpace;r.setRenderTarget(rt);r.render(s,cam);r.setRenderTarget(null);ct=rt.texture;u.tDiffuse.value=ct;capBtn.style.display='none';act.classList.add('show');};
+window.snap=function(){if(!vid)return;const rt=new THREE.WebGLRenderTarget(innerWidth,innerHeight);rt.texture.colorSpace=THREE.LinearSRGBColorSpace;r.setRenderTarget(rt);r.render(s,cam);r.setRenderTarget(null);ct=rt.texture;u.tDiffuse.value=ct;capBtn.style.display='none';act.classList.add('show');};
 window.retake=function(){if(vt){u.tDiffuse.value=vt;u.uFit.value=0;}capBtn.style.display='flex';act.classList.remove('show');};
 window.save=function(){r.render(s,cam);const url=r.domElement.toDataURL('image/png');if(navigator.share){fetch(url).then(r=>r.blob()).then(b=>navigator.share({files:[new File([b],'painting-eye.png',{type:'image/png'})]}).catch(()=>fb(url))).catch(()=>fb(url));}else fb(url);};
 function fb(url){const w=window.open('');w.document.write('<img src="'+url+'" style="width:100%"><p style="text-align:center;color:#666;font-size:13px;margin-top:10px">Long press to save</p>');showT('Long press to save');}
