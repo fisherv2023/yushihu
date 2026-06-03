@@ -268,14 +268,13 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
         col+=texture2D(t,uv+vec2(cos(a),sin(a))*rad);}
       return col/n;}
     vec4 stipple(sampler2D t,vec2 uv,float r){
-      float ds=.012+r*.022;float sp=.018+r*.004;
-      vec2 cell=floor(uv/sp)*sp;vec2 lUv=(uv-cell)/sp;
-      float h=fract(sin(dot(cell,vec2(12.9898,78.233)))*43758.5453);
-      vec2 dc=vec2(.5)+vec2(fract(h*3.7),fract(h*7.1))*.25;
-      float d=length(lUv-dc);
-      float dot=1.-smoothstep(ds*.6,ds,d);
-      vec4 col=texture2D(t,cell+dc*sp);
-      vec4 bg=vec4(.92,.90,.84,1.);
+      float cs=.006+r*.004;vec2 c=floor(uv/cs)*cs;vec2 cc=c+cs*.5;
+      vec2 lUv=(uv-c)/cs;
+      float d=length(lUv-vec2(.5));
+      float dot=1.-smoothstep(.38,.42,d);
+      vec4 col=texture2D(t,cc);
+      col.rgb=col.rgb*1.15;
+      vec4 bg=vec4(.93,.91,.86,1.);
       return mix(bg,col,dot);}
     vec4 warmCool(sampler2D t,vec2 uv,float r){
       vec4 c=texture2D(t,uv);
