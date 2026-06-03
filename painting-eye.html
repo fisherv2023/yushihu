@@ -147,7 +147,8 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
         <div class="mode-opt" data-m="4">EDGE</div>
         <div class="mode-opt" data-m="5">TONE</div>
         <div class="mode-opt" data-m="6">DUO</div>
-        <div class="mode-opt sel" data-m="7" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:10px">ORIGINAL</div>
+        <div class="mode-opt" data-m="7">SWIRL</div>
+        <div class="mode-opt sel" data-m="8" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:10px">ORIGINAL</div>
       </div>
     </div>
     <div class="aux-btn" onclick="pickImg()" title="Upload" style="opacity:.75"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M24 19H21V23H19V19H16L20 15L24 19ZM21.0078 3C21.5555 3 21.9999 3.44482 22 3.99316V13H20V5H4V18.999L14 9L17 12V14.8291L14 11.8281L6.82715 19H14V21H2.99219C2.44451 21 2.00013 20.5552 2 20.0068V3.99316C2.00013 3.44463 2.45577 3 2.99219 3H21.0078ZM8 7C9.10457 7 10 7.89543 10 9C10 10.1046 9.10457 11 8 11C6.89543 11 6 10.1046 6 9C6 7.89543 6.89543 7 8 7Z"></path></svg></div>
@@ -178,8 +179,8 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 <script type="module">
 import * as THREE from 'three';
 
-let mode=7,level=4,vt,ct,vid,gMode=0,fMode=0,pOn=false;
-const N=['BLUR','MOSAIC','POSTER','VALUE','EDGE','TONE','DUO','ORIGINAL'];
+let mode=8,level=4,vt,ct,vid,gMode=0,fMode=0,pOn=false;
+const N=['BLUR','MOSAIC','POSTER','VALUE','EDGE','TONE','DUO','SWIRL','ORIGINAL'];
 const canvas=document.getElementById('c');
 const capBtn=document.getElementById('capBtn');
 const act=document.getElementById('act');
@@ -195,11 +196,11 @@ const toast=document.getElementById('toast');
 const r=new THREE.WebGLRenderer({canvas,preserveDrawingBuffer:true,antialias:false});
 r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(innerWidth,innerHeight);
 const s=new THREE.Scene(),cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
-const u={tDiffuse:{value:null},uMode:{value:0},uLevel:{value:4},uRes:{value:new THREE.Vector2(innerWidth,innerHeight)},uTexSize:{value:new THREE.Vector2(innerWidth,innerHeight)},uFit:{value:0}};
+const u={tDiffuse:{value:null},uMode:{value:0},uLevel:{value:4},uRes:{value:new THREE.Vector2(innerWidth,innerHeight)},uTexSize:{value:new THREE.Vector2(innerWidth,innerHeight)},uFit:{value:0},uTime:{value:0}};
 const mat=new THREE.ShaderMaterial({uniforms:u,
   vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
   fragmentShader:`
-    uniform sampler2D tDiffuse;uniform int uMode;uniform float uLevel;uniform vec2 uRes;uniform vec2 uTexSize;uniform int uFit;
+    uniform sampler2D tDiffuse;uniform int uMode;uniform float uLevel;uniform vec2 uRes;uniform vec2 uTexSize;uniform int uFit;uniform float uTime;
     varying vec2 v;
     vec4 blur(sampler2D t,vec2 uv,float r){
       vec4 c=vec4(0);float s=0.;int R=int(r*3.);
@@ -258,7 +259,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       else if(uMode==3)col=gray(tDiffuse,sUv,uLevel);
       else if(uMode==4)col=edge(tDiffuse,sUv,uLevel);
       else if(uMode==5)col=tone(tDiffuse,sUv,uLevel);
-      else if(uMode==6)col=duo(tDiffuse,sUv,uLevel);
+      else if(uMode==6)col=duo(tDiffuse,sUv,uLevel);else if(uMode==7)col=swirlFX(tDiffuse,sUv,uLevel);
       else col=orig(tDiffuse,sUv,uLevel);
       gl_FragColor=col;
     }`
@@ -266,7 +267,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
 s.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),mat));
 const dc=document.createElement('canvas');dc.width=2;dc.height=2;dc.getContext('2d').fillStyle='#1a1a1a';dc.getContext('2d').fillRect(0,0,2,2);
 u.tDiffuse.value=new THREE.CanvasTexture(dc);
-(function R(){u.uMode.value=mode;u.uLevel.value=level;r.render(s,cam);requestAnimationFrame(R)})();
+(function R(){u.uMode.value=mode;u.uLevel.value=level;u.uTime.value+=0.016;r.render(s,cam);requestAnimationFrame(R)})();
 // Hide loading screen after first render
 setTimeout(()=>document.getElementById('load').classList.add('done'),300);
 
@@ -351,7 +352,7 @@ async function startCam(){
 permBtn.addEventListener('click',startCam);
 if(!('ontouchstart' in window)) setTimeout(startCam,500);
 
-document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){mode=(mode+7)%8;upd();}if(e.key==='ArrowDown'){mode=(mode+1)%8;upd();}if(e.key==='ArrowLeft'){level=Math.max(1,level-1);slider.value=level;upd();}if(e.key==='ArrowRight'){level=Math.min(10,level+1);slider.value=level;upd();}if(e.key===' '){e.preventDefault();snap();}if(e.key==='r')retake();if(e.key==='s')save();});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){mode=(mode+8)%9;upd();}if(e.key==='ArrowDown'){mode=(mode+1)%9;upd();}if(e.key==='ArrowLeft'){level=Math.max(1,level-1);slider.value=level;upd();}if(e.key==='ArrowRight'){level=Math.min(10,level+1);slider.value=level;upd();}if(e.key===' '){e.preventDefault();snap();}if(e.key==='r')retake();if(e.key==='s')save();});
 
 addEventListener('resize',()=>{r.setSize(innerWidth,innerHeight);u.uRes.value.set(innerWidth,innerHeight);});
 upd();
