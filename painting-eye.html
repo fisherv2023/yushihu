@@ -1,7 +1,11 @@
 <!DOCTYPE html>
+<!-- v2026.06.02-4 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -73,8 +77,8 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .load .pulse{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.12);animation:breathe 2s ease-in-out infinite}
 .load .p1{width:60px;height:60px;animation-delay:0s}
 .load .p2{width:100px;height:100px;animation-delay:.4s}
-.load .p3{width:150px;height:150px;animation-delay:.8s}
-.load .core{position:relative;z-index:1;width:36px;height:36px;filter:drop-shadow(0 0 8px rgba(255,255,255,.4))}
+.load .p3{width:150px;height:150px;animation-delay:.8s;border-color:rgba(220,100,140,.4);box-shadow:0 0 30px rgba(200,80,130,.3),0 0 80px rgba(180,60,120,.1)}
+.load .core{position:relative;z-index:1;width:36px;height:36px;filter:drop-shadow(0 0 8px rgba(255,180,60,.6))}
 .load .core svg{width:100%;height:100%}
 .load .name{position:absolute;top:calc(50% + 75px);left:50%;transform:translateX(-50%);font-size:13px;font-weight:500;letter-spacing:.15em;opacity:.5;white-space:nowrap}
 @keyframes breathe{0%,100%{transform:scale(.85);opacity:.3}50%{transform:scale(1.1);opacity:.7}}
@@ -151,7 +155,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
         <div class="mode-opt" data-m="8">OIL</div>
         <div class="mode-opt" data-m="9">DOF</div>
         <div class="mode-opt" data-m="10">STIPPLE</div>
-        <div class="mode-opt" data-m="11">WARM</div>
+        <div class="mode-opt" data-m="11">TOON</div>
         <div class="mode-opt sel" data-m="12" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:10px">ORIGINAL</div>
       </div>
     </div>
@@ -178,13 +182,12 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="loadImg(event)">
 
 <script type="importmap">
-{"imports":{"three":"https://unpkg.com/three@0.160/build/three.module.js?v=6"}}
+{"imports":{"three":"https://unpkg.com/three@0.160/build/three.module.js"}}
 </script>
 <script type="module">
 import * as THREE from 'three';
-
 let mode=12,level=4,vt,ct,vid,gMode=0,fMode=0,pOn=false;
-const N=['BLUR','MOSAIC','FLAT','VALUE','EDGE','TONE','DUO','SWIRL','OIL','DOF','STIPPLE','WARM','ORIGINAL'];
+const N=['BLUR','MOSAIC','FLAT','VALUE','EDGE','TONE','DUO','SWIRL','OIL','DOF','STIPPLE','TOON','ORIGINAL'];
 const canvas=document.getElementById('c');
 const capBtn=document.getElementById('capBtn');
 const act=document.getElementById('act');
@@ -227,10 +230,10 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       best.rgb=floor(best.rgb*n+.5)/n;
       return best;
     }
-    vec4 gray(sampler2D t,vec2 uv,float r){vec4 c=texture2D(t,uv);float g=dot(c.rgb,vec3(.299,.587,.114));float n=1.+r;g=floor(g*n)/(n-1.);return vec4(vec3(g),c.a);}
+    vec4 gray(sampler2D t,vec2 uv,float r){vec4 c=texture2D(t,uv);float g=dot(c.rgb,vec3(.299,.587,.114));float n=12.-r;g=floor(g*n)/(n-1.);return vec4(vec3(g),c.a);}
     float lum(vec4 c){return dot(c.rgb,vec3(.2126,.7152,.0722));}
     vec4 edge(sampler2D t,vec2 uv,float r){
-      float th=0.02+0.30*pow(r/10.,2.);vec2 o=1./uRes;
+      float th=0.32-0.30*pow(r/10.,2.);vec2 o=1./uRes;
       float tl=lum(texture2D(t,uv+vec2(-o.x,o.y))),t_=lum(texture2D(t,uv+vec2(0.,o.y))),tr=lum(texture2D(t,uv+vec2(o.x,o.y)));
       float l=lum(texture2D(t,uv+vec2(-o.x,0.))),r_=lum(texture2D(t,uv+vec2(o.x,0.)));
       float bl=lum(texture2D(t,uv+vec2(-o.x,-o.y))),b_=lum(texture2D(t,uv+vec2(0.,-o.y))),br=lum(texture2D(t,uv+vec2(o.x,-o.y)));
@@ -281,7 +284,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       col+=vec3(gx-g+gy-g)*.12;
       return vec4(col,1.);}
     vec4 dof(sampler2D t,vec2 uv,float r){
-      float focus=.05+r*.08;vec2 c=vec2(.5);float d=length(uv-c);
+      float focus=.85-r*.08;vec2 c=vec2(.5);float d=length(uv-c);
       float blur=max(0.,d-focus)*15.;
       vec4 col=vec4(0.);float n=12.;
       for(int i=0;i<12;i++){float fi=float(i);
@@ -289,7 +292,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
         col+=texture2D(t,uv+vec2(cos(a),sin(a))*rad);}
       return col/n;}
     vec4 stipple(sampler2D t,vec2 uv,float r){
-      vec2 hp=uv*uRes;float cs=(.008+r*.004)*min(uRes.x,uRes.y);
+      vec2 hp=uv*uRes;float cs=(.052-r*.004)*min(uRes.x,uRes.y);
       float row=floor(hp.y/cs);float off=mod(row,2.)*cs*.5;
       float gcol=floor((hp.x-off)/cs);
       vec2 cc=vec2(gcol*cs+cs*.5+off,row*cs+cs*.5);
@@ -299,8 +302,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       dcol.rgb=dcol.rgb*1.1;
       vec4 bg=vec4(.93,.91,.86,1.);
       return mix(bg,dcol,dot);}
-    vec4 warmCool(sampler2D t,vec2 uv,float r){
-      vec4 c=texture2D(t,uv);
+    vec4 c=texture2D(t,uv);
       float warmth=c.r-c.b;
       float w=smoothstep(-.08*r/10.,.08*r/10.,warmth);
       vec4 wc=vec4(c.r,c.g*.55,c.b*.15,1.);
@@ -318,7 +320,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       else if(uMode==3)col=gray(tDiffuse,sUv,uLevel);
       else if(uMode==4)col=edge(tDiffuse,sUv,uLevel);
       else if(uMode==5)col=tone(tDiffuse,sUv,uLevel);
-      else if(uMode==6)col=duo(tDiffuse,sUv,uLevel);else if(uMode==7)col=swirlFX(tDiffuse,sUv,uLevel);else if(uMode==8)col=kuwahara(tDiffuse,sUv,uLevel);else if(uMode==9)col=dof(tDiffuse,sUv,uLevel);else if(uMode==10)col=stipple(tDiffuse,sUv,uLevel);else if(uMode==11)col=warmCool(tDiffuse,sUv,uLevel);
+      else if(uMode==6)col=duo(tDiffuse,sUv,uLevel);else if(uMode==7)col=swirlFX(tDiffuse,sUv,uLevel);else if(uMode==8)col=kuwahara(tDiffuse,sUv,uLevel);else if(uMode==9)col=dof(tDiffuse,sUv,uLevel);else if(uMode==10)col=stipple(tDiffuse,sUv,uLevel);
       else col=orig(tDiffuse,sUv,uLevel);
       gl_FragColor=col;
     }`
@@ -406,7 +408,7 @@ setInterval(updatePalette,800);
 document.getElementById('mCur').addEventListener('click',()=>{document.getElementById('mMenu').classList.toggle('show');document.getElementById('mCur').classList.toggle('open');});
 document.querySelectorAll('.mode-opt').forEach(e=>{e.addEventListener('click',()=>{mode=+e.dataset.m;upd();document.getElementById('mMenu').classList.remove('show');document.getElementById('mCur').classList.remove('open');});});
 
-let lt=0;document.addEventListener('click',e=>{if(e.target.closest('#capBtn,.act-btn,#perm'))return;const n=Date.now();if(n-lt<300){const els=[sBar,mSel,aux];els.forEach(el=>el.style.display=el.style.display==='none'?'':'none');}lt=n;});
+let lt=0;document.addEventListener('click',e=>{if(e.target.closest('#capBtn,.act-btn,#perm,.aux-btn'))return;const n=Date.now();if(n-lt<300){const els=[sBar,mSel,aux];els.forEach(el=>el.style.display=el.style.display==='none'?'':'none');}lt=n;});
 
 function detectEnv(){const ua=navigator.userAgent;let os='',br='',isSafari=false;if(/iPhone|iPad|iPod/.test(ua)){os='iOS';isSafari=!!/Safari/.test(ua)&&!/CriOS|FxiOS|OPiOS|mercury/.test(ua);}else if(/Android/.test(ua))os='Android';else os='Desktop';if(/Firefox|FxiOS/.test(ua))br='Firefox';else if(/CriOS/.test(ua))br='Chrome(iOS)';else if(/Chrome/.test(ua)&&!/Edg/.test(ua))br='Chrome';else if(isSafari)br='Safari';else br='browser';if(os==='iOS'){permGuide.innerHTML='<b>Settings → Apps → '+br+'</b><br>Allow Camera';}else if(os==='Android'){permGuide.innerHTML='<b>Settings → Apps → '+br+'</b><br>Permissions → Camera → Allow';}else{permGuide.innerHTML='Check browser camera permissions';}}
 
@@ -422,7 +424,7 @@ async function startCam(){
 permBtn.addEventListener('click',startCam);
 if(!('ontouchstart' in window)) setTimeout(startCam,500);
 
-document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){mode=(mode+12)%13;upd();}if(e.key==='ArrowDown'){mode=(mode+1)%13;upd();}if(e.key==='ArrowLeft'){level=Math.max(1,level-1);slider.value=level;upd();}if(e.key==='ArrowRight'){level=Math.min(10,level+1);slider.value=level;upd();}if(e.key===' '){e.preventDefault();snap();}if(e.key==='r')retake();if(e.key==='s')save();});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){mode=(mode+11)%12;upd();}if(e.key==='ArrowDown'){mode=(mode+1)%12;upd();}if(e.key==='ArrowLeft'){level=Math.max(1,level-1);slider.value=level;upd();}if(e.key==='ArrowRight'){level=Math.min(10,level+1);slider.value=level;upd();}if(e.key===' '){e.preventDefault();snap();}if(e.key==='r')retake();if(e.key==='s')save();});
 
 addEventListener('resize',()=>{r.setSize(innerWidth,innerHeight);u.uRes.value.set(innerWidth,innerHeight);});
 upd();
