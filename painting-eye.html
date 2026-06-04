@@ -301,12 +301,6 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       dcol.rgb=dcol.rgb*1.1;
       vec4 bg=vec4(.93,.91,.86,1.);
       return mix(bg,dcol,dot);}
-    vec4 c=texture2D(t,uv);
-      float warmth=c.r-c.b;
-      float w=smoothstep(-.08*r/10.,.08*r/10.,warmth);
-      vec4 wc=vec4(c.r,c.g*.55,c.b*.15,1.);
-      vec4 cc=vec4(c.r*.3,c.g*.65,c.b,1.);
-      return mix(cc,wc,w);}
     vec2 fitUV(vec2 uv){float tr=uTexSize.x/uTexSize.y;float sr=uRes.x/uRes.y;if(tr>sr){float s=sr/tr;uv.y=(uv.y-.5)/s+.5;}else{float s=tr/sr;uv.x=(uv.x-.5)/s+.5;}return uv;}
     vec4 orig(sampler2D t,vec2 uv,float r){return texture2D(t,uv);}
     void main(){
