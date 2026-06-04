@@ -1,0 +1,12 @@
+{
+  "name": "Painting Eye",
+  "short_name": "PaintEye",
+  "start_url": "/painting-eye.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {"src": "/painting-eye-icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}
