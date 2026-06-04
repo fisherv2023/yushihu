@@ -86,6 +86,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 @keyframes breathe{0%,100%{transform:scale(.85);opacity:.3}50%{transform:scale(1.1);opacity:.7}}
 @keyframes breathe-core{0%,100%{opacity:.55;filter:drop-shadow(0 0 5px rgba(255,180,60,.3))}50%{opacity:1;filter:drop-shadow(0 0 16px rgba(255,180,60,.8))}}
 @keyframes tighten{0%{letter-spacing:.6em;opacity:0}50%{opacity:.3}100%{letter-spacing:.15em;opacity:.5}}
+@keyframes focus-flash{0%{opacity:1;transform:translate(-50%,-50%) scale(.7)}50%{opacity:.5}100%{opacity:0;transform:translate(-50%,-50%) scale(1.15)}}
 </style>
 </head>
 <body>
@@ -208,11 +209,11 @@ const toast=document.getElementById('toast');
 const r=new THREE.WebGLRenderer({canvas,preserveDrawingBuffer:true,antialias:false});
 r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(innerWidth,innerHeight);
 const s=new THREE.Scene(),cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
-const u={tDiffuse:{value:null},uMode:{value:0},uLevel:{value:4},uRes:{value:new THREE.Vector2(innerWidth,innerHeight)},uTexSize:{value:new THREE.Vector2(innerWidth,innerHeight)},uFit:{value:0},uTime:{value:0},uTouch:{value:new THREE.Vector3(-1,-1,0)}};
+const u={tDiffuse:{value:null},uMode:{value:0},uLevel:{value:4},uRes:{value:new THREE.Vector2(innerWidth,innerHeight)},uTexSize:{value:new THREE.Vector2(innerWidth,innerHeight)},uFit:{value:0},uTime:{value:0},uTouch:{value:new THREE.Vector3(-1,-1,0)},uZoom:{value:1.},uFocus:{value:new THREE.Vector2(.5,.5)}};
 const mat=new THREE.ShaderMaterial({uniforms:u,
   vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
   fragmentShader:`
-    uniform sampler2D tDiffuse;uniform int uMode;uniform float uLevel;uniform vec2 uRes;uniform vec2 uTexSize;uniform int uFit;uniform float uTime;uniform vec3 uTouch;
+    uniform sampler2D tDiffuse;uniform int uMode;uniform float uLevel;uniform vec2 uRes;uniform vec2 uTexSize;uniform int uFit;uniform float uTime;uniform vec3 uTouch;uniform float uZoom;uniform vec2 uFocus;
     varying vec2 v;
     vec4 blur(sampler2D t,vec2 uv,float r){
       vec4 c=vec4(0);float s=0.;int R=int(r*3.);
@@ -289,7 +290,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       col+=vec3(gx-g+gy-g)*.12;
       return vec4(col,1.);}
     vec4 dof(sampler2D t,vec2 uv,float r){
-      float focus=.85-r*.08;vec2 c=vec2(.5);float d=length(uv-c);
+      float focus=.85-r*.08;float d=length(uv-uFocus);
       float blur=max(0.,d-focus)*15.;
       vec4 col=vec4(0.);float n=12.;
       for(int i=0;i<12;i++){float fi=float(i);
@@ -311,6 +312,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
     vec4 orig(sampler2D t,vec2 uv,float r){return texture2D(t,uv);}
     void main(){
       vec2 uv=uFit==1?fitUV(v):v;if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.){gl_FragColor=vec4(0.);return;}
+      uv=(uv-.5)/uZoom+.5;
       vec2 sUv=clamp(uv,0.,1.);
       vec4 col;
       if(uMode==0)col=blur(tDiffuse,sUv,uLevel);
@@ -337,22 +339,33 @@ window.onS=function(){level=+slider.value;slider.style.setProperty('--sz',(12+le
 const style=document.createElement('style');style.textContent='.slider::-webkit-slider-thumb{width:var(--sz,14px);height:var(--sz,14px)}';document.head.appendChild(style);
 
 window.snap=function(){if(!vid)return;const rt=new THREE.WebGLRenderTarget(innerWidth,innerHeight);rt.texture.colorSpace=THREE.LinearSRGBColorSpace;r.setRenderTarget(rt);r.render(s,cam);r.setRenderTarget(null);ct=rt.texture;u.tDiffuse.value=ct;capBtn.style.display='none';act.classList.add('show');};
-window.retake=function(){if(vt){u.tDiffuse.value=vt;u.uFit.value=0;}capBtn.style.display='flex';act.classList.remove('show');};
+window.retake=function(){if(vt){u.tDiffuse.value=vt;u.uFit.value=0;}u.uZoom.value=1.;capBtn.style.display='flex';act.classList.remove('show');};
 window.save=function(){r.render(s,cam);const url=r.domElement.toDataURL('image/png');if(navigator.share){fetch(url).then(r=>r.blob()).then(b=>navigator.share({files:[new File([b],'painting-eye.png',{type:'image/png'})]}).catch(()=>fb(url))).catch(()=>fb(url));}else fb(url);};
 function fb(url){const w=window.open('');w.document.write('<img src="'+url+'" style="width:100%"><p style="text-align:center;color:#666;font-size:13px;margin-top:10px">Long press to save</p>');showT('Long press to save');}
 function showT(t){toast.textContent=t;toast.style.display='block';toast.style.animation='none';toast.offsetHeight;toast.style.animation='fade 2s forwards';setTimeout(()=>toast.style.display='none',2000);}
 window.tG=function(){gMode=(gMode+1)%4;grid.classList.toggle('show',gMode==1);gridDense.classList.toggle('show',gMode==2);gridUltra.classList.toggle('show',gMode==3);gridBtn.classList.toggle('on',gMode>0);};
 
-// Touch swirl interaction
-let touchActive=false;
-canvas.addEventListener('touchstart',e=>{e.preventDefault();touchActive=true;updateTouch(e.touches[0]);},{passive:false});
-canvas.addEventListener('touchmove',e=>{e.preventDefault();if(touchActive)updateTouch(e.touches[0]);},{passive:false});
-canvas.addEventListener('touchend',()=>{touchActive=false;u.uTouch.value.z=0;});
-canvas.addEventListener('touchcancel',()=>{touchActive=false;u.uTouch.value.z=0;});
+// Touch interactions: swirl (1-finger), pinch-zoom (2-finger), tap-focus
+let touchActive=false,pinchDist=0,tapT=0,tapX=0,tapY=0;
+canvas.addEventListener('touchstart',e=>{e.preventDefault();
+  if(e.touches.length===2){pinchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);touchActive=false;}
+  else{touchActive=true;tapT=Date.now();tapX=e.touches[0].clientX;tapY=e.touches[0].clientY;updateTouch(e.touches[0]);}
+},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();
+  if(e.touches.length===2&&pinchDist>0){const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);u.uZoom.value=Math.max(1.,Math.min(4.,u.uZoom.value*nd/pinchDist));pinchDist=nd;}
+  else if(touchActive)updateTouch(e.touches[0]);
+},{passive:false});
+canvas.addEventListener('touchend',e=>{
+  if(tapT&&Date.now()-tapT<250){const ct=e.changedTouches[0];const dx=(ct?ct.clientX:tapX)-tapX,dy=(ct?ct.clientY:tapY)-tapY;if(Math.hypot(dx,dy)<20){u.uFocus.value.set((ct?ct.clientX:tapX)/innerWidth,1.-(ct?ct.clientY:tapY)/innerHeight);showFocus(ct?ct.clientX:tapX,ct?ct.clientY:tapY);}}
+  tapT=0;if(e.touches.length<2)pinchDist=0;touchActive=false;u.uTouch.value.z=0;
+});
+canvas.addEventListener('touchcancel',()=>{tapT=0;pinchDist=0;touchActive=false;u.uTouch.value.z=0;});
 canvas.addEventListener('mousedown',e=>{touchActive=true;updateTouch(e);});
 canvas.addEventListener('mousemove',e=>{if(touchActive)updateTouch(e);});
 canvas.addEventListener('mouseup',()=>{touchActive=false;u.uTouch.value.z=0;});
+canvas.addEventListener('wheel',e=>{e.preventDefault();u.uZoom.value=Math.max(1.,Math.min(4.,u.uZoom.value*(e.deltaY>0?.9:1.1)));},{passive:false});
 function updateTouch(e){u.uTouch.value.set(e.clientX/innerWidth,1.-e.clientY/innerHeight,1.);}
+function showFocus(x,y){let r=document.getElementById('focusRing');if(!r){r=document.createElement('div');r.id='focusRing';r.style.cssText='position:fixed;z-index:25;width:64px;height:64px;border:2px solid #ffd700;border-radius:6px;pointer-events:none;transform:translate(-50%,-50%)';document.body.appendChild(r);}r.style.left=x+'px';r.style.top=y+'px';r.style.animation='none';r.offsetHeight;r.style.animation='focus-flash .7s ease-out forwards';}
 window.tF=function(){fMode=(fMode+1)%5;frame.classList.toggle('show',fMode==1);spiral.classList.toggle('show',fMode==2);fib.classList.toggle('show',fMode==3);diag.classList.toggle('show',fMode==4);frameBtn.classList.toggle('on',fMode>0);};
 
 // Photo upload
@@ -363,7 +376,7 @@ window.loadImg=function(e){
     const tc=document.createElement('canvas');tc.width=img.width;tc.height=img.height;
     tc.getContext('2d').drawImage(img,0,0);
     ct=new THREE.CanvasTexture(tc);ct.colorSpace=THREE.LinearSRGBColorSpace;
-    u.uTexSize.value.set(img.width,img.height);u.uFit.value=1;
+    u.uTexSize.value.set(img.width,img.height);u.uFit.value=1;u.uZoom.value=1.;
     u.tDiffuse.value=ct;capBtn.style.display='none';act.classList.add('show');
     mSel.style.display=aux.style.display=sBar.style.display='';
   };img.src=URL.createObjectURL(file);
