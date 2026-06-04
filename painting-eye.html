@@ -401,21 +401,25 @@ setInterval(updatePalette,800);
 document.getElementById('mCur').addEventListener('click',()=>{document.getElementById('mMenu').classList.toggle('show');document.getElementById('mCur').classList.toggle('open');});
 document.querySelectorAll('.mode-opt').forEach(e=>{e.addEventListener('click',()=>{mode=+e.dataset.m;upd();document.getElementById('mMenu').classList.remove('show');document.getElementById('mCur').classList.remove('open');});});
 
-let uiHidden=false,lt=0;document.addEventListener('click',e=>{
-  // 1. 菜单展开时，点击任意位置收起菜单
+let uiHidden=false,lt=0,lastTouch=0;
+function onTap(e){
+  const n=Date.now();
+  // menu close on outside tap
   const menu=document.getElementById('mMenu');
   if(menu.classList.contains('show')&&!e.target.closest('#mSel')){
     menu.classList.remove('show');document.getElementById('mCur').classList.remove('open');
   }
-  // 2. 双击屏幕任意位置切换UI显示（排除按钮和权限弹窗）
-  if(e.target.closest('#capBtn,.act-btn,#perm,#uploadBtn,#mSel'))return;
-  const n=Date.now();if(n-lt<350){
+  // double-tap toggle UI
+  if(e.target.closest('#capBtn,.act-btn,#perm,#uploadBtn,#mSel')){lt=n;return;}
+  if(n-lt<350){
     uiHidden=!uiHidden;
     const els=document.querySelectorAll('.top,.bottom-bar,.slider-bar,.act,.palette');
     els.forEach(el=>el.style.display=uiHidden?'none':'');
   }
   lt=n;
-});
+}
+document.addEventListener('click',e=>{if(Date.now()-lastTouch<500)return;onTap(e);});
+document.addEventListener('touchend',e=>{lastTouch=Date.now();onTap(e);});
 
 function detectEnv(){const ua=navigator.userAgent;let os='',br='',isSafari=false;if(/iPhone|iPad|iPod/.test(ua)){os='iOS';isSafari=!!/Safari/.test(ua)&&!/CriOS|FxiOS|OPiOS|mercury/.test(ua);}else if(/Android/.test(ua))os='Android';else os='Desktop';if(/Firefox|FxiOS/.test(ua))br='Firefox';else if(/CriOS/.test(ua))br='Chrome(iOS)';else if(/Chrome/.test(ua)&&!/Edg/.test(ua))br='Chrome';else if(isSafari)br='Safari';else br='browser';if(os==='iOS'){permGuide.innerHTML='<b>Settings → Apps → '+br+'</b><br>Allow Camera';}else if(os==='Android'){permGuide.innerHTML='<b>Settings → Apps → '+br+'</b><br>Permissions → Camera → Allow';}else{permGuide.innerHTML='Check browser camera permissions';}}
 
