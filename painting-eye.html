@@ -18,7 +18,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .top{position:fixed;top:12px;left:16px;z-index:10;pointer-events:none}
 .top span{font-size:14px;font-weight:600;letter-spacing:.03em;text-shadow:0 1px 3px rgba(0,0,0,.5)}
 
-.cap-btn{width:60px;height:60px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;display:none;flex-shrink:0}
+.cap-btn{width:60px;height:60px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;display:none;flex-shrink:0;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
 .cap-btn::after{content:'';position:absolute;top:5px;left:5px;width:44px;height:44px;border-radius:50%;background:#fff}
 
 .mode-sel{position:relative}
@@ -366,6 +366,8 @@ capBtn.addEventListener('pointerdown',e=>{if(!vid&&!ct)return;recTimer=setTimeou
 capBtn.addEventListener('pointerup',e=>{clearTimeout(recTimer);if(recorder&&recorder.state==='recording'){stopRec();return;}if(recTimer)snap();});
 capBtn.addEventListener('pointerleave',()=>{clearTimeout(recTimer);if(recorder&&recorder.state==='recording')stopRec();});
 capBtn.addEventListener('pointercancel',()=>{clearTimeout(recTimer);if(recorder&&recorder.state==='recording')stopRec();});
+capBtn.addEventListener('contextmenu',e=>e.preventDefault());
+capBtn.addEventListener('selectstart',e=>e.preventDefault());
 function startRec(){recChunks=[];const mime=MediaRecorder.isTypeSupported('video/mp4')?'video/mp4':'video/webm';recStream=canvas.captureStream(30);recorder=new MediaRecorder(recStream,{mimeType:mime,videoBitsPerSecond:5e6});recorder.ondataavailable=e=>{if(e.data.size)recChunks.push(e.data);};recorder.onstop=()=>{const blob=new Blob(recChunks,{type:mime});saveVideo(blob,mime);recStream.getTracks().forEach(t=>t.stop());recRing.classList.remove('show');recDot.classList.remove('show');capBtn.classList.remove('recording');};recorder.start();capBtn.classList.add('recording');recRing.classList.add('show');recDot.classList.add('show');const t0=Date.now();(function tick(){if(recorder.state!=='recording')return;const p=Math.min((Date.now()-t0)/(recMax*1000),1);recCircle.setAttribute('stroke-dashoffset',207.3*(1-p));if(p>=1){recorder.stop();return;}requestAnimationFrame(tick);})();}
 function stopRec(){if(recorder&&recorder.state==='recording')recorder.stop();}
 function saveVideo(blob,mime){const url=URL.createObjectURL(blob);const ext=mime.includes('mp4')?'mp4':'webm';if(navigator.share){fetch(url).then(r=>r.blob()).then(b=>navigator.share({files:[new File([b],'painting-eye.'+ext,{type:mime})]}).catch(()=>dl(url,ext))).catch(()=>dl(url,ext));}else dl(url,ext);}
