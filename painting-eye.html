@@ -216,7 +216,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 </script>
 <script type="module">
 import * as THREE from 'three';
-let mode=11,level=4,vt,ct,vid,gMode=0,fMode=0,pOn=false,ciMode=false;
+let mode=11,level=4,vt,ct,vid,gMode=0,fMode=0,pOn=false,ciMode=false,ciFroze,ciFrozenTex;
 const N=['BLUR','MOSAIC','FLAT','VALUE','EDGE','TONE','DUO','SWIRL','OIL','DOF','STIPPLE','ORIGINAL','GLITCH'];
 const canvas=document.getElementById('c');
 const capBtn=document.getElementById('capBtn');
@@ -459,7 +459,19 @@ function updatePalette(){
 setInterval(updatePalette,800);
 
 // Dropper: toggle CI mode
-dropper.addEventListener('click',e=>{e.stopPropagation();ciMode=!ciMode;dropper.classList.toggle('on',ciMode);showT(ciMode?'Eyedropper on':'Eyedropper off')});
+dropper.addEventListener('click',e=>{e.stopPropagation();ciMode=!ciMode;dropper.classList.toggle('on',ciMode);
+if(ciMode){
+  if(u.tDiffuse.value===vt&&!ciFroze){
+    const rt=new THREE.WebGLRenderTarget(innerWidth,innerHeight);
+    rt.texture.colorSpace=THREE.LinearSRGBColorSpace;
+    r.setRenderTarget(rt);r.render(s,cam);r.setRenderTarget(null);
+    ciFrozenTex=rt.texture;u.tDiffuse.value=ciFrozenTex;ciFroze=true;
+  }
+  showT('Eyedropper on');
+}else{
+  if(ciFroze){u.tDiffuse.value=vt;ciFroze=false;}
+  showT('Eyedropper off');
+}});
 
 document.getElementById('mCur').addEventListener('click',()=>{document.getElementById('mMenu').classList.toggle('show');document.getElementById('mCur').classList.toggle('open');});
 document.querySelectorAll('.mode-opt').forEach(e=>{e.addEventListener('click',()=>{mode=+e.dataset.m;upd();document.getElementById('mMenu').classList.remove('show');document.getElementById('mCur').classList.remove('open');});});
