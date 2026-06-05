@@ -228,6 +228,8 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 <script type="module">
 window.__pe_loaded=1;
 import * as THREE from 'three';
+// Math.cbrt polyfill for old Safari
+if(!Math.cbrt)Math.cbrt=function(x){return Math.pow(x,1/3);};
 let mode=11,level=4,vt,ct,vid,gMode=0,fMode=0,pOn=false,ciMode=false,ciFroze,ciFrozenTex;
 const N=['BLUR','MOSAIC','FLAT','VALUE','EDGE','TONE','DUO','SWIRL','OIL','DOF','STIPPLE','ORIGINAL','GLITCH'];
 const canvas=document.getElementById('c');
@@ -410,7 +412,7 @@ function showCI(x,y,r,g,b,name,hsv){const xh=document.getElementById('ciXh');xh.
 // Video recording: long-press capBtn (300ms hold -> record, release -> stop, 10s max)
 let recTimer,recorder,recStream,recChunks=[],recMax=10;
 const recRing=document.getElementById('recRing'),recDot=document.getElementById('recDot');
-const recCircle=recRing.querySelector('circle');
+const recCircle=recRing&&recRing.querySelector('circle');
 capBtn.addEventListener('pointerdown',e=>{if(!vid&&!ct)return;recTimer=setTimeout(startRec,300);});
 capBtn.addEventListener('pointerup',e=>{clearTimeout(recTimer);if(recorder&&recorder.state==='recording'){stopRec();return;}if(recTimer)snap();});
 capBtn.addEventListener('pointerleave',()=>{clearTimeout(recTimer);if(recorder&&recorder.state==='recording')stopRec();});
