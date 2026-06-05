@@ -452,31 +452,25 @@ if(!pOn&&ciMode){ciMode=false;dropper.classList.remove('on');
 let palTimer;
 function updatePalette(){
   if(!pOn||!vid) return;
-  // sample grid of pixels from the current frame
   r.render(s,cam);
-  const px=new Uint8Array(4);
-  const map={}; // color bucket
-  const step=8; // sample every 8th pixel
-  const w=innerWidth,h=innerHeight;
-  const gl=r.getContext();
-  const totalPixels=Math.floor(w/step)*Math.floor(h/step);
-  // Read pixels in batches
-  const sampleSize=Math.min(40,Math.floor(w/step));
-  for(let sy=0;sy<Math.min(30,Math.floor(h/step));sy++){
-    for(let sx=0;sx<sampleSize;sx++){
-      const x=sx*step,y=sy*step;
-      gl.readPixels(x,h-y,1,1,gl.RGBA,gl.UNSIGNED_BYTE,px);
-      const r=Math.round(px[0]/32)*32,g=Math.round(px[1]/32)*32,b=Math.round(px[2]/32)*32;
-      const key=r+','+g+','+b;
-      map[key]=(map[key]||0)+1;
-    }
+  // canvas 2D sampling — reliable across browsers, no DPR/GL state issues
+  const sw=160,sh=Math.round(160*innerHeight/innerWidth);
+  const c2=document.createElement('canvas');
+  c2.width=sw;c2.height=sh;
+  const ctx=c2.getContext('2d');
+  ctx.drawImage(canvas,0,0,sw,sh);
+  const img=ctx.getImageData(0,0,sw,sh);
+  const map={};
+  for(let i=0;i<img.data.length;i+=4){
+    const r=Math.round(img.data[i]/32)*32,g=Math.round(img.data[i+1]/32)*32,b=Math.round(img.data[i+2]/32)*32;
+    const key=r+','+g+','+b;
+    map[key]=(map[key]||0)+1;
   }
-  // top 5 by frequency
   const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,5);
   for(let i=0;i<5;i++){
-    const sw=document.getElementById('sw'+i);
-    if(sorted[i]){const [k]=sorted[i];sw.style.background='rgb('+k+')';sw.style.display='block';}
-    else sw.style.display='none';
+    const swEl=document.getElementById('sw'+i);
+    if(sorted[i]){const [k]=sorted[i];swEl.style.background='rgb('+k+')';swEl.style.display='block';}
+    else swEl.style.display='none';
   }
 }
 setInterval(updatePalette,800);
