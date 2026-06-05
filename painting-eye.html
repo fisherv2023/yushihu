@@ -104,6 +104,13 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 @keyframes breathe-core{0%,100%{opacity:.55;filter:drop-shadow(0 0 5px rgba(255,180,60,.3))}50%{opacity:1;filter:drop-shadow(0 0 16px rgba(255,180,60,.8))}}
 @keyframes tighten{0%{letter-spacing:.6em;opacity:0}50%{opacity:.3}100%{letter-spacing:.15em;opacity:.5}}
 @keyframes focus-flash{0%{opacity:1;transform:translate(-50%,-50%) scale(.7)}50%{opacity:.5}100%{opacity:0;transform:translate(-50%,-50%) scale(1.15)}}
+/* CI crosshair & color card */
+#ciXh{position:fixed;z-index:40;width:20px;height:20px;pointer-events:none;display:none;transform:translate(-50%,-50%)}
+#ciXh::before,#ciXh::after{content:'';position:absolute;background:#ffd700}
+#ciXh::before{top:9px;left:0;right:0;height:2px}
+#ciXh::after{left:9px;top:0;bottom:0;width:2px}
+#ciCard{position:fixed;z-index:40;min-width:140px;max-width:180px;padding:10px;border-radius:10px;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);display:none;pointer-events:none;font-size:12px}
+@keyframes ci-flash{0%{opacity:1;transform:translate(-50%,-50%) scale(.7)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}}
 </style>
 </head>
 <body>
@@ -208,6 +215,9 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 
 <div class="toast" id="toast"></div>
 <div class="rec-dot" id="recDot"></div>
+
+<div id="ciXh"></div>
+<div id="ciCard"></div>
 
 <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="loadImg(event)">
 
@@ -370,6 +380,13 @@ window.save=function(){r.render(s,cam);const url=r.domElement.toDataURL('image/p
 function fb(url){const w=window.open('');w.document.write('<img src="'+url+'" style="width:100%"><p style="text-align:center;color:#666;font-size:13px;margin-top:10px">Long press to save</p>');showT('Long press to save');}
 function showT(t){toast.textContent=t;toast.style.display='block';toast.style.animation='none';toast.offsetHeight;toast.style.animation='fade 2s forwards';setTimeout(()=>toast.style.display='none',2000);}
 
+// --- Color Isolate ---
+const pigments=[['Titanium White',255,255,255],['Zinc White',248,248,250],['Cadmium Yellow',255,210,0],['Lemon Yellow',255,240,50],['Yellow Ochre',204,170,50],['Naples Yellow',250,218,94],['Cadmium Orange',255,120,20],['Cadmium Red',210,40,30],['Alizarin Crimson',140,30,45],['Venetian Red',165,65,50],['Burnt Sienna',160,70,35],['Raw Sienna',180,110,45],['Burnt Umber',85,50,35],['Raw Umber',100,70,40],['Van Dyke Brown',65,45,35],['Viridian Green',40,120,80],['Sap Green',70,110,40],["Hooker's Green",55,95,65],['Olive Green',85,90,45],['Cobalt Turquoise',0,160,170],['Cerulean Blue',0,140,190],['Cobalt Blue',40,80,170],['French Ultramarine',35,50,140],['Prussian Blue',20,40,80],['Phthalo Blue',0,60,130],['Dioxazine Purple',80,50,120],['Manganese Violet',130,60,140],["Payne's Gray",60,70,85],['Ivory Black',30,30,32],['Lamp Black',20,20,22]];
+function matchPigment(r,g,b){let best=null,bd=1e9;for(const p of pigments){const d=Math.hypot(p[1]-r,p[2]-g,p[3]-b);if(d<bd){bd=d;best=p;}}return best;}
+function rgbToHsv(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d!==0){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360;}const s=mx===0?0:d/mx,v=mx;return[Math.round(h),Math.round(s*100),Math.round(v*100)];}
+function sampleCI(px,py){r.render(s,cam);const c2=document.createElement('canvas');c2.width=innerWidth;c2.height=innerHeight;const ctx=c2.getContext('2d');ctx.drawImage(canvas,0,0);const half=5,left=Math.max(0,Math.round(px)-half),top=Math.max(0,Math.round(py)-half);const w=Math.min(11,innerWidth-left),h=Math.min(11,innerHeight-top);const img=ctx.getImageData(left,top,w,h);let sr=0,sg=0,sb=0,cnt=0;for(let i=0;i<img.data.length;i+=4){sr+=img.data[i];sg+=img.data[i+1];sb+=img.data[i+2];cnt++;}const cr=Math.round(sr/cnt),cg=Math.round(sg/cnt),cb=Math.round(sb/cnt);const pigment=matchPigment(cr,cg,cb);const hsv=rgbToHsv(cr,cg,cb);showCI(px,py,cr,cg,cb,pigment[0],hsv);}
+function showCI(x,y,r,g,b,name,hsv){const xh=document.getElementById('ciXh');xh.style.left=x+'px';xh.style.top=y+'px';xh.style.display='block';xh.style.animation='none';xh.offsetHeight;xh.style.animation='ci-flash .6s ease-out forwards';const card=document.getElementById('ciCard');let cx=x+20,cy=y-80;if(cx+180>innerWidth)cx=x-200;if(cy<20)cy=y+20;card.style.left=cx+'px';card.style.top=cy+'px';card.innerHTML='<div style=\"width:36px;height:36px;background:rgb('+r+','+g+','+b+');border-radius:6px;margin-bottom:8px\"></div><div style=\"font-weight:600;margin-bottom:3px\">'+name+'</div><div style=\"opacity:.6;font-size:11px;line-height:1.4\">RGB('+r+', '+g+', '+b+')<br>HSV('+hsv[0]+'\u00b0, '+hsv[1]+'%, '+hsv[2]+'%)</div>';card.style.display='block';}
+
 // Video recording: long-press capBtn (300ms hold -> record, release -> stop, 10s max)
 let recTimer,recorder,recStream,recChunks=[],recMax=10;
 const recRing=document.getElementById('recRing'),recDot=document.getElementById('recDot');
@@ -389,6 +406,7 @@ window.tG=function(){gMode=(gMode+1)%4;grid.classList.toggle('show',gMode==1);gr
 // Touch interactions: swirl (1-finger), pinch-zoom (2-finger), tap-focus
 let touchActive=false,pinchDist=0,tapT=0,tapX=0,tapY=0;
 canvas.addEventListener('touchstart',e=>{e.preventDefault();
+  if(ciMode){sampleCI(e.touches[0].clientX,e.touches[0].clientY);return;}
   if(e.touches.length===2){pinchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);touchActive=false;}
   else{touchActive=true;tapT=Date.now();tapX=e.touches[0].clientX;tapY=e.touches[0].clientY;updateTouch(e.touches[0]);}
 },{passive:false});
@@ -401,7 +419,7 @@ canvas.addEventListener('touchend',e=>{
   tapT=0;if(e.touches.length<2)pinchDist=0;touchActive=false;u.uTouch.value.z=0;
 });
 canvas.addEventListener('touchcancel',()=>{tapT=0;pinchDist=0;touchActive=false;u.uTouch.value.z=0;});
-canvas.addEventListener('mousedown',e=>{touchActive=true;updateTouch(e);});
+canvas.addEventListener('mousedown',e=>{if(ciMode){sampleCI(e.clientX,e.clientY);return;}touchActive=true;updateTouch(e);});
 canvas.addEventListener('mousemove',e=>{if(touchActive)updateTouch(e);});
 canvas.addEventListener('mouseup',()=>{touchActive=false;u.uTouch.value.z=0;});
 canvas.addEventListener('wheel',e=>{e.preventDefault();u.uZoom.value=Math.max(1.,Math.min(4.,u.uZoom.value*(e.deltaY>0?.9:1.1)));},{passive:false});
