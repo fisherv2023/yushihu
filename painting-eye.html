@@ -381,7 +381,23 @@ function fb(url){const w=window.open('');w.document.write('<img src="'+url+'" st
 function showT(t){toast.textContent=t;toast.style.display='block';toast.style.animation='none';toast.offsetHeight;toast.style.animation='fade 2s forwards';setTimeout(()=>toast.style.display='none',2000);}
 
 // --- Color Isolate ---
-const pigments=[['Titanium White',255,255,255],['Zinc White',248,248,250],['Cadmium Yellow',255,210,0],['Lemon Yellow',255,240,50],['Yellow Ochre',204,170,50],['Naples Yellow',250,218,94],['Cadmium Orange',255,120,20],['Cadmium Red',210,40,30],['Alizarin Crimson',140,30,45],['Venetian Red',165,65,50],['Burnt Sienna',160,70,35],['Raw Sienna',180,110,45],['Burnt Umber',85,50,35],['Raw Umber',100,70,40],['Van Dyke Brown',65,45,35],['Viridian Green',40,120,80],['Sap Green',70,110,40],["Hooker's Green",55,95,65],['Olive Green',85,90,45],['Cobalt Turquoise',0,160,170],['Cerulean Blue',0,140,190],['Cobalt Blue',40,80,170],['French Ultramarine',35,50,140],['Prussian Blue',20,40,80],['Phthalo Blue',0,60,130],['Dioxazine Purple',80,50,120],['Manganese Violet',130,60,140],["Payne's Gray",60,70,85],['Ivory Black',30,30,32],['Lamp Black',20,20,22]];
+const pigments=[
+  ['Titanium White',255,255,255],['Zinc White',248,248,250],
+  ['Cadmium Yellow',255,210,0],['Lemon Yellow',255,240,50],['Cadmium Yellow Deep',220,170,0],['Indian Yellow',220,150,20],
+  ['Yellow Ochre',204,170,50],['Yellow Ochre Light',215,175,60],['Naples Yellow',250,218,94],
+  ['Cadmium Orange',255,120,20],['Pyrrole Orange',255,80,10],
+  ['Cadmium Red',210,40,30],['Cadmium Red Deep',180,20,25],['Pyrrole Red',220,25,25],
+  ['Alizarin Crimson',140,30,45],['Quinacridone Magenta',170,40,90],
+  ['Venetian Red',165,65,50],['Indian Red',150,55,50],['Light Red',185,90,65],
+  ['Burnt Sienna',160,70,35],['Raw Sienna',180,110,45],['Transparent Oxide Red',130,45,35],
+  ['Burnt Umber',85,50,35],['Raw Umber',100,70,40],['Van Dyke Brown',65,45,35],
+  ['Viridian Green',40,120,80],['Sap Green',70,110,40],["Hooker's Green",55,95,65],['Olive Green',85,90,45],
+  ['Cobalt Green',60,150,120],['Chromium Oxide Green',100,130,80],['Terre Verte',120,140,100],['Phthalo Green',0,110,80],['Emerald Green',50,180,120],
+  ['Cobalt Turquoise',0,160,170],['Cerulean Blue',0,140,190],['Manganese Blue',0,140,180],
+  ['Cobalt Blue',40,80,170],['French Ultramarine',35,50,140],['Indanthrone Blue',30,45,110],
+  ['Prussian Blue',20,40,80],['Phthalo Blue',0,60,130],
+  ['Dioxazine Purple',80,50,120],['Cobalt Violet',140,100,160],['Ultramarine Violet',90,70,135],['Manganese Violet',130,60,140],
+  ["Payne's Gray",60,70,85],['Neutral Tint',65,70,80],['Ivory Black',30,30,32],['Lamp Black',20,20,22]];
 function rgbToLab(r,g,b){let R=r/255,G=g/255,B=b/255;R=R>.04045?Math.pow((R+.055)/1.055,2.4):R/12.92;G=G>.04045?Math.pow((G+.055)/1.055,2.4):G/12.92;B=B>.04045?Math.pow((B+.055)/1.055,2.4):B/12.92;const X=R*.4124564+G*.3575761+B*.1804375,Y=R*.2126729+G*.7151522+B*.072175,Z=R*.0193339+G*.119192+B*.9503041;const f=t=>t>.008856?Math.cbrt(t):t*7.787+16/116;const fx=f(X/.95047),fy=f(Y),fz=f(Z/1.08883);return[116*fy-16,500*(fx-fy),200*(fy-fz)];}
 const pigmentsLab=pigments.map(p=>{const[L,a,b]=rgbToLab(p[1],p[2],p[3]);return[p[0],L,a,b];});
 function matchPigment(r,g,b){const[L,a,b_]=rgbToLab(r,g,b);let best=null,bd=1e9;for(const p of pigmentsLab){const d=Math.hypot(p[1]-L,p[2]-a,p[3]-b_);if(d<bd){bd=d;best=p;}}return best;}
