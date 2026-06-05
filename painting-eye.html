@@ -351,7 +351,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
     vec2 fitUV(vec2 uv){float tr=uTexSize.x/uTexSize.y;float sr=uRes.x/uRes.y;if(tr>sr){float s=sr/tr;uv.y=(uv.y-.5)/s+.5;}else{float s=tr/sr;uv.x=(uv.x-.5)/s+.5;}return uv;}
     vec4 orig(sampler2D t,vec2 uv,float r){return texture2D(t,uv);}
     vec4 glitchFX(sampler2D t,vec2 uv,float r){float s=r/10.;float w=sin(uv.y*40.+uTime*2.)*s*.025;float rc=texture2D(t,clamp(uv+vec2(w,0.),0.,1.)).r;float gc=texture2D(t,uv).g;float bc=texture2D(t,clamp(uv-vec2(w*.7,0.),0.,1.)).b;vec4 col=vec4(rc,gc,bc,1.);float lines=mix(40.,4.,s);float by=floor(uv.y*lines);float h=fract(sin(by*127.1+uTime*2.5)*43758.5453);if(h>.9-s*.5){float sx=(h-.9)*s*.6;col=mix(col,texture2D(t,clamp(uv+vec2(sx,0.),0.,1.)),.7);}col.rgb-=sin(uv.y*uRes.y*2.)*.05*s;col.rgb*=1.-length((uv-.5)*1.3)*.25*s;return col;}
-    vec4 fun(sampler2D t,vec2 uv,float r){float s=r/10.;vec2 c=uv-.5;float d=length(c);float b=1.+s*.5*d*d;vec2 uv2=c*b+.5;uv2+=vec2(sin(uv.y*15.+uTime*.3)*s*.03,sin(uv.x*15.+uTime*.5)*s*.03);uv2=clamp(uv2,0.,1.);return texture2D(t,uv2);}
+    vec4 fun(sampler2D t,vec2 uv,float r){float s=r/10.;vec2 c=uv-.5;float d=length(c);float b=1.+s*.7*d*d;vec2 uv2=c*b+.5;float vy=abs(c.y);uv2.y+=c.y*s*.45*vy;uv2.x+=sin(uv.y*12.)*s*.012;uv2=clamp(uv2,0.,1.);return texture2D(t,uv2);}
     void main(){
       vec2 uv=uFit==1?fitUV(v):v;if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.){gl_FragColor=vec4(0.);return;}
       uv=(uv-.5)/uZoom+.5;
