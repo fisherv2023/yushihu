@@ -188,6 +188,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
         <div class="mode-opt" data-m="9">DOF</div>
         <div class="mode-opt" data-m="10">STIPPLE</div>
         <div class="mode-opt" data-m="12">GLITCH</div>
+        <div class="mode-opt" data-m="13">FUN</div>
         <div class="mode-opt sel" data-m="11" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:10px">ORIGINAL</div>
       </div>
     </div>
@@ -231,7 +232,7 @@ import * as THREE from 'three';
 // Math.cbrt polyfill for old Safari
 if(!Math.cbrt)Math.cbrt=function(x){return Math.pow(x,1/3);};
 let mode=11,level=4,vt,ct,vid,gMode=0,fMode=0,pOn=false,ciMode=false,ciFroze,ciFrozenTex;
-const N=['BLUR','MOSAIC','FLAT','VALUE','EDGE','TONE','DUO','SWIRL','OIL','DOF','STIPPLE','ORIGINAL','GLITCH'];
+const N=['BLUR','MOSAIC','FLAT','VALUE','EDGE','TONE','DUO','SWIRL','OIL','DOF','STIPPLE','ORIGINAL','GLITCH','FUN'];
 const canvas=document.getElementById('c');
 const capBtn=document.getElementById('capBtn');
 const act=document.getElementById('act');
@@ -350,6 +351,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
     vec2 fitUV(vec2 uv){float tr=uTexSize.x/uTexSize.y;float sr=uRes.x/uRes.y;if(tr>sr){float s=sr/tr;uv.y=(uv.y-.5)/s+.5;}else{float s=tr/sr;uv.x=(uv.x-.5)/s+.5;}return uv;}
     vec4 orig(sampler2D t,vec2 uv,float r){return texture2D(t,uv);}
     vec4 glitchFX(sampler2D t,vec2 uv,float r){float s=r/10.;float w=sin(uv.y*40.+uTime*2.)*s*.025;float rc=texture2D(t,clamp(uv+vec2(w,0.),0.,1.)).r;float gc=texture2D(t,uv).g;float bc=texture2D(t,clamp(uv-vec2(w*.7,0.),0.,1.)).b;vec4 col=vec4(rc,gc,bc,1.);float lines=mix(40.,4.,s);float by=floor(uv.y*lines);float h=fract(sin(by*127.1+uTime*2.5)*43758.5453);if(h>.9-s*.5){float sx=(h-.9)*s*.6;col=mix(col,texture2D(t,clamp(uv+vec2(sx,0.),0.,1.)),.7);}col.rgb-=sin(uv.y*uRes.y*2.)*.05*s;col.rgb*=1.-length((uv-.5)*1.3)*.25*s;return col;}
+    vec4 fun(sampler2D t,vec2 uv,float r){float s=r/10.;vec2 c=uv-.5;float d=length(c);float b=1.+s*.5*d*d;vec2 uv2=c*b+.5;uv2+=vec2(sin(uv.y*15.+uTime*.3)*s*.03,sin(uv.x*15.+uTime*.5)*s*.03);uv2=clamp(uv2,0.,1.);return texture2D(t,uv2);}
     void main(){
       vec2 uv=uFit==1?fitUV(v):v;if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.){gl_FragColor=vec4(0.);return;}
       uv=(uv-.5)/uZoom+.5;
@@ -361,7 +363,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       else if(uMode==3)col=gray(tDiffuse,sUv,uLevel);
       else if(uMode==4)col=edge(tDiffuse,sUv,uLevel);
       else if(uMode==5)col=tone(tDiffuse,sUv,uLevel);
-      else if(uMode==6)col=duo(tDiffuse,sUv,uLevel);else if(uMode==7)col=swirlFX(tDiffuse,sUv,uLevel);else if(uMode==8)col=kuwahara(tDiffuse,sUv,uLevel);else if(uMode==9)col=dof(tDiffuse,sUv,uLevel);else if(uMode==10)col=stipple(tDiffuse,sUv,uLevel);else if(uMode==12)col=glitchFX(tDiffuse,sUv,uLevel);
+      else if(uMode==6)col=duo(tDiffuse,sUv,uLevel);else if(uMode==7)col=swirlFX(tDiffuse,sUv,uLevel);else if(uMode==8)col=kuwahara(tDiffuse,sUv,uLevel);else if(uMode==9)col=dof(tDiffuse,sUv,uLevel);else if(uMode==10)col=stipple(tDiffuse,sUv,uLevel);else if(uMode==12)col=glitchFX(tDiffuse,sUv,uLevel);else if(uMode==13)col=fun(tDiffuse,sUv,uLevel);
       else col=orig(tDiffuse,sUv,uLevel);
       gl_FragColor=col;
     }`
@@ -562,7 +564,7 @@ window.switchCam=async function(){
 permBtn.addEventListener('click',()=>startCam());
 if(!('ontouchstart' in window)) setTimeout(()=>startCam(),500);
 
-document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){mode=(mode+12)%13;upd();}if(e.key==='ArrowDown'){mode=(mode+1)%13;upd();}if(e.key==='ArrowLeft'){level=Math.max(1,level-1);slider.value=level;upd();}if(e.key==='ArrowRight'){level=Math.min(10,level+1);slider.value=level;upd();}if(e.key===' '){e.preventDefault();snap();}if(e.key==='r')retake();if(e.key==='s')save();});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){mode=(mode+13)%14;upd();}if(e.key==='ArrowDown'){mode=(mode+1)%14;upd();}if(e.key==='ArrowLeft'){level=Math.max(1,level-1);slider.value=level;upd();}if(e.key==='ArrowRight'){level=Math.min(10,level+1);slider.value=level;upd();}if(e.key===' '){e.preventDefault();snap();}if(e.key==='r')retake();if(e.key==='s')save();});
 
 addEventListener('resize',()=>{r.setSize(innerWidth,innerHeight);u.uRes.value.set(innerWidth,innerHeight);});
 upd();
