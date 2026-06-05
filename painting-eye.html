@@ -216,7 +216,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 </script>
 <script type="module">
 import * as THREE from 'three';
-let mode=11,level=4,vt,ct,vid,gMode=0,fMode=0,pOn=false;
+let mode=11,level=4,vt,ct,vid,gMode=0,fMode=0,pOn=false,ciMode=false;
 const N=['BLUR','MOSAIC','FLAT','VALUE','EDGE','TONE','DUO','SWIRL','OIL','DOF','STIPPLE','ORIGINAL','GLITCH'];
 const canvas=document.getElementById('c');
 const capBtn=document.getElementById('capBtn');
@@ -229,6 +229,7 @@ const grid=document.getElementById('grid'),frame=document.getElementById('frame'
 const perm=document.getElementById('perm'),permBtn=document.getElementById('permBtn');
 const permHelp=document.getElementById('permHelp'),permGuide=document.getElementById('permGuide');
 const toast=document.getElementById('toast');
+const dropper=document.getElementById('dropper');
 
 const r=new THREE.WebGLRenderer({canvas,preserveDrawingBuffer:true,antialias:false});
 r.setPixelRatio(Math.min(devicePixelRatio,3));r.setSize(innerWidth,innerHeight);
@@ -456,6 +457,9 @@ function updatePalette(){
   }
 }
 setInterval(updatePalette,800);
+
+// Dropper: toggle CI mode
+dropper.addEventListener('click',e=>{e.stopPropagation();ciMode=!ciMode;dropper.classList.toggle('on',ciMode);showT(ciMode?'Eyedropper on':'Eyedropper off')});
 
 document.getElementById('mCur').addEventListener('click',()=>{document.getElementById('mMenu').classList.toggle('show');document.getElementById('mCur').classList.toggle('open');});
 document.querySelectorAll('.mode-opt').forEach(e=>{e.addEventListener('click',()=>{mode=+e.dataset.m;upd();document.getElementById('mMenu').classList.remove('show');document.getElementById('mCur').classList.remove('open');});});
