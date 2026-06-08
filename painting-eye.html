@@ -421,8 +421,8 @@ document.addEventListener('click', function(e){
       openLicOverlay();
     }
   }
-  // Block palette/dropper for free users
-  if (e.target.closest('#palBtn') || e.target.closest('#dropper')){
+  // Block dropper for free users
+  if (e.target.closest('#dropper')){
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
