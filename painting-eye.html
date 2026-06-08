@@ -329,9 +329,9 @@ function buyLicense(){
     .then(function(r){return r.json()})
     .then(function(d){
       if(d.url){window.open(d.url, '_blank')}
-      else{alert('Payment service unavailable. Try again later.')}
+      else{window.open('https://www.creem.io/payment/prod_3TsUe6FZOT2c2qdwZHLPjq', '_blank')}
     })
-    .catch(function(){alert('Network error. Try again later.')});
+    .catch(function(){window.open('https://www.creem.io/payment/prod_3TsUe6FZOT2c2qdwZHLPjq', '_blank')});
 }
 
 function useFree(){
