@@ -1,9 +1,10 @@
 // Painting Eye License Worker — KV-backed
 // Endpoints:
-//   POST /webhook           — creem webhook (HMAC-SHA256)
-//   GET /success?email=xxx  — show license key after payment
-//   POST /verify            — verify key {"key":"..."}
-//   GET /recover?email=xxx  — recover lost key
+//   POST /checkout            — create creem checkout session {email: "xxx"}
+//   POST /webhook             — creem webhook (HMAC-SHA256)
+//   GET /success?email=xxx    — show license key after payment
+//   POST /verify              — verify key {"key":"..."}
+//   GET /recover?email=xxx    — recover lost key
 
 function genKey() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -77,6 +78,39 @@ export default {
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders() });
+    }
+
+    // === POST /checkout — create creem checkout session ===
+    if (pathname === "/checkout" && request.method === "POST") {
+      let body;
+      try { body = await request.json(); } catch {
+        return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { ...corsHeaders(), "Content-Type": "application/json" } });
+      }
+      const email = (body.email || "").trim();
+      if (!email || !email.includes("@")) {
+        return new Response(JSON.stringify({ error: "Valid email required" }), { status: 400, headers: { ...corsHeaders(), "Content-Type": "application/json" } });
+      }
+      try {
+        const creemRes = await fetch("https://api.creem.io/v1/checkouts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": env.CREEM_API_KEY },
+          body: JSON.stringify({
+            product_id: env.CREEM_PRODUCT_ID,
+            units: 1,
+            customer: { email },
+            success_url: `https://pe-worker.yuyang918.workers.dev/success`,
+            metadata: { user_email: email }
+          })
+        });
+        const data = await creemRes.json();
+        if (!creemRes.ok) {
+          console.error("Creem checkout error:", JSON.stringify(data));
+          return new Response(JSON.stringify({ error: "Payment service unavailable" }), { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } });
+        }
+        return new Response(JSON.stringify({ url: data.checkout_url }), { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: "Checkout creation failed" }), { status: 500, headers: { ...corsHeaders(), "Content-Type": "application/json" } });
+      }
     }
 
     // === POST /webhook ===
