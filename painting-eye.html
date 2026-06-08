@@ -430,19 +430,51 @@ document.addEventListener('click', function(e){
   }
 }, true);
 
+// Limit BLUR slider to 5 on mode switch (perf optimization)
+document.addEventListener('click', function(e){
+  var opt = e.target.closest('.mode-opt');
+  if (opt && opt.dataset.m !== undefined){
+    setTimeout(function(){
+      var slider = document.getElementById('slider');
+      if (!slider) return;
+      if (parseInt(opt.dataset.m) === 0){ // BLUR
+        slider.max = 5;
+        if (parseInt(slider.value) > 5) slider.value = 5;
+      } else {
+        slider.max = 10;
+      }
+    }, 100);
+  }
+});
+
 // Also block keyboard mode switching for premium modes
 document.addEventListener('keydown', function(e){
-  if (licMode === 'pro') return;
+  var slider = document.getElementById('slider');
+  if (licMode === 'pro'){
+    // BLUR slider limit applies to pro users too
+    if (typeof mode !== 'undefined' && mode === 0 && slider){
+      slider.max = 5;
+      if (parseInt(slider.value) > 5) slider.value = 5;
+    } else if (slider){
+      slider.max = 10;
+    }
+    return;
+  }
   var key = e.key;
   // ArrowLeft/Right change modes
   if (key === 'ArrowLeft' || key === 'ArrowRight' || key === ',' || key === '.'){
-    // We can't easily know which mode will be selected, so intercept keyboard
-    // and show overlay if the next mode would be premium
     setTimeout(function(){
       if (typeof mode !== 'undefined' && FREE_MODES.indexOf(mode) === -1){
-        mode = 11; // ORIGINAL
+        mode = 11;
         if (typeof upd === 'function') upd();
         openLicOverlay();
+      }
+      // Apply BLUR slider limit
+      if (typeof mode !== 'undefined' && mode === 0 && slider){
+        slider.max = 5;
+        if (parseInt(slider.value) > 5) slider.value = 5;
+      } else if (slider){
+        slider.max = 10;
       }
     }, 50);
   }
