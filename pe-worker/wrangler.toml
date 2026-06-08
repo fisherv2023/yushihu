@@ -1,0 +1,9 @@
+name = "pe-worker"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+# 从 Cloudflare Dashboard 设置以下 secrets，不要在代码中硬编码：
+# CREEM_WEBHOOK_SECRET  — wrangler secret put CREEM_WEBHOOK_SECRET
+# AIRTABLE_API_KEY      — wrangler secret put AIRTABLE_API_KEY
+# AIRTABLE_BASE_ID      — wrangler secret put AIRTABLE_BASE_ID
