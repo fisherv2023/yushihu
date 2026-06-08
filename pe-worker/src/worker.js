@@ -116,12 +116,14 @@ export default {
     if (pathname === "/success" && request.method === "GET") {
       const email = url.searchParams.get("email");
       if (!email) {
-        return new Response(htmlPage("Error", `<div class="card"><h1>Missing Email</h1><p class="sub">No email provided.</p></div>`), { status: 400, headers: { "Content-Type": "text/html" } });
+        return new Response(htmlPage("Payment Complete",
+          `<div class="card"><h1>🎉 Payment Confirmed</h1><p class="sub">Your license key is ready.</p><p class="note">To get your key:<br>1. Open <a href="https://yushihu.top/painting-eye.html" style="color:#6ab">Painting Eye</a><br>2. Tap <b>Recover Lost Key</b><br>3. Enter your purchase email</p><a class="btn" href="https://yushihu.top/painting-eye.html">Open Painting Eye</a></div>`
+        ), { status: 200, headers: { "Content-Type": "text/html" } });
       }
       const key = await findKeyByEmail(email, kv);
       if (key) {
         return new Response(htmlPage("Your License Key",
-          `<div class="card"><h1>🎉 Purchase Complete</h1><p class="sub">Your Painting Eye license key:</p><div class="key">${key}</div><p class="note">Copy this key. Open Painting Eye → tap the lock icon → paste and activate.<br>Keep this page — the key can also be recovered with your email.</p><a class="btn" href="https://yushihu.top/painting-eye.html">Open Painting Eye</a></div>`
+          `<div class="card"><h1>🎉 Purchase Complete</h1><p class="sub">Your Painting Eye license key:</p><div class="key">${key}</div><p class="note">Copy this key. Open Painting Eye → enter license key → activate.<br>Keep this page — the key can also be recovered with your email.</p><a class="btn" href="https://yushihu.top/painting-eye.html">Open Painting Eye</a></div>`
         ), { status: 200, headers: { "Content-Type": "text/html" } });
       }
       return new Response(htmlPage("Processing...", `<div class="card"><h1>⏳ Processing</h1><p class="sub">Your payment is being processed. Refresh in a moment.</p></div>`), { status: 200, headers: { "Content-Type": "text/html" } });
