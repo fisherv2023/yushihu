@@ -321,7 +321,6 @@ function setPro(key){
 
 function buyLicense(){
   window.open(CREEM_URL, '_blank');
-  document.getElementById('licOverlay').classList.add('hidden');
 }
 
 function useFree(){
@@ -421,6 +420,13 @@ document.addEventListener('click', function(e){
       e.stopImmediatePropagation();
       openLicOverlay();
     }
+  }
+  // Block palette/dropper for free users
+  if (e.target.closest('#palBtn') || e.target.closest('#dropper')){
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    openLicOverlay();
   }
 }, true);
 
