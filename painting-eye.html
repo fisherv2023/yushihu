@@ -261,6 +261,7 @@ const a0_0xfbd787=a0_0x3e6b;(function(_0x9aeaec,_0x586aee){const _0x3feea6=a0_0x
     <div class="features">One-time purchase — lifetime access<br>Includes: <b>MOSAIC · FLAT · EDGE · TONE</b><br><b>DUO · SWIRL · OIL · DOF</b><br><b>STIPPLE · GLITCH · FISHEYE</b></div>
     <button class="lic-btn buy" onclick="buyLicense()">Unlock Full Version</button>
     <button class="lic-btn enter" onclick="showLicInput()">I Have a License Key</button>
+    <button class="lic-btn enter" onclick="showLicRecover()">Recover Lost Key</button>
     <button class="lic-btn free" onclick="useFree()">Try Free (3 modes)</button>
   </div>
   <div class="lic-card" id="licInput" style="display:none">
@@ -270,6 +271,16 @@ const a0_0xfbd787=a0_0x3e6b;(function(_0x9aeaec,_0x586aee){const _0x3feea6=a0_0x
     <div class="lic-err" id="licErr">Invalid key. Check and try again.</div>
     <div class="lic-ok" id="licOk">License activated!</div>
     <button class="lic-btn buy" onclick="verifyKey()">Activate</button>
+    <div class="lic-back" onclick="showLicMain()">← Back</div>
+  </div>
+  <div class="lic-card" id="licRecover" style="display:none">
+    <h2>Recover Key</h2>
+    <div class="byline">Enter your purchase email</div>
+    <input class="lic-input" id="recEmail" placeholder="you@email.com" autocomplete="email">
+    <div class="lic-err" id="recErr">No license found for this email.</div>
+    <div class="lic-ok" id="recOk">Key sent! Check below.</div>
+    <div class="key" id="recKey" style="display:none"></div>
+    <button class="lic-btn buy" onclick="recoverKey()">Recover</button>
     <div class="lic-back" onclick="showLicMain()">← Back</div>
   </div>
 </div>
@@ -320,9 +331,7 @@ function setPro(key){
 }
 
 function buyLicense(){
-  var email = prompt('Enter your email to receive your license key:');
-  if(!email) return;
-  window.open(CREEM_URL + '?email=' + encodeURIComponent(email), '_blank');
+  window.open(CREEM_URL, '_blank');
   document.getElementById('licOverlay').classList.add('hidden');
 }
 
@@ -333,11 +342,22 @@ function useFree(){
 
 function showLicInput(){
   document.getElementById('licMain').style.display='none';
+  document.getElementById('licRecover').style.display='none';
   document.getElementById('licInput').style.display='block';
+}
+
+function showLicRecover(){
+  document.getElementById('licMain').style.display='none';
+  document.getElementById('licInput').style.display='none';
+  document.getElementById('licRecover').style.display='block';
+  document.getElementById('recErr').style.display='none';
+  document.getElementById('recOk').style.display='none';
+  document.getElementById('recKey').style.display='none';
 }
 
 function showLicMain(){
   document.getElementById('licInput').style.display='none';
+  document.getElementById('licRecover').style.display='none';
   document.getElementById('licMain').style.display='block';
   document.getElementById('licErr').style.display='none';
   document.getElementById('licOk').style.display='none';
@@ -346,6 +366,33 @@ function showLicMain(){
 function openLicOverlay(){
   document.getElementById('licOverlay').classList.remove('hidden');
   showLicMain();
+}
+
+function recoverKey(){
+  var email = document.getElementById('recEmail').value.trim();
+  if(!email || !email.includes('@')){
+    document.getElementById('recErr').textContent='Enter a valid email.';
+    document.getElementById('recErr').style.display='block';
+    return;
+  }
+  document.getElementById('recErr').style.display='none';
+  document.getElementById('recOk').style.display='none';
+  fetch(WORKER_URL+'/recover?email='+encodeURIComponent(email))
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.key){
+        document.getElementById('recOk').style.display='block';
+        document.getElementById('recKey').textContent=d.key;
+        document.getElementById('recKey').style.display='block';
+      }else{
+        document.getElementById('recErr').textContent='No license found for this email.';
+        document.getElementById('recErr').style.display='block';
+      }
+    })
+    .catch(function(){
+      document.getElementById('recErr').textContent='Network error. Try again.';
+      document.getElementById('recErr').style.display='block';
+    });
 }
 
 function verifyKey(){
