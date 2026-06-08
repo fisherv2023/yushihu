@@ -91,7 +91,7 @@ export default {
         return new Response(JSON.stringify({ error: "Valid email required" }), { status: 400, headers: { ...corsHeaders(), "Content-Type": "application/json" } });
       }
       try {
-        const creemRes = await fetch("https://test-api.creem.io/v1/checkouts", {
+        const creemRes = await fetch("https://api.creem.io/v1/checkouts", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-api-key": env.CREEM_API_KEY },
           body: JSON.stringify({
