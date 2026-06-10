@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>粉丝灯牌 - Fan Light Board</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:-apple-system,'PingFang SC','Helvetica Neue',sans-serif}
+
+/* ===== EDIT MODE ===== */
+.edit-screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;background:#111;transition:opacity .3s,transform .3s}
+.edit-screen.hide{opacity:0;pointer-events:none;transform:scale(1.05)}
+.edit-screen .header{padding:22px 20px 10px;text-align:center}
+.edit-screen .header h2{color:#fff;font-size:20px;font-weight:600;letter-spacing:2px}
+.edit-screen .header p{color:#666;font-size:12px;margin-top:4px}
+
+.edit-screen .preview-box{flex:1;margin:10px 16px;border-radius:16px;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;border:1px solid #222}
+.edit-screen .preview-box .preview-text{font-size:42px;font-weight:900;text-align:center;line-height:1.2;padding:10px;word-break:break-all}
+.edit-screen .preview-box .tap-hint{position:absolute;bottom:14px;font-size:11px;color:#444}
+
+.edit-controls{padding:10px 16px 30px;display:flex;flex-direction:column;gap:12px}
+.edit-controls .input-row{display:flex;gap:10px}
+.edit-controls .input-row input{flex:1;padding:12px 16px;border-radius:12px;border:1px solid #333;background:#1a1a1a;color:#fff;font-size:16px;outline:none}
+.edit-controls .input-row input:focus{border-color:#666}
+.edit-controls .input-row .go-btn{padding:12px 24px;border-radius:12px;border:none;background:#ff3b30;color:#fff;font-size:16px;font-weight:600;white-space:nowrap}
+
+.colors{display:flex;gap:8px;overflow-x:auto;padding:2px 0;-webkit-overflow-scrolling:touch}
+.colors::-webkit-scrollbar{display:none}
+.colors .c{width:36px;height:36px;border-radius:50%;flex-shrink:0;cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+.colors .c.on{border-color:#fff}
+.colors .c-picker{width:36px;height:36px;border-radius:50%;flex-shrink:0;cursor:pointer;border:2px dashed #444;display:flex;align-items:center;justify-content:center;font-size:18px;color:#666;overflow:hidden;position:relative}
+.colors .c-picker input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.colors .c-picker:active{background:#222}
+
+.modes{display:flex;gap:6px;overflow-x:auto;padding:2px 0;-webkit-overflow-scrolling:touch}
+.modes::-webkit-scrollbar{display:none}
+.modes .m{padding:8px 14px;border-radius:20px;border:1px solid #333;background:transparent;color:#888;font-size:13px;white-space:nowrap;cursor:pointer;flex-shrink:0;transition:all .15s}
+.modes .m.on{background:#ff3b30;color:#fff;border-color:#ff3b30}
+
+/* ===== DISPLAY MODE ===== */
+.display-screen{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:#000}
+.display-screen .disp-text{font-size:min(18vw,120px);font-weight:900;text-align:center;line-height:1.15;padding:10px;width:100%;word-break:break-all;transition:color .3s}
+.display-screen .back-hint{position:fixed;bottom:30px;font-size:11px;color:rgba(255,255,255,.12);pointer-events:none}
+
+/* ===== ANIMATIONS ===== */
+@keyframes breathe{0%,100%{opacity:.4}50%{opacity:1}}
+@keyframes flash{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3%)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-1%)}75%{transform:translateX(1%)}}
+
+.disp-text.ani-breathe{animation:breathe 2.2s ease-in-out infinite}
+.disp-text.ani-flash{animation:flash .4s step-end infinite}
+.disp-text.ani-bounce{animation:bounce .8s ease-in-out infinite}
+.disp-text.ani-shake{animation:shake .15s ease-in-out infinite}
+.disp-text.ani-marquee{white-space:nowrap;display:inline-block;animation:marquee 6s linear infinite}
+@keyframes marquee{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}
+
+/* Rainbow gradient via JS */
+.disp-text.ani-rainbow{background-clip:text;-webkit-background-clip:text;color:transparent!important}
+
+/* ===== CANVAS PARTICLES ===== */
+#particleCanvas{position:fixed;inset:0;z-index:3;pointer-events:none}
+</style>
+</head>
+<body>
+
+<!-- EDIT SCREEN -->
+<div class="edit-screen" id="editScreen">
+  <div class="header">
+    <h2>✦ 粉丝灯牌 ✦</h2>
+    <p>输入应援文字，全屏展示</p>
+  </div>
+  <div class="preview-box" id="previewBox">
+    <div class="preview-text" id="previewText">💖</div>
+    <div class="tap-hint">预览</div>
+  </div>
+  <div class="edit-controls">
+    <div class="input-row">
+      <input id="textInput" placeholder="输入应援文字…" maxlength="30" autocomplete="off">
+      <button class="go-btn" id="goBtn">显示</button>
+    </div>
+    <div class="colors" id="colorStrip">
+      <div class="c" style="background:#ff3b30" data-color="#ff3b30"></div>
+      <div class="c" style="background:#ff9500" data-color="#ff9500"></div>
+      <div class="c" style="background:#ffcc00" data-color="#ffcc00"></div>
+      <div class="c" style="background:#34c759" data-color="#34c759"></div>
+      <div class="c" style="background:#007aff" data-color="#007aff"></div>
+      <div class="c" style="background:#af52de" data-color="#af52de"></div>
+      <div class="c" style="background:#fff" data-color="#ffffff"></div>
+      <div class="c on" style="background:#ff3b30" data-color="#ff3b30"></div>
+      <div class="c-picker" id="customColor">🎨<input type="color" value="#ff3b30"></div>
+    </div>
+    <div class="modes" id="modeStrip">
+      <div class="m on">呼吸</div>
+      <div class="m">跑马灯</div>
+      <div class="m">闪烁</div>
+      <div class="m">彩虹</div>
+      <div class="m">弹跳</div>
+      <div class="m">霓虹</div>
+      <div class="m">星光</div>
+    </div>
+  </div>
+</div>
+
+<!-- DISPLAY SCREEN -->
+<div class="display-screen" id="displayScreen">
+  <div class="disp-text" id="dispText">💖</div>
+  <div class="back-hint">点击返回</div>
+</div>
+
+<canvas id="particleCanvas"></canvas>
+
+<script>
+// ===== State =====
+const MODES = ['breathing','marquee','flash','rainbow','bounce','neon','sparkle'];
+let curText = '💖';
+let curColor = '#ff3b30';
+let curMode = 0; // index into MODES
+let particleRunning = false;
+let particleFrame;
+
+// ===== DOM =====
+const editScreen = document.getElementById('editScreen');
+const displayScreen = document.getElementById('displayScreen');
+const previewText = document.getElementById('previewText');
+const dispText = document.getElementById('dispText');
+const textInput = document.getElementById('textInput');
+const goBtn = document.getElementById('goBtn');
+const colorStrip = document.getElementById('colorStrip');
+const modeStrip = document.getElementById('modeStrip');
+const customColorInput = document.getElementById('customColor').querySelector('input');
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+
+// ===== Resize canvas =====
+function resizeCanvas(){canvas.width=innerWidth;canvas.height=innerHeight}
+resizeCanvas(); addEventListener('resize',resizeCanvas);
+
+// ===== Color pick =====
+colorStrip.querySelectorAll('.c').forEach(el=>{
+  el.addEventListener('click',()=>{
+    colorStrip.querySelectorAll('.c,.c-picker').forEach(e=>e.classList.remove('on'));
+    el.classList.add('on');
+    curColor = el.dataset.color;
+    updatePreviews();
+  });
+});
+customColorInput.addEventListener('input',()=>{
+  colorStrip.querySelectorAll('.c,.c-picker').forEach(e=>e.classList.remove('on'));
+  document.getElementById('customColor').classList.add('on');
+  curColor = customColorInput.value;
+  updatePreviews();
+});
+
+// ===== Mode pick =====
+modeStrip.querySelectorAll('.m').forEach((el,i)=>{
+  el.addEventListener('click',()=>{
+    modeStrip.querySelectorAll('.m').forEach(e=>e.classList.remove('on'));
+    el.classList.add('on');
+    curMode = i;
+    updatePreviews();
+  });
+});
+
+// ===== Update =====
+function updatePreviews(){
+  previewText.style.color = curColor;
+  previewText.textContent = curText;
+  dispText.style.color = curColor;
+  dispText.textContent = curText;
+  // Animation classes for display
+  dispText.className = 'disp-text';
+  const mode = MODES[curMode];
+  if(mode==='breathing')dispText.classList.add('ani-breathe');
+  else if(mode==='marquee')dispText.classList.add('ani-marquee');
+  else if(mode==='flash')dispText.classList.add('ani-flash');
+  else if(mode==='bounce')dispText.classList.add('ani-bounce');
+  else if(mode==='neon'){dispText.style.textShadow='0 0 20px '+curColor+',0 0 60px '+curColor+',0 0 100px '+curColor;}
+  else dispText.style.textShadow='none';
+  // Rainbow special
+  if(mode==='rainbow'){
+    dispText.classList.add('ani-rainbow');
+    dispText.style.backgroundImage='linear-gradient(90deg,#ff3b30,#ff9500,#ffcc00,#34c759,#007aff,#af52de)';
+    dispText.style.backgroundSize='200% 100%';
+    dispText.style.animation='marquee 3s linear infinite';
+  }else{dispText.style.backgroundImage='';dispText.style.animation='';}
+  // Particles
+  if(mode==='sparkle')startParticles();
+  else stopParticles();
+}
+
+// ===== Particles (sparkle mode) =====
+let particles=[];
+class P{
+  constructor(){this.reset()}
+  reset(){
+    this.x=Math.random()*canvas.width;
+    this.y=canvas.height+10;
+    this.speed=1+Math.random()*3;
+    this.size=2+Math.random()*5;
+    this.angle=Math.random()*Math.PI*2;
+    this.rotSpeed=(Math.random()-.5)*.05;
+    this.alpha=1;
+    this.life=0.3+Math.random()*.4;
+    this.char=Math.random()>.5?'✦':'♥';
+    this.color=curColor;
+  }
+  update(){
+    this.y-=this.speed;
+    this.angle+=this.rotSpeed;
+    this.x+=Math.sin(this.angle)*.5;
+    this.alpha=Math.max(0,this.y/(canvas.height+20));
+    if(this.y<-20)this.reset();
+  }
+  draw(){
+    ctx.globalAlpha=this.alpha*.7;
+    ctx.fillStyle=this.color;
+    ctx.font=this.size*3+'px serif';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText(this.char,this.x,this.y);
+    ctx.globalAlpha=1;
+  }
+}
+function startParticles(){
+  if(particleRunning)return;
+  particleRunning=true;
+  particles=[];
+  for(let i=0;i<25;i++){let p=new P();p.y=Math.random()*canvas.height;p.alpha=Math.random();particles.push(p);}
+  function loop(){
+    if(!particleRunning)return;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{p.update();p.draw();});
+    particleFrame=requestAnimationFrame(loop);
+  }
+  loop();
+}
+function stopParticles(){
+  particleRunning=false;
+  if(particleFrame)cancelAnimationFrame(particleFrame);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles=[];
+}
+
+// ===== Enter display mode =====
+function showDisplay(){
+  if(!curText.trim()){curText='💖';textInput.value='';}
+  updatePreviews();
+  editScreen.classList.add('hide');
+  displayScreen.style.zIndex='20';
+}
+goBtn.addEventListener('click',showDisplay);
+
+textInput.addEventListener('input',()=>{curText=textInput.value||'💖';updatePreviews();});
+textInput.addEventListener('keydown',e=>{if(e.key==='Enter'){showDisplay();}});
+
+// Tap display to return
+displayScreen.addEventListener('click',()=>{
+  displayScreen.style.zIndex='5';
+  editScreen.classList.remove('hide');
+});
+
+// ===== Fullscreen: double-tap display =====
+let lastTap=0;
+displayScreen.addEventListener('dblclick',()=>{
+  if(document.fullscreenElement){document.exitFullscreen();}
+  else{document.documentElement.requestFullscreen().catch(()=>{});}
+});
+// Also long-press on display
+let pressTimer;
+displayScreen.addEventListener('pointerdown',()=>{
+  pressTimer=setTimeout(()=>{
+    if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+    else document.documentElement.requestFullscreen().catch(()=>{});
+  },800);
+});
+displayScreen.addEventListener('pointerup',()=>clearTimeout(pressTimer));
+displayScreen.addEventListener('pointerleave',()=>clearTimeout(pressTimer));
+
+// ===== Init =====
+updatePreviews();
+</script>
+</body>
+</html>
