@@ -63,10 +63,9 @@ const CFG = {
   SPLAT_RADIUS: 0.004,
   SPLAT_FORCE: 4000,
   EDGE_DYE: 0.015,         // base edge → dye (× slider 1.0-2.0)
-  EDGE_VEL: 2.0,           // edge → perpendicular velocity
+  EDGE_VEL: 1.2,           // edge → perpendicular velocity (slower)
   DARK_DYE: 0.004,         // base dark areas → dye (× slider 1.0-2.0)
   CAM_DISSIPATION: 0.0,    // no fading in camera step (touch ink would vanish!)
-  DYE_CAP: 1.2,            // max absorption per channel — prevents runaway black
 };
 
 const PAPER = new THREE.Color('#efeae0');
@@ -182,7 +181,7 @@ void main(){gl_FragColor=uValue*texture2D(uTexture,vUv);}`, {
 const cameraDyeMat = prog(`precision highp float;varying vec2 vUv;
 uniform sampler2D uDye,uCamera;
 uniform vec2 uCamTexel;
-uniform float uEdgeDye,uDarkDye,uDissipation,uCap;
+uniform float uEdgeDye,uDarkDye,uDissipation;
 
 float lum(vec3 c){return dot(c,vec3(.299,.587,.114));}
 
@@ -214,7 +213,7 @@ void main(){
   vec3 darkInk=camAbs*dark*uDarkDye;
 
   vec3 nd=dye+edgeInk+darkInk;
-  nd=min(nd,uCap);
+  nd=nd/(1.+nd*.35); // soft saturation — preserves R:G:B ratios
   nd*=1.-uDissipation;
   gl_FragColor=vec4(max(nd,0.),1.);
 }`, {
@@ -352,11 +351,26 @@ function toUV(e) {
   return { x: (e.clientX - r.left) / r.width, y: 1 - (e.clientY - r.top) / r.height };
 }
 
+// Sample camera color at touch point (for colored ink)
+const sampleCanvas = document.createElement('canvas');
+const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+function sampleCameraColor(uv) {
+  if (!video || !video.videoWidth) return INK_COLORS.sumi;
+  const w = video.videoWidth, h = video.videoHeight;
+  if (sampleCanvas.width !== w) { sampleCanvas.width = w; sampleCanvas.height = h; }
+  sampleCtx.drawImage(video, 0, 0, w, h);
+  const px = Math.floor(uv.x * w);
+  const py = Math.floor((1 - uv.y) * h);
+  const d = sampleCtx.getImageData(Math.max(0, Math.min(px, w-1)), Math.max(0, Math.min(py, h-1)), 1, 1).data;
+  return new THREE.Color(d[0]/255, d[1]/255, d[2]/255);
+}
+
 canvas.addEventListener('pointerdown', e => {
   const p = toUV(e);
   ptr.down = true; ptr.moved = false;
   ptr.x = ptr.px = p.x; ptr.y = ptr.py = p.y;
-  splatDye(p.x, p.y, inkAbsorption(INK_COLORS.sumi, .3), 2.5);
+  const col = sampleCameraColor({x: p.x, y: p.y});
+  splatDye(p.x, p.y, inkAbsorption(col, .3), 2.5);
   splatVelocity(p.x, p.y, (Math.random()-.5)*160, (Math.random()-.5)*160, 2.5);
 });
 canvas.addEventListener('pointermove', e => {
@@ -376,7 +390,8 @@ function applyPointer() {
   splatVelocity(ptr.x, ptr.y, dx * CFG.SPLAT_FORCE, dy * CFG.SPLAT_FORCE, ptr.down ? 3. : 1.8);
   if (ptr.down) {
     const s = Math.min(Math.hypot(dx, dy) * 25, 1);
-    splatDye(ptr.x, ptr.y, inkAbsorption(INK_COLORS.sumi, .08 + s * .14), 1.2);
+    const col = sampleCameraColor({x: ptr.x, y: ptr.y});
+    splatDye(ptr.x, ptr.y, inkAbsorption(col, .08 + s * .14), 1.2);
   }
 }
 
@@ -392,7 +407,6 @@ function step(dt) {
     cameraDyeMat.uniforms.uEdgeDye.value = CFG.EDGE_DYE * sVal;
     cameraDyeMat.uniforms.uDarkDye.value = CFG.DARK_DYE * sVal;
     cameraDyeMat.uniforms.uDissipation.value = CFG.CAM_DISSIPATION;
-    cameraDyeMat.uniforms.uCap.value = CFG.DYE_CAP;
     blit(cameraDyeMat, dye.write);
     dye.swap();
 
