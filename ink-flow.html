@@ -55,7 +55,7 @@ import * as THREE from 'three';
 
 const CFG = {
   SIM_RES: 128,
-  DYE_MAX: 512,
+  DYE_MAX: 768,
   PRESSURE_ITER: 20,
   VEL_DISSIPATION: 0.25,
   CURL: 14,
@@ -216,7 +216,7 @@ void main(){
   vec3 darkInk=camAbs*dark*uDarkDye;
 
   vec3 nd=dye+edgeInk+darkInk;
-  nd=nd/(1.+nd*.35); // soft saturation — preserves R:G:B ratios
+  nd=nd/(1.+nd*.2); // soft saturation — preserves ratios, wider range
   nd*=1.-uDissipation;
   gl_FragColor=vec4(max(nd,0.),1.);
 }`, {
@@ -273,20 +273,15 @@ void main(){
   vec3 ink=uPaper*exp(-A);
   vec3 cam=texture2D(uCamera,vUv).rgb;
 
-  // Ink density determines blend — sharp threshold for opaque ink
-  float d=smoothstep(.02,.15,length(A));
+  // Sharp threshold for opaque ink — no gray film
+  float d=smoothstep(.02,.06,length(A));
   vec3 col=mix(cam,ink,d);
 
-  // Paper grain where ink is present
-  float grain=hash(vUv*420.)*.012+hash(vUv*180.)*.008;
-  col+=grain*d;
-
-  // Vignette
-  vec2 uv2=vUv*(1.-vUv.yx);
-  float vig=pow(uv2.x*uv2.y*15.,.15);
-  col*=.92+.08*vig;
-
-  gl_FragColor=vec4(clamp(col,0.,1.),1.);
+  // Subtle camera saturation boost (only where no ink)
+  float clum=dot(cam,vec3(.299,.587,.114));
+  vec3 camSat=mix(vec3(clum),cam,1.25);
+  col=mix(camSat,col,d);
+  col=clamp(col,0.,1.);
 }`, {
   uDye:{value:null},uCamera:{value:null},
   uPaper:{value:new THREE.Vector3(PAPER.r,PAPER.g,PAPER.b)},
