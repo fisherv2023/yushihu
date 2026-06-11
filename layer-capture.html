@@ -150,7 +150,11 @@ let compA = new THREE.WebGLRenderTarget(innerWidth, innerHeight, {
   wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
   format: THREE.RGBAFormat, depthBuffer: false,
 });
-let compB = compA.clone();
+let compB = new THREE.WebGLRenderTarget(innerWidth, innerHeight, {
+  minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+  wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
+  format: THREE.RGBAFormat, depthBuffer: false,
+});
 
 function composite(displayTex, layersArr, flip) {
   let src = flip ? compB : compA;
@@ -187,6 +191,7 @@ function composite(displayTex, layersArr, flip) {
 function render() {
   requestAnimationFrame(render);
   if (!videoTexture) return;
+  videoTexture.needsUpdate = true;
 
   const final = composite(videoTexture, layers, false);
   // Blit to screen
@@ -197,6 +202,7 @@ function render() {
 
 // Save
 document.getElementById('btnSave').addEventListener('click', () => {
+  videoTexture.needsUpdate = true;
   const final = composite(videoTexture, layers, true);
   quad.material = new THREE.MeshBasicMaterial({ map: final.texture });
   renderer.setRenderTarget(null);
