@@ -8,161 +8,152 @@
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
 html,body{width:100%;height:100%;overflow:hidden;background:#111;touch-action:none}
 canvas{display:block;width:100vw;height:100vh;touch-action:none}
-.toolbar{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:10;display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:20px;background:rgba(0,0,0,.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1)}
-.toolbar .c{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex-shrink:0}
-.toolbar .c.on{border-color:#fff}
-.toolbar .btn{padding:6px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.7);font-size:12px;cursor:pointer;white-space:nowrap}
-.toolbar .btn:active{background:rgba(255,255,255,.1)}
-.toolbar .btn.on{background:#ff3b30;border-color:#ff3b30;color:#fff}
-.hint{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10;color:rgba(255,255,255,.2);font-size:12px;pointer-events:none;transition:opacity 1s;text-align:center;line-height:1.5}
-.hint.h{opacity:0}
+.tb{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:10;display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:20px;background:rgba(0,0,0,.65);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1)}
+.tb .c{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex-shrink:0}
+.tb .c.on{border-color:#fff}
+.tb .b{padding:6px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.7);font-size:12px;cursor:pointer;white-space:nowrap}
+.tb .b:active{background:rgba(255,255,255,.1)}
+.tb .b.on{background:#ff3b30;border-color:#ff3b30;color:#fff}
+.h{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10;color:rgba(255,255,255,.2);font-size:12px;pointer-events:none}
+.h.hide{opacity:0}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div class="hint" id="h">拖拽 · 点击滴墨</div>
-<div class="toolbar">
-  <div class="c on" style="background:#e74c3c"></div>
-  <div class="c" style="background:#3498db"></div>
-  <div class="c" style="background:#f1c40f"></div>
-  <div class="c" style="background:#2ecc71"></div>
-  <div class="c" style="background:#9b59b6"></div>
-  <div class="c" style="background:#e67e22"></div>
+<div class="h" id="h">拖拽漩涡 · 点击滴墨</div>
+<div class="tb">
+  <div class="c on" style="background:#e74c3c"></div><div class="c" style="background:#3498db"></div>
+  <div class="c" style="background:#f1c40f"></div><div class="c" style="background:#2ecc71"></div>
+  <div class="c" style="background:#9b59b6"></div><div class="c" style="background:#e67e22"></div>
   <div class="c" style="background:#fff"></div>
-  <div class="btn" id="a">自动</div>
-  <div class="btn" id="r">清空</div>
+  <div class="b" id="a">自动</div><div class="b" id="r">清空</div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r132/three.min.js"></script>
-<script>
-try {
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
 const S=256,W=innerWidth,H=innerHeight;
-const ren=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:false});
-ren.setSize(W,H);ren.setPixelRatio(Math.min(devicePixelRatio,2));
+const r=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:false});
+r.setSize(W,H);r.setPixelRatio(Math.min(devicePixelRatio,2));
 const cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
-const sc=new THREE.Scene();
-const me=new THREE.Mesh(new THREE.PlaneGeometry(2,2),null);
-sc.add(me);
-function u(m){me.material=m;}
-// Test FloatType - fallback to HalfFloat if needed
-let FT=T=>{try{new THREE.WebGLRenderTarget(2,2,{type:THREE.FloatType,format:THREE.RGBAFormat});return THREE.FloatType;}catch(e){return THREE.HalfFloatType;}}();
-function RT(w,h){return new THREE.WebGLRenderTarget(w,h,{type:FT,format:THREE.RGBAFormat,minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,depthBuffer:false})}
-function PR(){return[RT(S,S),RT(S,S)]}
-let vl=PR(),dy=PR(),tm=RT(S,S),pr=PR(),vi=0;
-function sw(){return 1-vi}
-const V='varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}';
-const M=(fs,us)=>new THREE.ShaderMaterial({uniforms:us,vertexShader:V,fragmentShader:'precision highp float;varying vec2 v;'+fs});
-// Advection
-const aM=M('uniform sampler2D fV,fS;uniform vec2 fR;uniform float fD;void main(){vec2 uv=v-fD*fR*texture2D(fV,v).xy;gl_FragColor=texture2D(fS,clamp(uv,0.,1.));}',{fV:{value:null},fS:{value:null},fR:{value:new THREE.Vector2(S,S)},fD:{value:.016}});
+const sc=new THREE.Scene();const me=new THREE.Mesh(new THREE.PlaneGeometry(2,2),null);sc.add(me);
+function use(m){me.material=m;}
+const VS='varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}';
+function mat(fs,us){return new THREE.ShaderMaterial({uniforms:us,vertexShader:VS,fragmentShader:'precision highp float;varying vec2 v;'+fs});}
+const RT=(w,h)=>new THREE.WebGLRenderTarget(w,h,{type:THREE.FloatType,format:THREE.RGBAFormat,minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,depthBuffer:false});
+const PR=()=>[RT(S,S),RT(S,S)];
+let V0=PR(),V1=PR(),D0=PR(),D1=PR(),TMP=RT(S,S),PS0=RT(S,S),PS1=RT(S,S);
+const R2=new THREE.Vector2(S,S);
+// Advection: reads vel from A, reads source from B, writes to output
+const ad=mat('uniform sampler2D A,B;uniform vec2 R;uniform float D;void main(){vec2 uv=v-D*R*texture2D(A,v).xy;gl_FragColor=texture2D(B,clamp(uv,0.,1.));}',{A:{value:null},B:{value:null},R:{value:R2},D:{value:.016}});
 // Vorticity
-const vM=M('uniform sampler2D fV;uniform vec2 fR;uniform float fS;void main(){vec2 o=1./fR;float wl=texture2D(fV,v-vec2(o.x,0.)).y,wr=texture2D(fV,v+vec2(o.x,0.)).y,wb=texture2D(fV,v-vec2(0.,o.y)).x,wt=texture2D(fV,v+vec2(0.,o.y)).x;float vo=wr-wl+wt-wb;vec2 g=vec2(abs(wt)-abs(wb),abs(wr)-abs(wl));gl_FragColor=vec4(texture2D(fV,v).xy+(length(g)>.001?normalize(g)*vo*fS:vec2(0.)),0.,0.);}',{fV:{value:null},fR:{value:new THREE.Vector2(S,S)},fS:{value:2.}});
+const vo=mat('uniform sampler2D A;uniform vec2 R;uniform float S;void main(){vec2 o=1./R;float L=texture2D(A,v-vec2(o.x,0.)).y,R=texture2D(A,v+vec2(o.x,0.)).y,B=texture2D(A,v-vec2(0.,o.y)).x,T=texture2D(A,v+vec2(0.,o.y)).x;float vr=R-L+T-B;vec2 g=vec2(abs(T)-abs(B),abs(R)-abs(L));vec2 f=length(g)>.001?normalize(g)*vr*S:vec2(0.);gl_FragColor=vec4(texture2D(A,v).xy+f,0.,0.);}',{A:{value:null},R:{value:R2},S:{value:2.0}});
 // Divergence
-const dM=M('uniform sampler2D fV;uniform vec2 fR;void main(){vec2 o=1./fR;gl_FragColor=vec4(.5*(texture2D(fV,v+vec2(o.x,0.)).x-texture2D(fV,v-vec2(o.x,0.)).x+texture2D(fV,v+vec2(0.,o.y)).y-texture2D(fV,v-vec2(0.,o.y)).y),0.,0.,0.);}',{fV:{value:null},fR:{value:new THREE.Vector2(S,S)}});
-// Pressure
-const pM=M('uniform sampler2D fP,fD;uniform vec2 fR;void main(){vec2 o=1./fR;float p=(texture2D(fP,v+vec2(o.x,0.)).x+texture2D(fP,v-vec2(o.x,0.)).x+texture2D(fP,v+vec2(0.,o.y)).x+texture2D(fP,v-vec2(0.,o.y)).x-texture2D(fD,v).x)*.25;gl_FragColor=vec4(p,0.,0.,0.);}',{fP:{value:null},fD:{value:null},fR:{value:new THREE.Vector2(S,S)}});
+const di=mat('uniform sampler2D A;uniform vec2 R;void main(){vec2 o=1./R;gl_FragColor=vec4(.5*(texture2D(A,v+vec2(o.x,0.)).x-texture2D(A,v-vec2(o.x,0.)).x+texture2D(A,v+vec2(0.,o.y)).y-texture2D(A,v-vec2(0.,o.y)).y),0.,0.,0.);}',{A:{value:null},R:{value:R2}});
+// Pressure Jacobi
+const pj=mat('uniform sampler2D A,B;uniform vec2 R;void main(){vec2 o=1./R;float p=(texture2D(A,v+vec2(o.x,0.)).x+texture2D(A,v-vec2(o.x,0.)).x+texture2D(A,v+vec2(0.,o.y)).x+texture2D(A,v-vec2(0.,o.y)).x-texture2D(B,v).x)*.25;gl_FragColor=vec4(p,0.,0.,0.);}',{A:{value:null},B:{value:null},R:{value:R2}});
 // Project
-const jM=M('uniform sampler2D fV,fP;uniform vec2 fR;void main(){vec2 o=1./fR;vec2 v2=texture2D(fV,v).xy;float pl=texture2D(fP,v-vec2(o.x,0.)).x,pr=texture2D(fP,v+vec2(o.x,0.)).x,pb=texture2D(fP,v-vec2(0.,o.y)).x,pt=texture2D(fP,v+vec2(0.,o.y)).x;gl_FragColor=vec4(v2-vec2(pr-pl,pt-pb)*.5,0.,0.);}',{fV:{value:null},fP:{value:null},fR:{value:new THREE.Vector2(S,S)}});
+const pc=mat('uniform sampler2D A,B;uniform vec2 R;void main(){vec2 o=1./R;vec2 v2=texture2D(A,v).xy;float L=texture2D(B,v-vec2(o.x,0.)).x,R=texture2D(B,v+vec2(o.x,0.)).x,B=texture2D(B,v-vec2(0.,o.y)).x,T=texture2D(B,v+vec2(0.,o.y)).x;gl_FragColor=vec4(v2-vec2(R-L,T-B)*.5,0.,0.);}',{A:{value:null},B:{value:null},R:{value:R2}});
 // Display
-const sM=M('uniform sampler2D fD;void main(){vec3 c=texture2D(fD,v).rgb;gl_FragColor=vec4(mix(vec3(.05),c*1.2,min(1.,length(c)*2.)),1.);}',{fD:{value:null}});
+const dp=mat('uniform sampler2D A;void main(){vec3 c=texture2D(A,v).rgb;gl_FragColor=vec4(mix(vec3(.05),c*1.2,min(1.,length(c)*2.)),1.);}',{A:{value:null}});
 // Clear
-const cM=M('void main(){gl_FragColor=vec4(0.);}',{});
-const cS=new THREE.Scene();cS.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),cM));
-function clr(){u(cM);[vl,dy,tm,pr].flat().forEach(t=>{ren.setRenderTarget(t);ren.render(cS,cam);});ren.setRenderTarget(null);u(sM);}
-clr();
+const cl=mat('void main(){gl_FragColor=vec4(0.);}',{});
+const cS=new THREE.Scene();cS.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),cl));
+function clear(){use(cl);[V0,V1,D0,D1,TMP,PS0,PS1].forEach(t=>{r.setRenderTarget(t);r.render(cS,cam);});r.setRenderTarget(null);use(dp);}
+clear();
 // Ink splat
-const iM=M('uniform sampler2D fT;uniform vec2 fP;uniform vec3 fC;uniform float fR,fS;void main(){vec4 c=texture2D(fT,v);float d=length(v-fP);float w=exp(-d*d/(fR*fR));gl_FragColor=vec4(mix(c.rgb,fC,w*fS),1.);}',{fT:{value:null},fP:{value:new THREE.Vector2(.5,.5)},fC:{value:new THREE.Vector3(1,0,0)},fR:{value:.03},fS:{value:.5}});
+const ik=mat('uniform sampler2D A;uniform vec2 B;uniform vec3 C;uniform float D,E;void main(){vec4 c=texture2D(A,v);float d=length(v-B);float w=exp(-d*d/(D*D));gl_FragColor=vec4(mix(c.rgb,C,w*E),1.);}',{A:{value:null},B:{value:new THREE.Vector2(.5,.5)},C:{value:new THREE.Vector3(1,0,0)},D:{value:.03},E:{value:.5}});
 // Force splat
-const fM=M('uniform sampler2D fT;uniform vec2 fP,fF;uniform float fR,fS;void main(){vec4 c=texture2D(fT,v);float d=length(v-fP);float w=exp(-d*d/(fR*fR));gl_FragColor=vec4(c.xy+fF*w*fS,0.,0.);}',{fT:{value:null},fP:{value:new THREE.Vector2(.5,.5)},fF:{value:new THREE.Vector2(0,0)},fR:{value:.03},fS:{value:.5}});
+const fc=mat('uniform sampler2D A;uniform vec2 B,C;uniform float D,E;void main(){vec4 cv=texture2D(A,v);float d=length(v-B);float w=exp(-d*d/(D*D));gl_FragColor=vec4(cv.xy+C*w*E,0.,0.);}',{A:{value:null},B:{value:new THREE.Vector2(.5,.5)},C:{value:new THREE.Vector2(0,0)},D:{value:.03},E:{value:.5}});
 
 const CL=[[.906,.235,.235],[.204,.596,.859],[.945,.769,.059],[.18,.8,.443],[.608,.349,.714],[.902,.494,.133],[.95,.95,.95]];
-let CC=0,AM=false;
-
-function sk(x,y,r,s,ci){
-  const px=x/W,py=1-y/H;
-  const c=CL[ci%CL.length];
-  iM.uniforms.fT.value=dy[vi].texture;
-  iM.uniforms.fP.value.set(px,py);iM.uniforms.fC.value.set(c[0],c[1],c[2]);
-  iM.uniforms.fR.value=r;iM.uniforms.fS.value=s;
-  u(iM);ren.setRenderTarget(dy[sw()]);ren.render(sc,cam);vi=1-vi;
-  fM.uniforms.fT.value=vl[vi].texture;
-  fM.uniforms.fP.value.set(px,py);
-  fM.uniforms.fR.value=r*.6;fM.uniforms.fS.value=s*.15;
-  u(fM);ren.setRenderTarget(vl[sw()]);ren.render(sc,cam);vi=1-vi;
-}
-function fr(x,y,dx,dy,s){
-  const px=x/W,py=1-y/H;
-  fM.uniforms.fT.value=vl[vi].texture;
-  fM.uniforms.fP.value.set(px,py);
-  fM.uniforms.fF.value.set(dx*s/W,-dy*s/H);
-  fM.uniforms.fR.value=.02;fM.uniforms.fS.value=1.;
-  u(fM);ren.setRenderTarget(vl[sw()]);ren.render(sc,cam);vi=1-vi;
-  const c=CL[CC];
-  iM.uniforms.fT.value=dy[vi].texture;
-  iM.uniforms.fP.value.set(px,py);
-  iM.uniforms.fC.value.set(c[0],c[1],c[2]);
-  iM.uniforms.fR.value=.015;iM.uniforms.fS.value=.15;
-  u(iM);ren.setRenderTarget(dy[sw()]);ren.render(sc,cam);vi=1-vi;
-}
-
-function stp(){
-  aM.uniforms.fV.value=vl[vi].texture;
-  aM.uniforms.fS.value=vl[vi].texture;
-  u(aM);ren.setRenderTarget(vl[sw()]);ren.render(sc,cam);vi=1-vi;
-  vM.uniforms.fV.value=vl[vi].texture;
-  u(vM);ren.setRenderTarget(vl[sw()]);ren.render(sc,cam);vi=1-vi;
-  dM.uniforms.fV.value=vl[vi].texture;
-  u(dM);ren.setRenderTarget(tm);ren.render(sc,cam);
-  u(cM);ren.setRenderTarget(pr[0]);ren.render(cS,cam);
+let CC=0,AM=false,DN=false,LX=0,LY=0,AT=0;
+// step — uses dedicated ping-pong: V0↔V1 for velocity, D0↔D1 for dye
+let Vr=0,Vw=1,Dr=0,Dw=1;
+function step(){
+  // Advect velocity: Vr→Vw, swap
+  ad.uniforms.A.value=V0.texture;ad.uniforms.B.value=Vr?V1.texture:V0.texture;
+  use(ad);r.setRenderTarget(Vw?V1:V0);r.render(sc,cam);
+  // Vorticity on Vw
+  vo.uniforms.A.value=Vw?V1.texture:V0.texture;
+  use(vo);r.setRenderTarget(Vr?V1:V0);r.render(sc,cam);
+  // Divergence of Vr
+  di.uniforms.A.value=Vr?V1.texture:V0.texture;
+  use(di);r.setRenderTarget(TMP);r.render(sc,cam);
+  // Pressure solve
+  use(cl);r.setRenderTarget(PS0);r.render(cS,cam);
   for(let i=0;i<15;i++){
-    pM.uniforms.fP.value=pr[0].texture;
-    pM.uniforms.fD.value=tm.texture;
-    u(pM);ren.setRenderTarget(pr[1]);ren.render(sc,cam);
-    let t=pr[0];pr[0]=pr[1];pr[1]=t;
+    pj.uniforms.A.value=PS0.texture;pj.uniforms.B.value=TMP.texture;
+    use(pj);r.setRenderTarget(PS1);r.render(sc,cam);
+    let t=PS0;PS0=PS1;PS1=t;
   }
-  jM.uniforms.fV.value=vl[vi].texture;
-  jM.uniforms.fP.value=pr[0].texture;
-  u(jM);ren.setRenderTarget(vl[sw()]);ren.render(sc,cam);vi=1-vi;
-  aM.uniforms.fV.value=vl[vi].texture;
-  aM.uniforms.fS.value=dy[vi].texture;
-  u(aM);ren.setRenderTarget(dy[sw()]);ren.render(sc,cam);vi=1-vi;
-  sM.uniforms.fD.value=dy[vi].texture;
-  u(sM);ren.setRenderTarget(null);ren.render(sc,cam);
+  // Project: Vr with pressure → Vw
+  pc.uniforms.A.value=Vr?V1.texture:V0.texture;pc.uniforms.B.value=PS0.texture;
+  use(pc);r.setRenderTarget(Vw?V1:V0);r.render(sc,cam);
+  // Swap Vr↔Vw (velocity is now in what was Vw)
+  let t=Vr;Vr=Vw;Vw=t;
+  // Advect dye: Dr using Vr → Dw, swap
+  ad.uniforms.A.value=Vr?V1.texture:V0.texture;
+  ad.uniforms.B.value=Dr?D1.texture:D0.texture;
+  use(ad);r.setRenderTarget(Dw?D1:D0);r.render(sc,cam);
+  t=Dr;Dr=Dw;Dw=t;
+  // Display Dr
+  dp.uniforms.A.value=Dr?D1.texture:D0.texture;
+  use(dp);r.setRenderTarget(null);r.render(sc,cam);
 }
-
+// Splat: add to D0+D1 and V0+V1 (no swap tracking needed since we write in-place-ish)
+function ink(x,y,rd,st,ci){
+  const px=x/W,py=1-y/H,c=CL[ci%CL.length];
+  // Write new ink to BOTH dye buffers (so either Dr/Dw can read it)
+  ik.uniforms.A.value=D0.texture;ik.uniforms.B.value.set(px,py);
+  ik.uniforms.C.value.set(c[0],c[1],c[2]);ik.uniforms.D.value=rd;ik.uniforms.E.value=st;
+  use(ik);r.setRenderTarget(D1);r.render(sc,cam);
+  // Write to both velocity buffers
+  fc.uniforms.A.value=V0.texture;fc.uniforms.B.value.set(px,py);
+  fc.uniforms.D.value=rd*.6;fc.uniforms.E.value=st*.15;
+  use(fc);r.setRenderTarget(V1);r.render(sc,cam);
+}
+function force(x,y,dx,dy,s){
+  const px=x/W,py=1-y/H;
+  fc.uniforms.A.value=V0.texture;fc.uniforms.B.value.set(px,py);
+  fc.uniforms.C.value.set(dx*s/W,-dy*s/H);fc.uniforms.D.value=.02;fc.uniforms.E.value=1.;
+  use(fc);r.setRenderTarget(V1);r.render(sc,cam);
+  const c=CL[CC];
+  ik.uniforms.A.value=D0.texture;ik.uniforms.B.value.set(px,py);
+  ik.uniforms.C.value.set(c[0],c[1],c[2]);ik.uniforms.D.value=.015;ik.uniforms.E.value=.15;
+  use(ik);r.setRenderTarget(D1);r.render(sc,cam);
+}
 // Events
-let dn=false,lx=0,ly=0;
-const cv=document.getElementById('c');
-cv.addEventListener('pointerdown',e=>{
-  dn=true;lx=e.clientX;ly=e.clientY;
-  sk(lx,ly,.04,.5,CC);
-  document.getElementById('h').classList.add('h');
+document.getElementById('c').addEventListener('pointerdown',e=>{
+  DN=true;LX=e.clientX;LY=e.clientY;ink(LX,LY,.04,.5,CC);
+  document.getElementById('h').classList.add('hide');
 });
-cv.addEventListener('pointermove',e=>{
-  if(!dn)return;
-  const dx=e.clientX-lx,dy=e.clientY-ly;
-  if(Math.abs(dx)+Math.abs(dy)>2){fr(lx,ly,dx,dy,1.5);lx=e.clientX;ly=e.clientY;}
+document.getElementById('c').addEventListener('pointermove',e=>{
+  if(!DN)return;
+  const dx=e.clientX-LX,dy=e.clientY-LY;
+  if(Math.abs(dx)+Math.abs(dy)>2){force(LX,LY,dx,dy,1.5);LX=e.clientX;LY=e.clientY;}
 });
-cv.addEventListener('pointerup',()=>{dn=false;});
-cv.addEventListener('pointerleave',()=>{dn=false;});
-
-document.querySelectorAll('.c').forEach((el,i)=>{el.addEventListener('click',()=>{document.querySelectorAll('.c').forEach(e=>e.classList.remove('on'));el.classList.add('on');CC=i;});});
-document.getElementById('a').addEventListener('click',()=>{AM=!AM;document.getElementById('a').classList.toggle('on');});
-document.getElementById('r').addEventListener('click',clr);
-
-for(let i=0;i<6;i++){setTimeout(()=>{sk(Math.random()*W*.6+W*.2,Math.random()*H*.6+H*.2,.05,.6,i);},i*300);}
-
-let lt=performance.now(),at=0;
+['pointerup','pointerleave'].forEach(ev=>document.getElementById('c').addEventListener(ev,()=>{DN=false;}));
+// Toolbar
+document.querySelectorAll('.c').forEach((el,i)=>el.addEventListener('click',()=>{
+  document.querySelectorAll('.c').forEach(e=>e.classList.remove('on'));el.classList.add('on');CC=i;
+}));
+document.getElementById('a').addEventListener('click',()=>{AM=!AM;document.getElementById('a').classList.toggle('on',AM);});
+document.getElementById('r').addEventListener('click',clear);
+// Init
+function initDrops(){for(let i=0;i<6;i++)setTimeout(()=>{ink(Math.random()*W*.6+W*.2,Math.random()*H*.6+H*.2,.05,.6,i);},i*300);}
+initDrops();
+// Render loop
+let LT=performance.now();
 (function L(){
-  const n=performance.now(),dt=Math.min((n-lt)/1000,.033);lt=n;
-  aM.uniforms.fD.value=dt;
-  if(AM){
-    at+=dt;
-    if(at>1.5){at=0;const x=Math.random()*W*.6+W*.2,y=Math.random()*H*.6+H*.2;sk(x,y,.03+.04*Math.random(),.3+.5*Math.random(),CC);fr(x,y,(Math.random()-.5)*80,(Math.random()-.5)*80,1.2+Math.random());CC=(CC+1)%7;document.querySelectorAll('.c').forEach((e,i)=>e.classList.toggle('on',i===CC));}
-  }
-  stp();
+  const n=performance.now(),dt=Math.min((n-LT)/1000,.033);LT=n;
+  ad.uniforms.D.value=dt;
+  if(AM){AT+=dt;if(AT>1.2){AT=0;ink(Math.random()*W*.6+W*.2,Math.random()*H*.6+H*.2,.04,.4,CC);CC=(CC+1)%7;document.querySelectorAll('.c').forEach((e,i)=>e.classList.toggle('on',i===CC));}}
+  step();
   requestAnimationFrame(L);
 })();
-window.addEventListener('resize',()=>ren.setSize(innerWidth,innerHeight));
-}catch(e){document.getElementById('h').innerHTML='Error: '+e.message+'<br>'+e.stack;}
+window.addEventListener('resize',()=>r.setSize(innerWidth,innerHeight));
 </script>
 </body>
 </html>
