@@ -66,6 +66,7 @@ const CFG = {
   DARK_DYE: 0.008,         // base dark areas → dye (× slider 1.0-2.0)
   CAM_DISSIPATION: 0.0,    // no fading in camera step (touch ink would vanish!)
   DYE_DISSIPATION: 0.005,  // gentle overall fade
+  DYE_SATURATION: 1.5,     // boost camera color saturation before ink conversion
 };
 
 const PAPER = new THREE.Color('#efeae0');
@@ -181,7 +182,7 @@ void main(){gl_FragColor=uValue*texture2D(uTexture,vUv);}`, {
 const cameraDyeMat = prog(`precision highp float;varying vec2 vUv;
 uniform sampler2D uDye,uCamera;
 uniform vec2 uCamTexel;
-uniform float uEdgeDye,uDarkDye,uDissipation;
+uniform float uEdgeDye,uDarkDye,uDissipation,uSaturation;
 
 float lum(vec3 c){return dot(c,vec3(.299,.587,.114));}
 
@@ -203,10 +204,12 @@ void main(){
   vec3 dye=texture2D(uDye,vUv).rgb;
   float edge=sobel(vUv,uCamTexel);
   vec3 camColor=texture2D(uCamera,vUv).rgb;
-  float dark=1.-lum(camColor);
+  float clum=dot(camColor,vec3(.299,.587,.114));
+  vec3 boosted=mix(vec3(clum),camColor,uSaturation);
+  float dark=1.-clum;
 
-  // Camera color → absorption (dark pixels deposit more ink, in their own color)
-  vec3 camAbs=-log(max(camColor,.012));
+  // Boosted camera color → absorption
+  vec3 camAbs=-log(max(boosted,.012));
 
   float et=smoothstep(.15,.5,edge);
   vec3 edgeInk=camAbs*et*uEdgeDye;
@@ -402,6 +405,7 @@ function step(dt) {
     cameraDyeMat.uniforms.uEdgeDye.value = CFG.EDGE_DYE * sVal;
     cameraDyeMat.uniforms.uDarkDye.value = CFG.DARK_DYE * sVal;
     cameraDyeMat.uniforms.uDissipation.value = CFG.CAM_DISSIPATION;
+    cameraDyeMat.uniforms.uSaturation.value = CFG.DYE_SATURATION;
     blit(cameraDyeMat, dye.write);
     dye.swap();
 
