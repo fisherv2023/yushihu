@@ -18,6 +18,10 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .panel{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:10px;background:rgba(0,0,0,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:8px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.12)}
 .panel button{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .panel button:active{background:rgba(255,255,255,.18)}
+.slider-bar{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);z-index:10;display:none;align-items:center;gap:8px;width:70vw;max-width:280px}
+.slider-bar span{font-size:10px;opacity:.4;min-width:18px}
+.slider{appearance:none;-webkit-appearance:none;flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.15);outline:none}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff}
 .status{position:fixed;top:16px;left:16px;z-index:10;font-size:10px;opacity:.3;font-family:monospace}
 </style>
 </head>
@@ -29,6 +33,11 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
   <button class="btn" id="permBtn">Allow Camera</button>
 </div>
 <div class="status" id="status"></div>
+<div class="slider-bar" id="sBar">
+  <span>淡</span>
+  <input type="range" class="slider" id="slider" min="1" max="10" value="4">
+  <span>浓</span>
+</div>
 <div class="panel" id="panel" style="display:none">
   <button id="btnSave" title="保存">⤓</button>
 </div>
@@ -193,14 +202,17 @@ float sobel(vec2 uv,vec2 t){
 void main(){
   vec3 dye=texture2D(uDye,vUv).rgb;
   float edge=sobel(vUv,uCamTexel);
-  float dark=1.-lum(texture2D(uCamera,vUv).rgb);
+  vec3 camColor=texture2D(uCamera,vUv).rgb;
+  float dark=1.-lum(camColor);
 
-  // Edge regions deposit heavy ink; dark regions deposit light ink
-  float ink=edge*uEdgeDye+dark*uDarkDye;
+  // Camera color → absorption (dark pixels deposit more ink, in their own color)
+  vec3 camAbs=-log(max(camColor,.012));
+
   float et=smoothstep(.15,.5,edge);
-  ink=et*uEdgeDye+dark*uDarkDye;
+  vec3 edgeInk=camAbs*et*uEdgeDye;
+  vec3 darkInk=camAbs*dark*uDarkDye;
 
-  vec3 nd=dye+vec3(ink);
+  vec3 nd=dye+edgeInk+darkInk;
   nd*=1.-uDissipation;
   gl_FragColor=vec4(max(nd,0.),1.);
 }`, {
@@ -322,6 +334,7 @@ async function startCam() {
     videoTexture.colorSpace = THREE.SRGBColorSpace;
     document.getElementById('perm').style.display = 'none';
     document.getElementById('panel').style.display = 'flex';
+    document.getElementById('sBar').style.display = 'flex';
   } catch (err) {
     console.error('Camera:', err);
   }
@@ -372,8 +385,9 @@ function step(dt) {
     cameraDyeMat.uniforms.uDye.value = dye.read.texture;
     cameraDyeMat.uniforms.uCamera.value = videoTexture;
     cameraDyeMat.uniforms.uCamTexel.value.set(1 / camW, 1 / camH);
-    cameraDyeMat.uniforms.uEdgeDye.value = CFG.EDGE_DYE;
-    cameraDyeMat.uniforms.uDarkDye.value = CFG.DARK_DYE;
+    const sVal = parseFloat(document.getElementById('slider').value) / 10; // 0.1 - 1.0
+    cameraDyeMat.uniforms.uEdgeDye.value = CFG.EDGE_DYE * sVal;
+    cameraDyeMat.uniforms.uDarkDye.value = CFG.DARK_DYE * sVal;
     cameraDyeMat.uniforms.uDissipation.value = CFG.CAM_DISSIPATION;
     blit(cameraDyeMat, dye.write);
     dye.swap();
