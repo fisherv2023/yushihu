@@ -35,9 +35,9 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 </div>
 <div class="status" id="status"></div>
 <div class="slider-row" id="sliderRow">
-  <span>层数 1</span>
-  <input type="range" class="slider" id="layerSlider" min="1" max="8" value="1">
-  <span>8</span>
+  <span>淡</span>
+  <input type="range" class="slider" id="layerSlider" min="1" max="10" value="6">
+  <span>浓</span>
 </div>
 <div class="panel" id="panel" style="display:none">
   <button class="primary" id="btnCapture">● 捕获</button>
@@ -53,6 +53,10 @@ import * as THREE from 'three';
 
 const MAX_LAYERS = 8;
 const LAYER_OPACITY = 0.6;
+
+function getOpacity() {
+  return parseFloat(document.getElementById('layerSlider').value) / 10;
+}
 
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, preserveDrawingBuffer: true, antialias: true, alpha: false, depth: false, stencil: false });
@@ -72,10 +76,8 @@ const vidCanvas = document.createElement('canvas');
 const vidCtx = vidCanvas.getContext('2d');
 let vidTex = null;
 
-function getActiveLayers() {
-  const count = parseInt(document.getElementById('layerSlider').value);
-  const start = Math.max(0, layers.length - count);
-  return layers.slice(start);
+function updateStatus() {
+  document.getElementById('status').textContent = layers.length ? `已捕获: ${layers.length}` : '';
 }
 
 async function startCam() {
@@ -174,10 +176,8 @@ function render() {
     vidTex.needsUpdate = true;
   }
 
-  const active = getActiveLayers();
-
-  if (active.length === 0) {
-    // No layers: render camera directly to screen
+  // Composite all layers
+  if (layers.length === 0) {
     cameraMat.uniforms.uTex.value = vidTex;
     quad.material = cameraMat;
     renderer.setRenderTarget(null);
@@ -185,18 +185,16 @@ function render() {
     return;
   }
 
-  // With layers: composite
-  // Pass 1: camera → rtA
   cameraMat.uniforms.uTex.value = vidTex;
   blit(cameraMat, rtA);
 
-  // Pass 2-N: blend each layer
+  const op = getOpacity();
   let src = rtA, dst = rtB;
-  for (let i = 0; i < active.length; i++) {
+  for (let i = 0; i < layers.length; i++) {
     blendMat.uniforms.uBase.value = src.texture;
-    blendMat.uniforms.uLayer.value = active[i].texture;
+    blendMat.uniforms.uLayer.value = layers[i].texture;
+    blendMat.uniforms.uOp.value = op;
     blit(blendMat, dst);
-    // Swap for next iteration
     const t = src; src = dst; dst = t;
   }
 
@@ -213,13 +211,14 @@ document.getElementById('btnSave').addEventListener('click', () => {
   vidCtx.drawImage(video, 0, 0);
   vidTex.needsUpdate = true;
 
-  const active = getActiveLayers();
+  const op = getOpacity();
   cameraMat.uniforms.uTex.value = vidTex;
   blit(cameraMat, rtA);
   let src = rtA, dst = rtB;
-  for (let i = 0; i < active.length; i++) {
+  for (let i = 0; i < layers.length; i++) {
     blendMat.uniforms.uBase.value = src.texture;
-    blendMat.uniforms.uLayer.value = active[i].texture;
+    blendMat.uniforms.uLayer.value = layers[i].texture;
+    blendMat.uniforms.uOp.value = op;
     blit(blendMat, dst);
     const t = src; src = dst; dst = t;
   }
