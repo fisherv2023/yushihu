@@ -193,6 +193,13 @@ function render() {
   if (!videoTexture) return;
   videoTexture.needsUpdate = true;
 
+  // Simple direct render: camera → screen
+  displayMat.uniforms.uCamera.value = videoTexture;
+  quad.material = displayMat;
+  renderer.setRenderTarget(null);
+  renderer.render(scene, camera3D);
+  return; // skip compositing for now
+
   const final = composite(videoTexture, layers, false);
   // Blit to screen
   quad.material = new THREE.MeshBasicMaterial({ map: final.texture });
