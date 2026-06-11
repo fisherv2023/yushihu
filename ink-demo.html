@@ -32,7 +32,13 @@ canvas{display:block;width:100vw;height:100vh;touch-action:none}
   <div class="b" id="r">清空</div>
 </div>
 
-<script>const dat={GUI:function(){return{add:function(){return this},addFolder:function(){return this}}}};</script>
+<script>
+// Shim for dat.gui and Google Analytics
+window.ga=function(){};
+var ch = {add:function(){return ch;},name:function(){return ch;},onFinishChange:function(){return ch;}};
+ch.addFolder=function(){return ch;};ch.listen=function(){return ch;};ch.step=function(){return ch;};
+const dat = { GUI: function(){ return ch; } };
+</script>
 <script src="fluid-sim.js"></script>
 <script>
 // Color palette
