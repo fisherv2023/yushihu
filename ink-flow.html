@@ -270,8 +270,8 @@ void main(){
   vec3 ink=uPaper*exp(-A);
   vec3 cam=texture2D(uCamera,vUv).rgb;
 
-  // Ink density determines blend
-  float d=1.-exp(-length(A)*.5);
+  // Ink density determines blend — sharp threshold for opaque ink
+  float d=smoothstep(.02,.15,length(A));
   vec3 col=mix(cam,ink,d);
 
   // Paper grain where ink is present
