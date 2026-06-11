@@ -58,14 +58,14 @@ const CFG = {
   DYE_MAX: 512,
   PRESSURE_ITER: 20,
   VEL_DISSIPATION: 0.25,
-  DYE_DISSIPATION: 0.005,
+  DYE_DISSIPATION: 0.01,
   CURL: 14,
   SPLAT_RADIUS: 0.004,
   SPLAT_FORCE: 4000,
-  EDGE_DYE: 0.04,          // edge → dye (was 0.5, way too hot)
+  EDGE_DYE: 0.04,          // base edge → dye (× slider 1.0-2.0)
   EDGE_VEL: 2.0,           // edge → perpendicular velocity
-  DARK_DYE: 0.01,          // dark areas → dye (was 0.15)
-  CAM_DISSIPATION: 0.08,   // camera dye fade per frame (was 0.01)
+  DARK_DYE: 0.01,          // base dark areas → dye (× slider 1.0-2.0)
+  CAM_DISSIPATION: 0.0,    // no fading in camera step (touch ink would vanish!)
 };
 
 const PAPER = new THREE.Color('#efeae0');
@@ -239,23 +239,19 @@ void main(){
   float bl=lum(texture2D(uCamera,vUv+vec2(-uCamTexel.x,-uCamTexel.y)).rgb);
   float br=lum(texture2D(uCamera,vUv+vec2(uCamTexel.x,-uCamTexel.y)).rgb);
   float gx=-tl-2.*ml-bl+tr+2.*mr+br;
-  float gx2=-tl+tr-bl+br;
-  float gy=-tl-2.*tl-tr+bl+2.*bl+br;
-  // Fixed: proper Sobel Gy
   float tc=lum(texture2D(uCamera,vUv+vec2(0.,uCamTexel.y)).rgb);
   float bc=lum(texture2D(uCamera,vUv+vec2(0.,-uCamTexel.y)).rgb);
   float gy2=-tl-2.*tc-tr+bl+2.*bc+br;
 
   float edge=sqrt(gx*gx+gy2*gy2);
+  float et=smoothstep(.15,.5,edge);
 
-  // Perpendicular direction (rotate gradient 90°)
-  // Edge tangent = (gx, gy). Perpendicular = (-gy, gx) or (gy, -gx)
-  // Push outward from edge — use normalized perpendicular
+  // Perpendicular direction
   vec2 dir=vec2(-gy2,gx);
   float len=length(dir);
   if(len>1e-6)dir/=len;
 
-  vel+=dir*edge*uEdgeVel;
+  vel+=dir*et*uEdgeVel;
   gl_FragColor=vec4(clamp(vel,-1e3,1e3),0.,1.);
 }`, {
   uVelocity:{value:null},uCamera:{value:null},uCamTexel:{value:new THREE.Vector2()},
@@ -273,9 +269,14 @@ void main(){
   vec3 ink=uPaper*exp(-A);
   vec3 cam=texture2D(uCamera,vUv).rgb;
 
+  // Subtle ink-wash on camera: desaturate + gentle contrast
+  float clum=dot(cam,vec3(.299,.587,.114));
+  vec3 inkCam=mix(vec3(clum),cam,.35);
+  inkCam=clamp(inkCam*1.12-.05,0.,1.);
+
   // Ink density determines blend
   float d=1.-exp(-length(A)*.5);
-  vec3 col=mix(cam,ink,d);
+  vec3 col=mix(inkCam,ink,d);
 
   // Paper grain where ink is present
   float grain=hash(vUv*420.)*.012+hash(vUv*180.)*.008;
@@ -385,7 +386,7 @@ function step(dt) {
     cameraDyeMat.uniforms.uDye.value = dye.read.texture;
     cameraDyeMat.uniforms.uCamera.value = videoTexture;
     cameraDyeMat.uniforms.uCamTexel.value.set(1 / camW, 1 / camH);
-    const sVal = parseFloat(document.getElementById('slider').value) / 10; // 0.1 - 1.0
+    const sVal = 1.0 + (parseFloat(document.getElementById('slider').value) - 1) / 9; // 1.0x - 2.0x
     cameraDyeMat.uniforms.uEdgeDye.value = CFG.EDGE_DYE * sVal;
     cameraDyeMat.uniforms.uDarkDye.value = CFG.DARK_DYE * sVal;
     cameraDyeMat.uniforms.uDissipation.value = CFG.CAM_DISSIPATION;
