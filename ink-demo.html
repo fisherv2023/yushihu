@@ -8,7 +8,7 @@
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
 html,body{width:100%;height:100%;overflow:hidden;background:#111}
 canvas{display:block;width:100vw;height:100vh}
-.toolbar{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:10;display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:20px;background:rgba(0,0,0,.65);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1)}
+.toolbar{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:10;display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:20px;background:rgba(0,0,0,.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1)}
 .toolbar .c{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex-shrink:0}
 .toolbar .c.on{border-color:#fff}
 .toolbar .btn{padding:6px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.7);font-size:12px;cursor:pointer;white-space:nowrap}
@@ -32,138 +32,132 @@ canvas{display:block;width:100vw;height:100vh}
   <div class="btn" id="a">自动</div>
   <div class="btn" id="r">清空</div>
 </div>
-<script>
-const S=256,W=innerWidth,H=innerHeight;
-const CV=document.getElementById('c');
-const CX=CV.getContext('2d');
-CV.width=W;CV.height=H;
-// Simulation buffers (offscreen)
-const B=document.createElement('canvas');B.width=S;B.height=S;
-const BC=B.getContext('2d');
-const DI=BC.createImageData(S,S);
-const DP=DI.data;
-// Velocity fields (two copies for ping-pong)
-let V0=new Float32Array(S*S*2);
-let V1=new Float32Array(S*S*2);
-// Dye image
-const D=BC.createImageData(S,S);
-const P=D.data;
-for(let i=3;i<P.length;i+=4)P[i]=255;
-// Color presets
-const CL=[[.906,.235,.235],[.204,.596,.859],[.945,.769,.059],[.18,.8,.443],[.608,.349,.714],[.902,.494,.133],[.95,.95,.95]];
-let CC=0,AM=false,V=V0;
-function IX(x,y){return(y*S+x)*2;}
-function CP(v){return v<0?0:v>255?255:v|0}
-// Ink drop
-function INK(cx,cy,r,s,ci){
-  const col=CL[ci%CL.length];
-  const r2=r*r;
-  for(let y=Math.max(0,cy-r|0);y<Math.min(S,cy+r+1|0);y++){
-    for(let x=Math.max(0,cx-r|0);x<Math.min(S,cx+r+1|0);x++){
-      const dx=x-cx,dy=y-cy,d2=dx*dx+dy*dy;
-      if(d2>r2)continue;
-      const w=Math.exp(-d2/r2*4);
-      const pi=(y*S+x)*4;
-      P[pi]=CP(P[pi]*(1-w*s)+col[0]*255*w*s);
-      P[pi+1]=CP(P[pi+1]*(1-w*s)+col[1]*255*w*s);
-      P[pi+2]=CP(P[pi+2]*(1-w*s)+col[2]*255*w*s);
-    }
-  }
-}
-// Force
-function FR(cx,cy,fx,fy,s){
-  const r=10,r2=r*r;
-  for(let y=Math.max(0,cy-r|0);y<Math.min(S,cy+r+1|0);y++){
-    for(let x=Math.max(0,cx-r|0);x<Math.min(S,cx+r+1|0);x++){
-      const dx=x-cx,dy=y-cy,d2=dx*dx+dy*dy;
-      if(d2>r2)continue;
-      const w=Math.exp(-d2/r2*3);
-      const vi=IX(x,y);
-      V[vi]+=fx*w*s;V[vi+1]+=fy*w*s;
-    }
-  }
-  INK(cx,cy,4,0.05,CC);
-}
-// Fluid step
-function STEP(){
-  // Advection (back-trace)
-  for(let y=0;y<S;y++)for(let x=0;x<S;x++){
-    const vi=IX(x,y);
-    const sx=Math.max(0,Math.min(S-1,x-V[vi]*0.4));
-    const sy=Math.max(0,Math.min(S-1,y-V[vi+1]*0.4));
-    const si=IX(sx|0,sy|0);
-    V1[vi]=V0[si]*0.985;V1[vi+1]=V0[si+1]*0.985;
-  }
-  let t=V0;V0=V1;V1=t;V=V0;
-  // Diffusion (blur velocity)
-  for(let p=0;p<2;p++){
-    for(let y=1;y<S-1;y++)for(let x=1;x<S-1;x++){
-      const vi=IX(x,y);
-      let sx=0,sy=0,c=0;
-      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
-        const ni=IX(x+dx,y+dy);
-        sx+=V0[ni];sy+=V0[ni+1];c++;
-      }
-      V1[vi]=sx/c*0.998;V1[vi+1]=sy/c*0.998;
-    }
-    t=V0;V0=V1;V1=t;V=V0;
-  }
-  // Divergence-free projection
-  for(let it=0;it<3;it++){
-    for(let y=1;y<S-1;y++)for(let x=1;x<S-1;x++){
-      const vi=IX(x,y);
-      const div=(V0[IX(x+1,y)]-V0[IX(x-1,y)]+V0[IX(x,y+1)+1]-V0[IX(x,y-1)+1])*0.25;
-      // Correct the cell velocity to reduce divergence
-      V0[vi]-=div*0.5;V0[vi+1]-=div*0.5;
-      const ni=IX(x+1,y);
-      V0[ni]+=div*0.25;
-      V0[ni+1]+=0;
-      const pi=IX(x,y+1);
-      V0[pi]+=0;
-      V0[pi+1]+=div*0.25;
-    }
-  }
-  // Advect dye
-  for(let y=0;y<S;y++)for(let x=0;x<S;x++){
-    const vi=IX(x,y);
-    const sx=Math.max(0,Math.min(S-1,x-V[vi]*0.3));
-    const sy=Math.max(0,Math.min(S-1,y-V[vi+1]*0.3));
-    const si=((sy|0)*S+(sx|0))*4;
-    const di=(y*S+x)*4;
-    DP[di]=P[si];DP[di+1]=P[si+1];DP[di+2]=P[si+2];DP[di+3]=255;
-  }
-  // Copy dye with slight dissipation
-  for(let i=0;i<P.length;i+=4){
-    P[i]=DP[i]*0.995;P[i+1]=DP[i+1]*0.995;P[i+2]=DP[i+2]*0.995;
-  }
-  // Render to screen (upscale with nearest-neighbor)
-  BC.putImageData(D,0,0);
-  CX.imageSmoothingEnabled=false;
-  CX.drawImage(B,0,0,W,H);
-}
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.164.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const S=256;
+const ren=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:false});
+ren.setSize(innerWidth,innerHeight);
+ren.setPixelRatio(Math.min(devicePixelRatio,2));
+const cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+const scene=new THREE.Scene();
+const mesh=new THREE.Mesh(new THREE.PlaneGeometry(2,2),null);
+scene.add(mesh);
+function use(m){mesh.material=m;}
+
+// Render targets (FloatType for fluid precision)
+const RT=(w,h)=>new THREE.WebGLRenderTarget(w,h,{type:THREE.FloatType,format:THREE.RGBAFormat,minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,depthBuffer:false});
+const vel=[RT(S,S),RT(S,S)],dye=[RT(S,S),RT(S,S)],tmp=RT(S,S),pres=[RT(S,S),RT(S,S)];
+let vi=0;
+function sw(){return 1-vi}
+const VSH='varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}';
+const M=(fs,us)=>new THREE.ShaderMaterial({uniforms:us,vertexShader:VSH,fragmentShader:'precision highp float;varying vec2 v;'+fs});
+
+// Advection
+const ad=M('uniform sampler2D uV,uS;uniform vec2 uR;uniform float uD;void main(){vec2 uv=v-uD*uR*texture2D(uV,v).xy;gl_FragColor=texture2D(uS,clamp(uv,0.,1.));}',{uV:{value:null},uS:{value:null},uR:{value:new THREE.Vector2(S,S)},uD:{value:.016}});
+// Vorticity
+const vo=M('uniform sampler2D uV;uniform vec2 uR;uniform float uS;void main(){vec2 o=1./uR;float wl=texture2D(uV,v-vec2(o.x,0.)).y,wr=texture2D(uV,v+vec2(o.x,0.)).y,wb=texture2D(uV,v-vec2(0.,o.y)).x,wt=texture2D(uV,v+vec2(0.,o.y)).x;float vort=wr-wl+wt-wb;vec2 g=vec2(abs(wt)-abs(wb),abs(wr)-abs(wl));vec2 f=length(g)>.001?normalize(g)*vort*uS:vec2(0.);gl_FragColor=vec4(texture2D(uV,v).xy+f,0.,0.);}',{uV:{value:null},uR:{value:new THREE.Vector2(S,S)},uS:{value:2.}});
+// Divergence
+const di=M('uniform sampler2D uV;uniform vec2 uR;void main(){vec2 o=1./uR;gl_FragColor=vec4(.5*(texture2D(uV,v+vec2(o.x,0.)).x-texture2D(uV,v-vec2(o.x,0.)).x+texture2D(uV,v+vec2(0.,o.y)).y-texture2D(uV,v-vec2(0.,o.y)).y),0.,0.,0.);}',{uV:{value:null},uR:{value:new THREE.Vector2(S,S)}});
+// Pressure
+const pr=M('uniform sampler2D uP,uD;uniform vec2 uR;void main(){vec2 o=1./uR;float p=(texture2D(uP,v+vec2(o.x,0.)).x+texture2D(uP,v-vec2(o.x,0.)).x+texture2D(uP,v+vec2(0.,o.y)).x+texture2D(uP,v-vec2(0.,o.y)).x-texture2D(uD,v).x)*.25;gl_FragColor=vec4(p,0.,0.,0.);}',{uP:{value:null},uD:{value:null},uR:{value:new THREE.Vector2(S,S)}});
+// Project
+const pj=M('uniform sampler2D uV,uP;uniform vec2 uR;void main(){vec2 o=1./uR;vec2 v2=texture2D(uV,v).xy;float pl=texture2D(uP,v-vec2(o.x,0.)).x,pr=texture2D(uP,v+vec2(o.x,0.)).x,pb=texture2D(uP,v-vec2(0.,o.y)).x,pt=texture2D(uP,v+vec2(0.,o.y)).x;gl_FragColor=vec4(v2-vec2(pr-pl,pt-pb)*.5,0.,0.);}',{uV:{value:null},uP:{value:null},uR:{value:new THREE.Vector2(S,S)}});
+// Display
+const ds=M('uniform sampler2D uD;void main(){vec3 c=texture2D(uD,v).rgb;gl_FragColor=vec4(mix(vec3(.05),c*1.2,min(1.,length(c)*2.)),1.);}',{uD:{value:null}});
 // Clear
-function CLR(){
-  V0.fill(0);V1.fill(0);V=V0;
-  for(let i=0;i<P.length;i+=4){P[i]=0;P[i+1]=0;P[i+2]=0;}
+const cl=M('void main(){gl_FragColor=vec4(0.);}',{});
+const cls=new THREE.Scene();cls.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),cl));
+function clr(){use(cl);[vel,dye,tmp,pres].flat().forEach(t=>{ren.setRenderTarget(t);ren.render(cls,cam);});ren.setRenderTarget(null);use(ds);}
+clr();
+// Splat ink
+const sk=M('uniform sampler2D uT;uniform vec2 uP;uniform vec3 uC;uniform float uR,uS;void main(){vec4 c=texture2D(uT,v);float d=length(v-uP);float w=exp(-d*d/(uR*uR));gl_FragColor=vec4(mix(c.rgb,uC,w*uS),1.);}',{uT:{value:null},uP:{value:new THREE.Vector2(.5,.5)},uC:{value:new THREE.Vector3(1,0,0)},uR:{value:.03},uS:{value:.5}});
+// Splat force
+const sf=M('uniform sampler2D uT;uniform vec2 uP,uF;uniform float uR,uS;void main(){vec4 c=texture2D(uT,v);float d=length(v-uP);float w=exp(-d*d/(uR*uR));gl_FragColor=vec4(c.xy+normalize(v-uP)*w*uS*2.,0.,0.);}',{uT:{value:null},uP:{value:new THREE.Vector2(.5,.5)},uF:{value:new THREE.Vector2(0,0)},uR:{value:.03},uS:{value:.5}});
+
+const COL=[[.906,.235,.235],[.204,.596,.859],[.945,.769,.059],[.18,.8,.443],[.608,.349,.714],[.902,.494,.133],[.95,.95,.95]];
+let CC=0,AM=false;
+
+function ink(x,y,r,s,ci){
+  const px=x/innerWidth,py=1-y/innerHeight;
+  const c=COL[ci%COL.length];
+  sk.uniforms.uT.value=dye[vi].texture;
+  sk.uniforms.uP.value.set(px,py);sk.uniforms.uC.value.set(c[0],c[1],c[2]);
+  sk.uniforms.uR.value=r;sk.uniforms.uS.value=s;
+  use(sk);ren.setRenderTarget(dye[sw()]);ren.render(scene,cam);vi=1-vi;
+  // Also add a velocity force
+  sf.uniforms.uT.value=vel[vi].texture;
+  sf.uniforms.uP.value.set(px,py);
+  sf.uniforms.uR.value=r*.6;sf.uniforms.uS.value=s*.15;
+  use(sf);ren.setRenderTarget(vel[sw()]);ren.render(scene,cam);vi=1-vi;
 }
+
+function force(x,y,dx,dy,s){
+  const px=x/innerWidth,py=1-y/innerHeight;
+  sf.uniforms.uT.value=vel[vi].texture;
+  sf.uniforms.uP.value.set(px,py);
+  sf.uniforms.uF.value.set(dx*s/innerWidth,-dy*s/innerHeight);
+  sf.uniforms.uR.value=.02;sf.uniforms.uS.value=1.;
+  use(sf);ren.setRenderTarget(vel[sw()]);ren.render(scene,cam);vi=1-vi;
+  // Ink trail
+  const c=COL[CC];
+  sk.uniforms.uT.value=dye[vi].texture;
+  sk.uniforms.uP.value.set(px,py);
+  sk.uniforms.uC.value.set(c[0],c[1],c[2]);
+  sk.uniforms.uR.value=.015;sk.uniforms.uS.value=.15;
+  use(sk);ren.setRenderTarget(dye[sw()]);ren.render(scene,cam);vi=1-vi;
+}
+
+function step(){
+  // 1. Advect velocity
+  ad.uniforms.uV.value=vel[vi].texture;
+  ad.uniforms.uS.value=vel[vi].texture;
+  use(ad);ren.setRenderTarget(vel[sw()]);ren.render(scene,cam);vi=1-vi;
+  // 2. Vorticity
+  vo.uniforms.uV.value=vel[vi].texture;
+  use(vo);ren.setRenderTarget(vel[sw()]);ren.render(scene,cam);vi=1-vi;
+  // 3. Divergence
+  di.uniforms.uV.value=vel[vi].texture;
+  use(di);ren.setRenderTarget(tmp);ren.render(scene,cam);
+  // 4. Pressure solve (15 Jacobi)
+  use(cl);ren.setRenderTarget(pres[0]);ren.render(cls,cam);
+  for(let i=0;i<15;i++){
+    pr.uniforms.uP.value=pres[0].texture;
+    pr.uniforms.uD.value=tmp.texture;
+    use(pr);ren.setRenderTarget(pres[1]);ren.render(scene,cam);
+    let t=pres[0];pres[0]=pres[1];pres[1]=t;
+  }
+  // 5. Project
+  pj.uniforms.uV.value=vel[vi].texture;
+  pj.uniforms.uP.value=pres[0].texture;
+  use(pj);ren.setRenderTarget(vel[sw()]);ren.render(scene,cam);vi=1-vi;
+  // 6. Advect dye
+  ad.uniforms.uV.value=vel[vi].texture;
+  ad.uniforms.uS.value=dye[vi].texture;
+  use(ad);ren.setRenderTarget(dye[sw()]);ren.render(scene,cam);vi=1-vi;
+  // 7. Display
+  ds.uniforms.uD.value=dye[vi].texture;
+  use(ds);ren.setRenderTarget(null);ren.render(scene,cam);
+}
+
 // Interaction
-let dn=false,lx=0,ly=0;
-CV.addEventListener('pointerdown',e=>{
+let dn=false,lx=0,ly=0,tm=0;
+document.getElementById('c').addEventListener('pointerdown',e=>{
   dn=true;lx=e.clientX;ly=e.clientY;
-  INK(e.clientX/S*W|0,e.clientY/S*H|0,8,0.6,CC);
+  ink(e.clientX,e.clientY,.04,.5,CC);
   document.getElementById('h').classList.add('h');
 });
-CV.addEventListener('pointermove',e=>{
+document.getElementById('c').addEventListener('pointermove',e=>{
   if(!dn)return;
   const dx=e.clientX-lx,dy=e.clientY-ly;
-  if(Math.abs(dx)+Math.abs(dy)>2){
-    FR(lx/S*W|0,ly/S*H|0,dx,dy,0.15);
-    lx=e.clientX;ly=e.clientY;
-  }
+  if(Math.abs(dx)+Math.abs(dy)>2){force(e.clientX,e.clientY,dx,dy,1.5);lx=e.clientX;ly=e.clientY;}
 });
-CV.addEventListener('pointerup',()=>{dn=false;});
-CV.addEventListener('pointerleave',()=>{dn=false;});
-// Toolbar
+document.getElementById('c').addEventListener('pointerup',()=>{dn=false;});
+document.getElementById('c').addEventListener('pointerleave',()=>{dn=false;});
+
 document.querySelectorAll('.c').forEach((el,i)=>{
   el.addEventListener('click',()=>{
     document.querySelectorAll('.c').forEach(e=>e.classList.remove('on'));
@@ -171,22 +165,30 @@ document.querySelectorAll('.c').forEach((el,i)=>{
   });
 });
 document.getElementById('a').addEventListener('click',()=>{AM=!AM;document.getElementById('a').classList.toggle('on');});
-document.getElementById('r').addEventListener('click',CLR);
-// Initial
-CLR();
-for(let i=0;i<5;i++){let t=i;setTimeout(()=>{const x=Math.random()*S*.6+S*.2,y=Math.random()*S*.6+S*.2;INK(x,y,12,0.6,i);},t*400);}
+document.getElementById('r').addEventListener('click',clr);
+
+// Initial drops
+for(let i=0;i<6;i++){setTimeout(()=>{ink(Math.random()*innerWidth*.6+innerWidth*.2,Math.random()*innerHeight*.6+innerHeight*.2,.05,.6,i);},i*300);}
+
 // Loop
-let lt=performance.now(),tm=0;
+let lt=performance.now(),at=0;
 (function L(){
   const n=performance.now(),dt=Math.min((n-lt)/1000,.033);lt=n;
+  ad.uniforms.uD.value=dt;
   if(AM){
-    tm+=dt;
-    if(tm>1.2){tm=0;const x=Math.random()*S*.6+S*.2,y=Math.random()*S*.6+S*.2;INK(x,y,8+6*Math.random(),.3+.5*Math.random(),CC);FR(x,y,(Math.random()-.5)*20,(Math.random()-.5)*20,.12);CC=(CC+1)%7;document.querySelectorAll('.c').forEach((e,i)=>e.classList.toggle('on',i===CC));}
+    at+=dt;
+    if(at>1.5){at=0;
+      const x=Math.random()*innerWidth*.6+innerWidth*.2,y=Math.random()*innerHeight*.6+innerHeight*.2;
+      ink(x,y,.03+.04*Math.random(),.3+.5*Math.random(),CC);
+      force(x,y,(Math.random()-.5)*80,(Math.random()-.5)*80,1.2+Math.random());
+      CC=(CC+1)%7;
+      document.querySelectorAll('.c').forEach((e,i)=>e.classList.toggle('on',i===CC));
+    }
   }
-  STEP();
+  step();
   requestAnimationFrame(L);
 })();
-window.addEventListener('resize',()=>{CV.width=innerWidth;CV.height=innerHeight;});
+window.addEventListener('resize',()=>ren.setSize(innerWidth,innerHeight));
 </script>
 </body>
 </html>
