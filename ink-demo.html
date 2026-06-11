@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Ink Marbling — 墨流し</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:-apple-system,'PingFang SC',sans-serif}
+canvas{display:block;width:100vw;height:100vh}
+.toolbar{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:10;display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:20px;background:rgba(0,0,0,.65);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1)}
+.toolbar .ink{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+.toolbar .ink.on{border-color:#fff}
+.toolbar .btn{padding:6px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.7);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.toolbar .btn:active{background:rgba(255,255,255,.1)}
+.toolbar .btn.on{background:#ff3b30;border-color:#ff3b30;color:#fff}
+.top-hint{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10;color:rgba(255,255,255,.25);font-size:12px;pointer-events:none;transition:opacity 1s}
+.top-hint.hide{opacity:0}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="top-hint" id="hint">拖拽生成漩涡 · 点击滴墨 · 双指扩散</div>
+<div class="toolbar">
+  <div class="ink on" style="background:#e74c3c" data-color="0"></div>
+  <div class="ink" style="background:#3498db" data-color="1"></div>
+  <div class="ink" style="background:#f1c40f" data-color="2"></div>
+  <div class="ink" style="background:#2ecc71" data-color="3"></div>
+  <div class="ink" style="background:#9b59b6" data-color="4"></div>
+  <div class="ink" style="background:#e67e22" data-color="5"></div>
+  <div class="ink" style="background:#fff" data-color="6"></div>
+  <div class="btn" id="autoBtn">自动</div>
+  <div class="btn" id="clearBtn">清空</div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+// ===== Config =====
+const SIM = 256; // simulation resolution
+const INK_COLORS = [
+  [0.906,0.235,0.235], // red
+  [0.204,0.596,0.859], // blue
+  [0.945,0.769,0.059], // yellow
+  [0.180,0.800,0.443], // green
+  [0.608,0.349,0.714], // purple
+  [0.902,0.494,0.133], // orange
+  [0.95,0.95,0.95],    // white
+];
+let curInk = 0;
+let autoMode = false;
+let inkDensity = 0.5; // ink concentration per drop
+
+// ===== Canvas & Renderer =====
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, preserveDrawingBuffer: false, antialias: false});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+// ===== Quad helper =====
+function makeQuad(mat) {
+  const s = new THREE.Scene();
+  s.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
+  return s;
+}
+
+// ===== Render Targets =====
+function rt(w, h, opts = {}) {
+  return new THREE.WebGLRenderTarget(w, h, {
+    type: THREE.FloatType,
+    format: THREE.RGBAFormat,
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    depthBuffer: false,
+    ...opts
+  });
+}
+
+// Ping-pong pair
+function pair(w, h) { return [rt(w, h), rt(w, h)]; }
+
+const velRT = pair(SIM, SIM);       // velocity field (x, y, 0, 0)
+const dyeRT = pair(SIM, SIM);       // dye/ink field
+const tmpRT = rt(SIM, SIM);         // divergence / pressure scratch
+
+// ===== Shader Sources =====
+// Vertex shader (same for all passes)
+const VSH = `varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
+
+// Full-screen quad vertex (used for copy/splat passes)
+const VSH_FS = `varying vec2 v;void main(){v=position.xy*.5+.5;gl_Position=vec4(position,1.);}`;
+
+// ---- Advection ----
+// Advects quantity `q` through velocity field `u`, with dissipation
+function advectShader(dissipation = 0.99, isVelocity = false) {
+  return new THREE.RawShaderMaterial({
+    uniforms: {
+      uVelocity: {value: null},
+      uSource: {value: null},
+      uDt: {value: 0.016},
+      uRes: {value: new THREE.Vector2(SIM, SIM)},
+      uDissipation: {value: isVelocity ? 0.98 : dissipation},
+      uInverseVelocity: {value: isVelocity ? 0.0 : 0.0}
+    },
+    vertexShader: VSH,
+    fragmentShader: `
+      precision highp float;
+      varying vec2 v;
+      uniform sampler2D uVelocity;
+      uniform sampler2D uSource;
+      uniform vec2 uRes;
+      uniform float uDt;
+      uniform float uDissipation;
+      void main(){
+        vec2 dt = uDt * uRes;
+        vec2 uv = v - dt * texture2D(uVelocity, v).xy;
+        gl_FragColor = uDissipation * texture2D(uSource, clamp(uv, 0.0, 1.0));
+      }
+    `
+  });
+}
+
+// ---- Add force / splat ink ----
+const splatShader = new THREE.RawShaderMaterial({
+  uniforms: {
+    uTarget: {value: null},
+    uPos: {value: new THREE.Vector2(0.5, 0.5)},
+    uColor: {value: new THREE.Vector3(1, 0, 0)},
+    uRadius: {value: 0.03},
+    uStrength: {value: 1.0},
+    uIsVelocity: {value: 0}
+  },
+  vertexShader: VSH,
+  fragmentShader: `
+    precision highp float;
+    varying vec2 v;
+    uniform sampler2D uTarget;
+    uniform vec2 uPos;
+    uniform vec3 uColor;
+    uniform float uRadius;
+    uniform float uStrength;
+    uniform int uIsVelocity;
+    void main(){
+      vec4 cur = texture2D(uTarget, v);
+      float d = length(v - uPos);
+      float w = exp(-d * d / (uRadius * uRadius));
+      if(uIsVelocity == 1) {
+        vec2 dir = (v - uPos) * 2.0;
+        vec2 force = normalize(dir) * w * uStrength;
+        gl_FragColor = vec4(cur.xy + force, 0.0, 0.0);
+      } else {
+        vec3 ink = mix(cur.rgb, uColor, w * uStrength);
+        gl_FragColor = vec4(ink, cur.a);
+      }
+    }
+  `
+});
+
+// ---- Divergence ----
+const divShader = new THREE.RawShaderMaterial({
+  uniforms: {
+    uVelocity: {value: null},
+    uRes: {value: new THREE.Vector2(SIM, SIM)},
+    uDt: {value: 0.016}
+  },
+  vertexShader: VSH,
+  fragmentShader: `
+    precision highp float;
+    varying vec2 v;
+    uniform sampler2D uVelocity;
+    uniform vec2 uRes;
+    uniform float uDt;
+    void main(){
+      vec2 o = 1.0 / uRes;
+      float vl = texture2D(uVelocity, v - vec2(o.x, 0.0)).x;
+      float vr = texture2D(uVelocity, v + vec2(o.x, 0.0)).x;
+      float vb = texture2D(uVelocity, v - vec2(0.0, o.y)).y;
+      float vt = texture2D(uVelocity, v + vec2(0.0, o.y)).y;
+      float div = 0.5 * (vr - vl + vt - vb);
+      gl_FragColor = vec4(div, 0.0, 0.0, 0.0);
+    }
+  `
+});
+
+// ---- Pressure Solve (Jacobi) ----
+const pressureShader = new THREE.RawShaderMaterial({
+  uniforms: {
+    uPressure: {value: null},
+    uDivergence: {value: null},
+    uRes: {value: new THREE.Vector2(SIM, SIM)}
+  },
+  vertexShader: VSH,
+  fragmentShader: `
+    precision highp float;
+    varying vec2 v;
+    uniform sampler2D uPressure;
+    uniform sampler2D uDivergence;
+    uniform vec2 uRes;
+    void main(){
+      vec2 o = 1.0 / uRes;
+      float pl = texture2D(uPressure, v - vec2(o.x, 0.0)).x;
+      float pr = texture2D(uPressure, v + vec2(o.x, 0.0)).x;
+      float pb = texture2D(uPressure, v - vec2(0.0, o.y)).x;
+      float pt = texture2D(uPressure, v + vec2(0.0, o.y)).x;
+      float d = texture2D(uDivergence, v).x;
+      gl_FragColor = vec4((pl + pr + pb + pt - d) * 0.25, 0.0, 0.0, 0.0);
+    }
+  `
+});
+
+// ---- Project (subtract pressure gradient from velocity) ----
+const projectShader = new THREE.RawShaderMaterial({
+  uniforms: {
+    uVelocity: {value: null},
+    uPressure: {value: null},
+    uRes: {value: new THREE.Vector2(SIM, SIM)}
+  },
+  vertexShader: VSH,
+  fragmentShader: `
+    precision highp float;
+    varying vec2 v;
+    uniform sampler2D uVelocity;
+    uniform sampler2D uPressure;
+    uniform vec2 uRes;
+    void main(){
+      vec2 o = 1.0 / uRes;
+      vec2 vel = texture2D(uVelocity, v).xy;
+      float pl = texture2D(uPressure, v - vec2(o.x, 0.0)).x;
+      float pr = texture2D(uPressure, v + vec2(o.x, 0.0)).x;
+      float pb = texture2D(uPressure, v - vec2(0.0, o.y)).x;
+      float pt = texture2D(uPressure, v + vec2(0.0, o.y)).x;
+      vec2 grad = vec2(pr - pl, pt - pb) * 0.5;
+      gl_FragColor = vec4(vel - grad, 0.0, 0.0, 0.0);
+    }
+  `
+});
+
+// ---- Vorticity Confinement (adds swirl detail) ----
+const vorticityShader = new THREE.RawShaderMaterial({
+  uniforms: {
+    uVelocity: {value: null},
+    uRes: {value: new THREE.Vector2(SIM, SIM)},
+    uDt: {value: 0.016},
+    uStrength: {value: 1.0}
+  },
+  vertexShader: VSH,
+  fragmentShader: `
+    precision highp float;
+    varying vec2 v;
+    uniform sampler2D uVelocity;
+    uniform vec2 uRes;
+    uniform float uDt;
+    uniform float uStrength;
+    void main(){
+      vec2 o = 1.0 / uRes;
+      float wl = texture2D(uVelocity, v - vec2(o.x, 0.0)).y;
+      float wr = texture2D(uVelocity, v + vec2(o.x, 0.0)).y;
+      float wb = texture2D(uVelocity, v - vec2(0.0, o.y)).x;
+      float wt = texture2D(uVelocity, v + vec2(0.0, o.y)).x;
+      float vort = wr - wl + wt - wb;
+      vec2 grad = 0.5 * vec2(abs(wt) - abs(wb), abs(wr) - abs(wl));
+      float len = length(grad);
+      vec2 force = len > 0.001 ? normalize(grad) * vort * uStrength : vec2(0.0);
+      vec2 vel = texture2D(uVelocity, v).xy;
+      gl_FragColor = vec4(vel + force * uDt, 0.0, 0.0, 0.0);
+    }
+  `
+});
+
+// ---- Display (tone-map dye to screen) ----
+const displayMat = new THREE.RawShaderMaterial({
+  uniforms: {
+    uDye: {value: null},
+    uBg: {value: new THREE.Vector3(0.067, 0.067, 0.067)} // #111
+  },
+  vertexShader: VSH,
+  fragmentShader: `
+    precision highp float;
+    varying vec2 v;
+    uniform sampler2D uDye;
+    uniform vec3 uBg;
+    void main(){
+      vec3 dye = texture2D(uDye, v).rgb;
+      gl_FragColor = vec4(mix(uBg, dye, 0.9 + 0.1 * length(dye)), 1.0);
+    }
+  `
+});
+
+// ---- Viscosity Diffusion (Jacobi) ----
+const diffuseShader = new THREE.RawShaderMaterial({
+  uniforms: {
+    uVelocity: {value: null},
+    uRes: {value: new THREE.Vector2(SIM, SIM)},
+    uAlpha: {value: 0.001},
+    uBeta: {value: 4.0}
+  },
+  vertexShader: VSH,
+  fragmentShader: `
+    precision highp float;
+    varying vec2 v;
+    uniform sampler2D uVelocity;
+    uniform vec2 uRes;
+    uniform float uAlpha;
+    uniform float uBeta;
+    void main(){
+      vec2 o = 1.0 / uRes;
+      vec2 vl = texture2D(uVelocity, v - vec2(o.x, 0.0)).xy;
+      vec2 vr = texture2D(uVelocity, v + vec2(o.x, 0.0)).xy;
+      vec2 vb = texture2D(uVelocity, v - vec2(0.0, o.y)).xy;
+      vec2 vt = texture2D(uVelocity, v + vec2(0.0, o.y)).xy;
+      vec2 vc = texture2D(uVelocity, v).xy;
+      vec2 result = (vc + uAlpha * (vl + vr + vb + vt)) / uBeta;
+      gl_FragColor = vec4(result, 0.0, 0.0);
+    }
+  `
+});
+
+// ===== Scenes =====
+const scenes = {
+  advectVel: makeQuad(advectShader(0.98, true)),
+  advectDye: makeQuad(advectShader(0.985, false)),
+  vorticity: makeQuad(vorticityShader),
+  divergence: makeQuad(divShader),
+  pressure: makeQuad(pressureShader),
+  project: makeQuad(projectShader),
+  display: makeQuad(displayMat),
+  diffuse: makeQuad(diffuseShader),
+  splat: makeQuad(splatShader),
+};
+
+// ===== Simulation State =====
+let readIdx = 0;
+function sw() { return 1 - readIdx; }
+
+// Initialize velocity with small random swirl
+function initFields() {
+  readIdx = 0;
+  // Clear all targets
+  const clearScene = new THREE.Scene();
+  const clearMat = new THREE.RawShaderMaterial({
+    uniforms: {},
+    vertexShader: VSH,
+    fragmentShader: `precision highp float;varying vec2 v;void main(){gl_FragColor=vec4(0.);}`
+  });
+  clearScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), clearMat));
+  
+  [velRT, dyeRT, tmpRT].flat().forEach(t => {
+    renderer.setRenderTarget(t);
+    renderer.render(clearScene, cam);
+  });
+  renderer.setRenderTarget(null);
+  
+  // Add some initial random swirl
+  splatShader.uniforms.uPos.value.set(0.3 + Math.random() * 0.4, 0.3 + Math.random() * 0.4);
+  splatShader.uniforms.uRadius.value = 0.08;
+  splatShader.uniforms.uStrength.value = 2.0;
+  splatShader.uniforms.uIsVelocity.value = 1;
+  splatShader.uniforms.uTarget.value = velRT[readIdx].texture;
+  renderer.setRenderTarget(velRT[sw()]);
+  renderer.render(scenes.splat, cam);
+  [velRT[readIdx], velRT[sw()]] = [velRT[sw()], velRT[readIdx]];
+}
+
+const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+// ===== Fluid Step =====
+function stepFluid(dt) {
+  const vel0 = velRT[readIdx];
+  const vel1 = velRT[sw()];
+  
+  // 1. Advect velocity through itself
+  advectShader.uniforms.uDt.value = dt;
+  advectShader.uniforms.uVelocity.value = vel0.texture;
+  advectShader.uniforms.uSource.value = vel0.texture;
+  renderer.setRenderTarget(vel1);
+  renderer.render(scenes.advectVel, cam);
+  
+  // 2. Vorticity confinement (adds swirl)
+  vorticityShader.uniforms.uDt.value = dt;
+  vorticityShader.uniforms.uVelocity.value = vel1.texture;
+  renderer.setRenderTarget(vel0);
+  renderer.render(scenes.vorticity, cam);
+  [velRT[readIdx], velRT[sw()]] = [velRT[sw()], velRT[readIdx]];
+  
+  // 3. Diffuse velocity (viscosity)
+  for(let i = 0; i < 2; i++) {
+    diffuseShader.uniforms.uVelocity.value = velRT[readIdx].texture;
+    renderer.setRenderTarget(velRT[sw()]);
+    renderer.render(scenes.diffuse, cam);
+    readIdx = 1 - readIdx;
+  }
+  
+  // 4. Divergence
+  divShader.uniforms.uVelocity.value = velRT[readIdx].texture;
+  renderer.setRenderTarget(tmpRT);
+  renderer.render(scenes.divergence, cam);
+  
+  // 5. Pressure solve (8 Jacobi iterations)
+  let pRTs = pair(SIM, SIM);
+  // Clear pressure
+  const clearScene = new THREE.Scene();
+  const clearMat = new THREE.RawShaderMaterial({
+    uniforms: {},
+    vertexShader: VSH,
+    fragmentShader: `precision highp float;varying vec2 v;void main(){gl_FragColor=vec4(0.);}`
+  });
+  clearScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), clearMat));
+  renderer.setRenderTarget(pRTs[0]);
+  renderer.render(clearScene, cam);
+  
+  for(let i = 0; i < 10; i++) {
+    pressureShader.uniforms.uPressure.value = pRTs[0].texture;
+    pressureShader.uniforms.uDivergence.value = tmpRT.texture;
+    renderer.setRenderTarget(pRTs[1]);
+    renderer.render(scenes.pressure, cam);
+    [pRTs[0], pRTs[1]] = [pRTs[1], pRTs[0]];
+  }
+  
+  // 6. Project (subtract pressure gradient)
+  projectShader.uniforms.uVelocity.value = velRT[readIdx].texture;
+  projectShader.uniforms.uPressure.value = pRTs[0].texture;
+  renderer.setRenderTarget(velRT[sw()]);
+  renderer.render(scenes.project, cam);
+  readIdx = 1 - readIdx;
+  
+  // 7. Advect dye through velocity
+  advectShader.uniforms.uDt.value = dt;
+  advectShader.uniforms.uVelocity.value = velRT[readIdx].texture;
+  advectShader.uniforms.uSource.value = dyeRT[readIdx].texture;
+  advectShader.uniforms.uDissipation.value = 0.985;
+  renderer.setRenderTarget(dyeRT[sw()]);
+  renderer.render(scenes.advectDye, cam);
+  readIdx = 1 - readIdx;
+  
+  // 8. Display
+  displayMat.uniforms.uDye.value = dyeRT[readIdx].texture;
+  renderer.setRenderTarget(null);
+  renderer.render(scenes.display, cam);
+}
+
+// ===== Splat functions =====
+function splatInk(x, y, radius = 0.04, strength = 0.5) {
+  const px = x / innerWidth;
+  const py = 1.0 - y / innerHeight;
+  const c = INK_COLORS[curInk];
+  
+  // Add ink to dye
+  splatShader.uniforms.uTarget.value = dyeRT[readIdx].texture;
+  splatShader.uniforms.uPos.value.set(px, py);
+  splatShader.uniforms.uColor.value.set(c[0], c[1], c[2]);
+  splatShader.uniforms.uRadius.value = radius;
+  splatShader.uniforms.uStrength.value = strength * 0.4;
+  splatShader.uniforms.uIsVelocity.value = 0;
+  renderer.setRenderTarget(dyeRT[sw()]);
+  renderer.render(scenes.splat, cam);
+  readIdx = 1 - readIdx;
+  
+  // Add force swirl to velocity
+  splatShader.uniforms.uTarget.value = velRT[readIdx].texture;
+  splatShader.uniforms.uPos.value.set(px, py);
+  splatShader.uniforms.uStrength.value = strength * 0.15;
+  splatShader.uniforms.uIsVelocity.value = 1;
+  renderer.setRenderTarget(velRT[sw()]);
+  renderer.render(scenes.splat, cam);
+  readIdx = 1 - readIdx;
+}
+
+function addForce(x, y, dx, dy, strength = 2.0) {
+  const px = x / innerWidth;
+  const py = 1.0 - y / innerHeight;
+  const nx = dx / innerWidth;
+  const ny = -dy / innerHeight;
+  
+  // Splat velocity force
+  splatShader.uniforms.uTarget.value = velRT[readIdx].texture;
+  splatShader.uniforms.uPos.value.set(px, py);
+  splatShader.uniforms.uColor.value.set(nx * strength, ny * strength, 0);
+  splatShader.uniforms.uRadius.value = 0.025;
+  splatShader.uniforms.uStrength.value = 1.0;
+  splatShader.uniforms.uIsVelocity.value = 1;
+  renderer.setRenderTarget(velRT[sw()]);
+  renderer.render(scenes.splat, cam);
+  readIdx = 1 - readIdx;
+  
+  // Also add a tiny ink drop at the force location
+  const c = INK_COLORS[curInk];
+  splatShader.uniforms.uTarget.value = dyeRT[readIdx].texture;
+  splatShader.uniforms.uPos.value.set(px, py);
+  splatShader.uniforms.uColor.value.set(c[0], c[1], c[2]);
+  splatShader.uniforms.uRadius.value = 0.015;
+  splatShader.uniforms.uStrength.value = 0.15;
+  splatShader.uniforms.uIsVelocity.value = 0;
+  renderer.setRenderTarget(dyeRT[sw()]);
+  renderer.render(scenes.splat, cam);
+  readIdx = 1 - readIdx;
+}
+
+// ===== Interaction =====
+let isDown = false, lastX = 0, lastY = 0;
+
+canvas.addEventListener('pointerdown', e => {
+  isDown = true;
+  lastX = e.clientX;
+  lastY = e.clientY;
+  splatInk(e.clientX, e.clientY);
+  document.getElementById('hint').classList.add('hide');
+});
+
+canvas.addEventListener('pointermove', e => {
+  if (!isDown) return;
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+  if (Math.abs(dx) + Math.abs(dy) > 3) {
+    addForce(e.clientX, e.clientY, dx, dy);
+    lastX = e.clientX;
+    lastY = e.clientY;
+  }
+});
+
+canvas.addEventListener('pointerup', () => { isDown = false; });
+canvas.addEventListener('pointerleave', () => { isDown = false; });
+
+// ===== Toolbar =====
+document.querySelectorAll('.ink').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.ink').forEach(e => e.classList.remove('on'));
+    el.classList.add('on');
+    curInk = parseInt(el.dataset.color);
+  });
+});
+
+document.getElementById('autoBtn').addEventListener('click', () => {
+  autoMode = !autoMode;
+  document.getElementById('autoBtn').classList.toggle('on');
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  initFields();
+});
+
+// ===== Auto mode =====
+let autoTimer = 0;
+function autoTick() {
+  if (!autoMode) return;
+  autoTimer += 0.016;
+  if (autoTimer > 1.5) {
+    autoTimer = 0;
+    const x = Math.random() * innerWidth * 0.6 + innerWidth * 0.2;
+    const y = Math.random() * innerHeight * 0.6 + innerHeight * 0.2;
+    splatInk(x, y, 0.03 + Math.random() * 0.04, 0.3 + Math.random() * 0.5);
+    // Add a random force to create swirl
+    const fx = (Math.random() - 0.5) * 100;
+    const fy = (Math.random() - 0.5) * 100;
+    addForce(x, y, fx, fy, 1.5 + Math.random());
+    
+    // Cycle through colors
+    curInk = (curInk + 1) % INK_COLORS.length;
+    document.querySelectorAll('.ink').forEach((e, i) => e.classList.toggle('on', i === curInk));
+  }
+}
+
+// ===== Random initial swirl =====
+initFields();
+// Add some initial ink drops
+for(let i = 0; i < 5; i++) {
+  setTimeout(() => {
+    const x = Math.random() * innerWidth * 0.6 + innerWidth * 0.2;
+    const y = Math.random() * innerHeight * 0.6 + innerHeight * 0.2;
+    curInk = i % INK_COLORS.length;
+    splatInk(x, y, 0.05, 0.6);
+  }, i * 200);
+}
+curInk = 0;
+
+// ===== Render Loop =====
+let lastTime = performance.now();
+(function loop() {
+  const now = performance.now();
+  const dt = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime = now;
+  
+  autoTick();
+  stepFluid(dt);
+  
+  requestAnimationFrame(loop);
+})();
+
+// ===== Resize =====
+addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
