@@ -58,14 +58,14 @@ const CFG = {
   DYE_MAX: 512,
   PRESSURE_ITER: 20,
   VEL_DISSIPATION: 0.25,
-  DYE_DISSIPATION: 0.03,
   CURL: 14,
   SPLAT_RADIUS: 0.004,
   SPLAT_FORCE: 4000,
-  EDGE_DYE: 0.015,         // base edge → dye (× slider 1.0-2.0)
+  EDGE_DYE: 0.035,         // base edge → dye (× slider 1.0-2.0)
   EDGE_VEL: 1.2,           // edge → perpendicular velocity (slower)
-  DARK_DYE: 0.004,         // base dark areas → dye (× slider 1.0-2.0)
+  DARK_DYE: 0.008,         // base dark areas → dye (× slider 1.0-2.0)
   CAM_DISSIPATION: 0.0,    // no fading in camera step (touch ink would vanish!)
+  DYE_DISSIPATION: 0.005,  // gentle overall fade
 };
 
 const PAPER = new THREE.Color('#efeae0');
