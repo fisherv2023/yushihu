@@ -266,18 +266,13 @@ uniform sampler2D uDye,uCamera;uniform vec3 uPaper;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 
 void main(){
-  vec3 A=texture2D(uDye,vUv).rgb*1.0;
+  vec3 A=texture2D(uDye,vUv).rgb*1.5;
   vec3 ink=uPaper*exp(-A);
   vec3 cam=texture2D(uCamera,vUv).rgb;
 
-  // Subtle ink-wash on camera: desaturate + gentle contrast
-  float clum=dot(cam,vec3(.299,.587,.114));
-  vec3 inkCam=mix(vec3(clum),cam,.35);
-  inkCam=clamp(inkCam*1.12-.05,0.,1.);
-
   // Ink density determines blend
   float d=1.-exp(-length(A)*.5);
-  vec3 col=mix(inkCam,ink,d);
+  vec3 col=mix(cam,ink,d);
 
   // Paper grain where ink is present
   float grain=hash(vUv*420.)*.012+hash(vUv*180.)*.008;
