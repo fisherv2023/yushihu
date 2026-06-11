@@ -128,12 +128,7 @@ const blendMat = new THREE.ShaderMaterial({
   vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
   fragmentShader: `precision highp float;varying vec2 vUv;
 uniform sampler2D uBase,uLayer;uniform float uOp;
-void main(){
-  vec4 base=texture2D(uBase,vUv);
-  vec4 layer=texture2D(uLayer,vUv);
-  vec3 col=1.-(1.-base.rgb)*(1.-layer.rgb*uOp);
-  gl_FragColor=vec4(col,1.);
-}`,
+void main(){gl_FragColor=mix(texture2D(uBase,vUv),texture2D(uLayer,vUv),uOp);}`,
   uniforms: { uBase: { value: null }, uLayer: { value: null }, uOp: { value: 0.6 } },
   depthTest: false, depthWrite: false,
 });
@@ -179,15 +174,15 @@ function render() {
   }
 
   // Composite all layers
-  const op = getOpacity();
   cameraMat.uniforms.uTex.value = vidTex;
   blit(cameraMat, rtA);
 
-  let src = rtA, dst = rtB;
+  const sliderW = getOpacity();
   for (let i = 0; i < layers.length; i++) {
+    const w = sliderW / (1 + (i + 1) * sliderW); // progressive average
     blendMat.uniforms.uBase.value = src.texture;
     blendMat.uniforms.uLayer.value = layers[i].texture;
-    blendMat.uniforms.uOp.value = op;
+    blendMat.uniforms.uOp.value = w;
     blit(blendMat, dst);
     const t = src; src = dst; dst = t;
   }
@@ -206,14 +201,16 @@ document.getElementById('btnSave').addEventListener('click', () => {
   vidCtx.drawImage(video, 0, 0);
   vidTex.needsUpdate = true;
 
-  const op = getOpacity();
   cameraMat.uniforms.uTex.value = vidTex;
   blit(cameraMat, rtA);
+
+  const sliderW = getOpacity();
   let src = rtA, dst = rtB;
   for (let i = 0; i < layers.length; i++) {
+    const w = sliderW / (1 + (i + 1) * sliderW); // progressive average
     blendMat.uniforms.uBase.value = src.texture;
     blendMat.uniforms.uLayer.value = layers[i].texture;
-    blendMat.uniforms.uOp.value = op;
+    blendMat.uniforms.uOp.value = w;
     blit(blendMat, dst);
     const t = src; src = dst; dst = t;
   }
