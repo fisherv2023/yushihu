@@ -165,18 +165,13 @@ function render(now) {
 
   if (!video || !video.videoWidth) return;
 
-  // Only resize canvas when dimensions change (avoid clearing every frame)
-  const w = video.videoWidth, h = video.videoHeight;
-  if (vidCanvas.width !== w || vidCanvas.height !== h) {
-    vidCanvas.width = w; vidCanvas.height = h;
-  }
-  vidCtx.drawImage(video, 0, 0, w, h);
-  if (!vidTex) {
-    vidTex = new THREE.CanvasTexture(vidCanvas);
-    vidTex.colorSpace = THREE.NoColorSpace;
-  } else {
-    vidTex.needsUpdate = true;
-  }
+  // Create fresh texture every frame (avoids GPU cache issues)
+  vidCanvas.width = video.videoWidth;
+  vidCanvas.height = video.videoHeight;
+  vidCtx.drawImage(video, 0, 0);
+  if (vidTex) vidTex.dispose();
+  vidTex = new THREE.CanvasTexture(vidCanvas);
+  vidTex.colorSpace = THREE.NoColorSpace;
 
   if (layers.length === 0) {
     cameraMat.uniforms.uTex.value = vidTex;
@@ -212,7 +207,9 @@ document.getElementById('btnSave').addEventListener('click', () => {
   vidCanvas.width = video.videoWidth;
   vidCanvas.height = video.videoHeight;
   vidCtx.drawImage(video, 0, 0);
-  vidTex.needsUpdate = true;
+  if (vidTex) vidTex.dispose();
+  vidTex = new THREE.CanvasTexture(vidCanvas);
+  vidTex.colorSpace = THREE.NoColorSpace;
 
   cameraMat.uniforms.uTex.value = vidTex;
   blit(cameraMat, rtA);
