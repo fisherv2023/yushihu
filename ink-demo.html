@@ -7,7 +7,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
 html,body{width:100%;height:100%;overflow:hidden;background:#111}
-canvas{display:block;width:100vw;height:100vh}
+canvas{touch-action:none;display:block;width:100vw;height:100vh}
 .toolbar{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:10;display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:20px;background:rgba(0,0,0,.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1)}
 .toolbar .c{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex-shrink:0}
 .toolbar .c.on{border-color:#fff}
@@ -37,6 +37,7 @@ canvas{display:block;width:100vw;height:100vh}
 </script>
 <script type="module">
 import * as THREE from 'three';
+window.__E=[];window.onerror=(m,u,l,c,e)=>{__E.push(m+': '+(e?.stack||''));document.getElementById('h').textContent='Err: '+m;};
 
 const S=256;
 const ren=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:false});
@@ -76,7 +77,7 @@ clr();
 // Splat ink
 const sk=M('uniform sampler2D uT;uniform vec2 uP;uniform vec3 uC;uniform float uR,uS;void main(){vec4 c=texture2D(uT,v);float d=length(v-uP);float w=exp(-d*d/(uR*uR));gl_FragColor=vec4(mix(c.rgb,uC,w*uS),1.);}',{uT:{value:null},uP:{value:new THREE.Vector2(.5,.5)},uC:{value:new THREE.Vector3(1,0,0)},uR:{value:.03},uS:{value:.5}});
 // Splat force
-const sf=M('uniform sampler2D uT;uniform vec2 uP,uF;uniform float uR,uS;void main(){vec4 c=texture2D(uT,v);float d=length(v-uP);float w=exp(-d*d/(uR*uR));gl_FragColor=vec4(c.xy+normalize(v-uP)*w*uS*2.,0.,0.);}',{uT:{value:null},uP:{value:new THREE.Vector2(.5,.5)},uF:{value:new THREE.Vector2(0,0)},uR:{value:.03},uS:{value:.5}});
+const sf=M('uniform sampler2D uT;uniform vec2 uP,uF;uniform float uR,uS;void main(){vec4 c=texture2D(uT,v);float d=length(v-uP);float w=exp(-d*d/(uR*uR));gl_FragColor=vec4(c.xy+uF*w*uS,0.,0.);}',{uT:{value:null},uP:{value:new THREE.Vector2(.5,.5)},uF:{value:new THREE.Vector2(0,0)},uR:{value:.03},uS:{value:.5}});
 
 const COL=[[.906,.235,.235],[.204,.596,.859],[.945,.769,.059],[.18,.8,.443],[.608,.349,.714],[.902,.494,.133],[.95,.95,.95]];
 let CC=0,AM=false;
