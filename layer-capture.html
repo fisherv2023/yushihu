@@ -74,6 +74,7 @@ let video, stream;
 // Canvas-based video texture (avoid VideoTexture issues)
 const vidCanvas = document.createElement('canvas');
 const vidCtx = vidCanvas.getContext('2d');
+const screenMat = new THREE.MeshBasicMaterial({ map: null });
 let vidTex = null;
 
 function updateStatus() {
@@ -175,6 +176,7 @@ function render() {
   } else {
     vidTex.needsUpdate = true;
   }
+  if (!vidTex.colorSpace) vidTex.colorSpace = THREE.NoColorSpace;
 
   // Composite all layers
   if (layers.length === 0) {
@@ -199,7 +201,9 @@ function render() {
   }
 
   // src now holds the final result
-  quad.material = new THREE.MeshBasicMaterial({ map: src.texture });
+  screenMat.map = src.texture;
+  screenMat.needsUpdate = true;
+  quad.material = screenMat;
   renderer.setRenderTarget(null);
   renderer.render(scene, camera3D);
 }
@@ -223,7 +227,9 @@ document.getElementById('btnSave').addEventListener('click', () => {
     const t = src; src = dst; dst = t;
   }
 
-  quad.material = new THREE.MeshBasicMaterial({ map: src.texture });
+  screenMat.map = src.texture;
+  screenMat.needsUpdate = true;
+  quad.material = screenMat;
   renderer.setRenderTarget(null);
   renderer.render(scene, camera3D);
 
