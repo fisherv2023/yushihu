@@ -52,7 +52,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 import * as THREE from 'three';
 
 const MAX_LAYERS = 8;
-const LAYER_OPACITY = 0.4;
+const LAYER_OPACITY = 0.6;
 
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, preserveDrawingBuffer: true, antialias: true, alpha: false, depth: false, stencil: false });
@@ -130,7 +130,13 @@ const blendMat = new THREE.ShaderMaterial({
   vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
   fragmentShader: `precision highp float;varying vec2 vUv;
 uniform sampler2D uBase,uLayer;uniform float uOp;
-void main(){gl_FragColor=mix(texture2D(uBase,vUv),texture2D(uLayer,vUv),uOp);}`,
+void main(){
+  vec4 base=texture2D(uBase,vUv);
+  vec4 layer=texture2D(uLayer,vUv);
+  // Screen blend (double exposure): 1 - (1-base) * (1-layer*opacity)
+  vec3 col=1.-(1.-base.rgb)*(1.-layer.rgb*uOp);
+  gl_FragColor=vec4(col,1.);
+}`,
   uniforms: { uBase: { value: null }, uLayer: { value: null }, uOp: { value: LAYER_OPACITY } },
   depthTest: false, depthWrite: false,
 });
