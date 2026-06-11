@@ -20,7 +20,7 @@ canvas{display:block;width:100vw;height:100vh}
 </head>
 <body>
 <canvas id="c"></canvas>
-<div class="top-hint" id="hint">拖拽生成漩涡 · 点击滴墨 · 双指扩散</div>
+<div class="top-hint" id="hint">拖拽生成漩涡 · 点击滴墨</div>
 <div class="toolbar">
   <div class="ink on" style="background:#e74c3c" data-color="0"></div>
   <div class="ink" style="background:#3498db" data-color="1"></div>
@@ -32,566 +32,141 @@ canvas{display:block;width:100vw;height:100vh}
   <div class="btn" id="autoBtn">自动</div>
   <div class="btn" id="clearBtn">清空</div>
 </div>
-
-<script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
-</script>
-<script type="module">
-import * as THREE from 'three';
-
-// ===== Config =====
-const SIM = 256; // simulation resolution
-const INK_COLORS = [
-  [0.906,0.235,0.235], // red
-  [0.204,0.596,0.859], // blue
-  [0.945,0.769,0.059], // yellow
-  [0.180,0.800,0.443], // green
-  [0.608,0.349,0.714], // purple
-  [0.902,0.494,0.133], // orange
-  [0.95,0.95,0.95],    // white
-];
-let curInk = 0;
-let autoMode = false;
-let inkDensity = 0.5; // ink concentration per drop
-
-// ===== Canvas & Renderer =====
-const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({canvas, preserveDrawingBuffer: false, antialias: false});
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-
-// ===== Quad helper =====
-function makeQuad(mat) {
-  const s = new THREE.Scene();
-  s.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
-  return s;
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const VSH='varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}';
+const SIM=256;
+const COLORS=[[.906,.235,.235],[.204,.596,.859],[.945,.769,.059],[.18,.8,.443],[.608,.349,.714],[.902,.494,.133],[.95,.95,.95]];
+let curC=0,autoM=false;
+const ren=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:false});
+ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));
+function RT(w,h){return new THREE.WebGLRenderTarget(w,h,{type:THREE.FloatType,format:THREE.RGBAFormat,minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,depthBuffer:false})}
+function PR(){return[RT(SIM,SIM),RT(SIM,SIM)]}
+let vel=PR(),dye=PR(),tmp=RT(SIM,SIM),pr=PR(),ri=0;
+function sw(){return 1-ri}
+const cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+const q=new THREE.Mesh(new THREE.PlaneGeometry(2,2),null);
+const s=new THREE.Scene();s.add(q);
+function setMat(m){q.material=m;}
+// Shaders
+const aVelM=new THREE.ShaderMaterial({uniforms:{uV:{value:null},uS:{value:null},uR:{value:new THREE.Vector2(SIM,SIM)},uD:{value:.016},uDiss:{value:.98}},vertexShader:VSH,fragmentShader:'precision highp float;varying vec2 v;uniform sampler2D uV,uS;uniform vec2 uR;uniform float uD,uDiss;void main(){vec2 d=uD*uR;vec2 uv=v-d*texture2D(uV,v).xy;gl_FragColor=uDiss*texture2D(uS,clamp(uv,0.0,1.0));}'});
+const aDyM=new THREE.ShaderMaterial({uniforms:{uV:{value:null},uS:{value:null},uR:{value:new THREE.Vector2(SIM,SIM)},uD:{value:.016},uDiss:{value:.985}},vertexShader:VSH,fragmentShader:'precision highp float;varying vec2 v;uniform sampler2D uV,uS;uniform vec2 uR;uniform float uD,uDiss;void main(){vec2 d=uD*uR;vec2 uv=v-d*texture2D(uV,v).xy;gl_FragColor=uDiss*texture2D(uS,clamp(uv,0.0,1.0));}'});
+const vorM=new THREE.ShaderMaterial({uniforms:{uV:{value:null},uR:{value:new THREE.Vector2(SIM,SIM)},uD:{value:.016},uStr:{value:1.0}},vertexShader:VSH,fragmentShader:'precision highp float;varying vec2 v;uniform sampler2D uV;uniform vec2 uR;uniform float uD,uStr;void main(){vec2 o=1.0/uR;float wl=texture2D(uV,v-vec2(o.x,0.0)).y,wr=texture2D(uV,v+vec2(o.x,0.0)).y;float wb=texture2D(uV,v-vec2(0.0,o.y)).x,wt=texture2D(uV,v+vec2(0.0,o.y)).x;float vort=wr-wl+wt-wb;vec2 g=vec2(abs(wt)-abs(wb),abs(wr)-abs(wl))*0.5;float l=length(g);vec2 f=l>0.001?normalize(g)*vort*uStr:vec2(0.0);vec2 vel=texture2D(uV,v).xy;gl_FragColor=vec4(vel+f*uD,0.0,0.0);}'});
+const difM=new THREE.ShaderMaterial({uniforms:{uV:{value:null},uR:{value:new THREE.Vector2(SIM,SIM)},uA:{value:.001},uB:{value:4.0}},vertexShader:VSH,fragmentShader:'precision highp float;varying vec2 v;uniform sampler2D uV;uniform vec2 uR;uniform float uA,uB;void main(){vec2 o=1.0/uR;vec2 vl=texture2D(uV,v-vec2(o.x,0.0)).xy,vr=texture2D(uV,v+vec2(o.x,0.0)).xy;vec2 vb=texture2D(uV,v-vec2(0.0,o.y)).xy,vt=texture2D(uV,v+vec2(0.0,o.y)).xy;vec2 vc=texture2D(uV,v).xy;gl_FragColor=vec4((vc+uA*(vl+vr+vb+vt))/uB,0.0,0.0);}'});
+const divM=new THREE.ShaderMaterial({uniforms:{uV:{value:null},uR:{value:new THREE.Vector2(SIM,SIM)}},vertexShader:VSH,fragmentShader:'precision highp float;varying vec2 v;uniform sampler2D uV;uniform vec2 uR;void main(){vec2 o=1.0/uR;float vl=texture2D(uV,v-vec2(o.x,0.0)).x,vr=texture2D(uV,v+vec2(o.x,0.0)).x;float vb=texture2D(uV,v-vec2(0.0,o.y)).y,vt=texture2D(uV,v+vec2(0.0,o.y)).y;gl_FragColor=vec4((vr-vl+vt-vb)*0.5,0.0,0.0,0.0);}'});
+const prM=new THREE.ShaderMaterial({uniforms:{uP:{value:null},uDiv:{value:null},uR:{value:new THREE.Vector2(SIM,SIM)}},vertexShader:VSH,fragmentShader:'precision highp float;varying vec2 v;uniform sampler2D uP,uDiv;uniform vec2 uR;void main(){vec2 o=1.0/uR;float pl=texture2D(uP,v-vec2(o.x,0.0)).x,pr=texture2D(uP,v+vec2(o.x,0.0)).x;float pb=texture2D(uP,v-vec2(0.0,o.y)).x,pt=texture2D(uP,v+vec2(0.0,o.y)).x;float d=texture2D(uDiv,v).x;gl_FragColor=vec4((pl+pr+pb+pt-d)*0.25,0.0,0.0,0.0);}'});
+const pjM=new THREE.ShaderMaterial({uniforms:{uV:{value:null},uP:{value:null},uR:{value:new THREE.Vector2(SIM,SIM)}},vertexShader:VSH,fragmentShader:'precision highp float;varying vec2 v;uniform sampler2D uV,uP;uniform vec2 uR;void main(){vec2 o=1.0/uR;vec2 v2=texture2D(uV,v).xy;float pl=texture2D(uP,v-vec2(o.x,0.0)).x,pr=texture2D(uP,v+vec2(o.x,0.0)).x;float pb=texture2D(uP,v-vec2(0.0,o.y)).x,pt=texture2D(uP,v+vec2(0.0,o.y)).x;gl_FragColor=vec4(v2-vec2(pr-pl,pt-pb)*0.5,0.0,0.0);}'});
+const dspM=new THREE.ShaderMaterial({uniforms:{uD:{value:null}},vertexShader:VSH,fragmentShader:'precision highp float;varying vec2 v;uniform sampler2D uD;void main(){vec3 c=texture2D(uD,v).rgb;gl_FragColor=vec4(mix(vec3(0.067,0.067,0.067),c,0.9+0.1*length(c)),1.0);}'});
+const spM=new THREE.ShaderMaterial({uniforms:{uT:{value:null},uPos:{value:new THREE.Vector2(0.5,0.5)},uC:{value:new THREE.Vector3(1,0,0)},uRad:{value:0.03},uStr:{value:1.0},uIsV:{value:0}},vertexShader:VSH,fragmentShader:'precision highp float;varying vec2 v;uniform sampler2D uT;uniform vec2 uPos;uniform vec3 uC;uniform float uRad,uStr;uniform int uIsV;void main(){vec4 cur=texture2D(uT,v);float d=length(v-uPos);float w=exp(-d*d/(uRad*uRad));if(uIsV==1){vec2 dir=normalize(v-uPos)*2.0;vec2 f=dir*w*uStr;gl_FragColor=vec4(cur.xy+f,0.0,0.0);}else{gl_FragColor=vec4(mix(cur.rgb,uC,w*uStr),cur.a);}}'});
+const clrM=new THREE.ShaderMaterial({vertexShader:VSH,fragmentShader:'precision highp float;varying vec2 v;void main(){gl_FragColor=vec4(0.0);}'});
+const clrS=new THREE.Scene();clrS.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),clrM));
+function clearAll(){ren.setRenderTarget(null);setMat(clrM);[vel,dye,tmp,pr].flat().forEach(function(t){ren.setRenderTarget(t);ren.render(s,cam);});ren.setRenderTarget(null);}
+clearAll();
+// Splat helpers
+function splat(x,y,r,s,c){
+  var px=x/innerWidth,py=1-y/innerHeight;
+  var col=COLORS[c];
+  spM.uniforms.uT.value=dye[ri].texture;
+  spM.uniforms.uPos.value.set(px,py);
+  spM.uniforms.uC.value.set(col[0],col[1],col[2]);
+  spM.uniforms.uRad.value=r;spM.uniforms.uStr.value=s*0.4;spM.uniforms.uIsV.value=0;
+  setMat(spM);ren.setRenderTarget(dye[sw()]);ren.render(s,cam);ri=1-ri;
+  spM.uniforms.uT.value=vel[ri].texture;
+  spM.uniforms.uStr.value=s*0.15;spM.uniforms.uIsV.value=1;
+  setMat(spM);ren.setRenderTarget(vel[sw()]);ren.render(s,cam);ri=1-ri;
 }
-
-// ===== Render Targets =====
-function rt(w, h, opts = {}) {
-  return new THREE.WebGLRenderTarget(w, h, {
-    type: THREE.FloatType,
-    format: THREE.RGBAFormat,
-    minFilter: THREE.LinearFilter,
-    magFilter: THREE.LinearFilter,
-    depthBuffer: false,
-    ...opts
-  });
+function force(x,y,dx,dy,s){
+  var px=x/innerWidth,py=1-y/innerHeight;
+  spM.uniforms.uT.value=vel[ri].texture;
+  spM.uniforms.uPos.value.set(px,py);
+  spM.uniforms.uC.value.set(dx*s/innerWidth,-dy*s/innerHeight,0);
+  spM.uniforms.uRad.value=0.025;spM.uniforms.uStr.value=1.0;spM.uniforms.uIsV.value=1;
+  setMat(spM);ren.setRenderTarget(vel[sw()]);ren.render(s,cam);ri=1-ri;
+  var col=COLORS[curC];
+  spM.uniforms.uT.value=dye[ri].texture;
+  spM.uniforms.uC.value.set(col[0],col[1],col[2]);
+  spM.uniforms.uRad.value=0.012;spM.uniforms.uStr.value=0.12;spM.uniforms.uIsV.value=0;
+  setMat(spM);ren.setRenderTarget(dye[sw()]);ren.render(s,cam);ri=1-ri;
 }
-
-// Ping-pong pair
-function pair(w, h) { return [rt(w, h), rt(w, h)]; }
-
-const velRT = pair(SIM, SIM);       // velocity field (x, y, 0, 0)
-const dyeRT = pair(SIM, SIM);       // dye/ink field
-const tmpRT = rt(SIM, SIM);         // divergence / pressure scratch
-
-// ===== Shader Sources =====
-// Vertex shader (same for all passes)
-const VSH = `varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
-
-// Full-screen quad vertex (used for copy/splat passes)
-const VSH_FS = `varying vec2 v;void main(){v=position.xy*.5+.5;gl_Position=vec4(position,1.);}`;
-
-// ---- Advection ----
-// Advects quantity `q` through velocity field `u`, with dissipation
-function advectShader(dissipation = 0.99, isVelocity = false) {
-  return new THREE.RawShaderMaterial({
-    uniforms: {
-      uVelocity: {value: null},
-      uSource: {value: null},
-      uDt: {value: 0.016},
-      uRes: {value: new THREE.Vector2(SIM, SIM)},
-      uDissipation: {value: isVelocity ? 0.98 : dissipation},
-      uInverseVelocity: {value: isVelocity ? 0.0 : 0.0}
-    },
-    vertexShader: VSH,
-    fragmentShader: `
-      precision highp float;
-      varying vec2 v;
-      uniform sampler2D uVelocity;
-      uniform sampler2D uSource;
-      uniform vec2 uRes;
-      uniform float uDt;
-      uniform float uDissipation;
-      void main(){
-        vec2 dt = uDt * uRes;
-        vec2 uv = v - dt * texture2D(uVelocity, v).xy;
-        gl_FragColor = uDissipation * texture2D(uSource, clamp(uv, 0.0, 1.0));
-      }
-    `
-  });
-}
-
-// ---- Add force / splat ink ----
-const splatShader = new THREE.RawShaderMaterial({
-  uniforms: {
-    uTarget: {value: null},
-    uPos: {value: new THREE.Vector2(0.5, 0.5)},
-    uColor: {value: new THREE.Vector3(1, 0, 0)},
-    uRadius: {value: 0.03},
-    uStrength: {value: 1.0},
-    uIsVelocity: {value: 0}
-  },
-  vertexShader: VSH,
-  fragmentShader: `
-    precision highp float;
-    varying vec2 v;
-    uniform sampler2D uTarget;
-    uniform vec2 uPos;
-    uniform vec3 uColor;
-    uniform float uRadius;
-    uniform float uStrength;
-    uniform int uIsVelocity;
-    void main(){
-      vec4 cur = texture2D(uTarget, v);
-      float d = length(v - uPos);
-      float w = exp(-d * d / (uRadius * uRadius));
-      if(uIsVelocity == 1) {
-        vec2 dir = (v - uPos) * 2.0;
-        vec2 force = normalize(dir) * w * uStrength;
-        gl_FragColor = vec4(cur.xy + force, 0.0, 0.0);
-      } else {
-        vec3 ink = mix(cur.rgb, uColor, w * uStrength);
-        gl_FragColor = vec4(ink, cur.a);
-      }
-    }
-  `
-});
-
-// ---- Divergence ----
-const divShader = new THREE.RawShaderMaterial({
-  uniforms: {
-    uVelocity: {value: null},
-    uRes: {value: new THREE.Vector2(SIM, SIM)},
-    uDt: {value: 0.016}
-  },
-  vertexShader: VSH,
-  fragmentShader: `
-    precision highp float;
-    varying vec2 v;
-    uniform sampler2D uVelocity;
-    uniform vec2 uRes;
-    uniform float uDt;
-    void main(){
-      vec2 o = 1.0 / uRes;
-      float vl = texture2D(uVelocity, v - vec2(o.x, 0.0)).x;
-      float vr = texture2D(uVelocity, v + vec2(o.x, 0.0)).x;
-      float vb = texture2D(uVelocity, v - vec2(0.0, o.y)).y;
-      float vt = texture2D(uVelocity, v + vec2(0.0, o.y)).y;
-      float div = 0.5 * (vr - vl + vt - vb);
-      gl_FragColor = vec4(div, 0.0, 0.0, 0.0);
-    }
-  `
-});
-
-// ---- Pressure Solve (Jacobi) ----
-const pressureShader = new THREE.RawShaderMaterial({
-  uniforms: {
-    uPressure: {value: null},
-    uDivergence: {value: null},
-    uRes: {value: new THREE.Vector2(SIM, SIM)}
-  },
-  vertexShader: VSH,
-  fragmentShader: `
-    precision highp float;
-    varying vec2 v;
-    uniform sampler2D uPressure;
-    uniform sampler2D uDivergence;
-    uniform vec2 uRes;
-    void main(){
-      vec2 o = 1.0 / uRes;
-      float pl = texture2D(uPressure, v - vec2(o.x, 0.0)).x;
-      float pr = texture2D(uPressure, v + vec2(o.x, 0.0)).x;
-      float pb = texture2D(uPressure, v - vec2(0.0, o.y)).x;
-      float pt = texture2D(uPressure, v + vec2(0.0, o.y)).x;
-      float d = texture2D(uDivergence, v).x;
-      gl_FragColor = vec4((pl + pr + pb + pt - d) * 0.25, 0.0, 0.0, 0.0);
-    }
-  `
-});
-
-// ---- Project (subtract pressure gradient from velocity) ----
-const projectShader = new THREE.RawShaderMaterial({
-  uniforms: {
-    uVelocity: {value: null},
-    uPressure: {value: null},
-    uRes: {value: new THREE.Vector2(SIM, SIM)}
-  },
-  vertexShader: VSH,
-  fragmentShader: `
-    precision highp float;
-    varying vec2 v;
-    uniform sampler2D uVelocity;
-    uniform sampler2D uPressure;
-    uniform vec2 uRes;
-    void main(){
-      vec2 o = 1.0 / uRes;
-      vec2 vel = texture2D(uVelocity, v).xy;
-      float pl = texture2D(uPressure, v - vec2(o.x, 0.0)).x;
-      float pr = texture2D(uPressure, v + vec2(o.x, 0.0)).x;
-      float pb = texture2D(uPressure, v - vec2(0.0, o.y)).x;
-      float pt = texture2D(uPressure, v + vec2(0.0, o.y)).x;
-      vec2 grad = vec2(pr - pl, pt - pb) * 0.5;
-      gl_FragColor = vec4(vel - grad, 0.0, 0.0, 0.0);
-    }
-  `
-});
-
-// ---- Vorticity Confinement (adds swirl detail) ----
-const vorticityShader = new THREE.RawShaderMaterial({
-  uniforms: {
-    uVelocity: {value: null},
-    uRes: {value: new THREE.Vector2(SIM, SIM)},
-    uDt: {value: 0.016},
-    uStrength: {value: 1.0}
-  },
-  vertexShader: VSH,
-  fragmentShader: `
-    precision highp float;
-    varying vec2 v;
-    uniform sampler2D uVelocity;
-    uniform vec2 uRes;
-    uniform float uDt;
-    uniform float uStrength;
-    void main(){
-      vec2 o = 1.0 / uRes;
-      float wl = texture2D(uVelocity, v - vec2(o.x, 0.0)).y;
-      float wr = texture2D(uVelocity, v + vec2(o.x, 0.0)).y;
-      float wb = texture2D(uVelocity, v - vec2(0.0, o.y)).x;
-      float wt = texture2D(uVelocity, v + vec2(0.0, o.y)).x;
-      float vort = wr - wl + wt - wb;
-      vec2 grad = 0.5 * vec2(abs(wt) - abs(wb), abs(wr) - abs(wl));
-      float len = length(grad);
-      vec2 force = len > 0.001 ? normalize(grad) * vort * uStrength : vec2(0.0);
-      vec2 vel = texture2D(uVelocity, v).xy;
-      gl_FragColor = vec4(vel + force * uDt, 0.0, 0.0, 0.0);
-    }
-  `
-});
-
-// ---- Display (tone-map dye to screen) ----
-const displayMat = new THREE.RawShaderMaterial({
-  uniforms: {
-    uDye: {value: null},
-    uBg: {value: new THREE.Vector3(0.067, 0.067, 0.067)} // #111
-  },
-  vertexShader: VSH,
-  fragmentShader: `
-    precision highp float;
-    varying vec2 v;
-    uniform sampler2D uDye;
-    uniform vec3 uBg;
-    void main(){
-      vec3 dye = texture2D(uDye, v).rgb;
-      gl_FragColor = vec4(mix(uBg, dye, 0.9 + 0.1 * length(dye)), 1.0);
-    }
-  `
-});
-
-// ---- Viscosity Diffusion (Jacobi) ----
-const diffuseShader = new THREE.RawShaderMaterial({
-  uniforms: {
-    uVelocity: {value: null},
-    uRes: {value: new THREE.Vector2(SIM, SIM)},
-    uAlpha: {value: 0.001},
-    uBeta: {value: 4.0}
-  },
-  vertexShader: VSH,
-  fragmentShader: `
-    precision highp float;
-    varying vec2 v;
-    uniform sampler2D uVelocity;
-    uniform vec2 uRes;
-    uniform float uAlpha;
-    uniform float uBeta;
-    void main(){
-      vec2 o = 1.0 / uRes;
-      vec2 vl = texture2D(uVelocity, v - vec2(o.x, 0.0)).xy;
-      vec2 vr = texture2D(uVelocity, v + vec2(o.x, 0.0)).xy;
-      vec2 vb = texture2D(uVelocity, v - vec2(0.0, o.y)).xy;
-      vec2 vt = texture2D(uVelocity, v + vec2(0.0, o.y)).xy;
-      vec2 vc = texture2D(uVelocity, v).xy;
-      vec2 result = (vc + uAlpha * (vl + vr + vb + vt)) / uBeta;
-      gl_FragColor = vec4(result, 0.0, 0.0);
-    }
-  `
-});
-
-// ===== Scenes =====
-const scenes = {
-  advectVel: makeQuad(advectShader(0.98, true)),
-  advectDye: makeQuad(advectShader(0.985, false)),
-  vorticity: makeQuad(vorticityShader),
-  divergence: makeQuad(divShader),
-  pressure: makeQuad(pressureShader),
-  project: makeQuad(projectShader),
-  display: makeQuad(displayMat),
-  diffuse: makeQuad(diffuseShader),
-  splat: makeQuad(splatShader),
-};
-
-// ===== Simulation State =====
-let readIdx = 0;
-function sw() { return 1 - readIdx; }
-
-// Initialize velocity with small random swirl
-function initFields() {
-  readIdx = 0;
-  // Clear all targets
-  const clearScene = new THREE.Scene();
-  const clearMat = new THREE.RawShaderMaterial({
-    uniforms: {},
-    vertexShader: VSH,
-    fragmentShader: `precision highp float;varying vec2 v;void main(){gl_FragColor=vec4(0.);}`
-  });
-  clearScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), clearMat));
-  
-  [velRT, dyeRT, tmpRT].flat().forEach(t => {
-    renderer.setRenderTarget(t);
-    renderer.render(clearScene, cam);
-  });
-  renderer.setRenderTarget(null);
-  
-  // Add some initial random swirl
-  splatShader.uniforms.uPos.value.set(0.3 + Math.random() * 0.4, 0.3 + Math.random() * 0.4);
-  splatShader.uniforms.uRadius.value = 0.08;
-  splatShader.uniforms.uStrength.value = 2.0;
-  splatShader.uniforms.uIsVelocity.value = 1;
-  splatShader.uniforms.uTarget.value = velRT[readIdx].texture;
-  renderer.setRenderTarget(velRT[sw()]);
-  renderer.render(scenes.splat, cam);
-  [velRT[readIdx], velRT[sw()]] = [velRT[sw()], velRT[readIdx]];
-}
-
-const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-// ===== Fluid Step =====
-function stepFluid(dt) {
-  const vel0 = velRT[readIdx];
-  const vel1 = velRT[sw()];
-  
-  // 1. Advect velocity through itself
-  advectShader.uniforms.uDt.value = dt;
-  advectShader.uniforms.uVelocity.value = vel0.texture;
-  advectShader.uniforms.uSource.value = vel0.texture;
-  renderer.setRenderTarget(vel1);
-  renderer.render(scenes.advectVel, cam);
-  
-  // 2. Vorticity confinement (adds swirl)
-  vorticityShader.uniforms.uDt.value = dt;
-  vorticityShader.uniforms.uVelocity.value = vel1.texture;
-  renderer.setRenderTarget(vel0);
-  renderer.render(scenes.vorticity, cam);
-  [velRT[readIdx], velRT[sw()]] = [velRT[sw()], velRT[readIdx]];
-  
-  // 3. Diffuse velocity (viscosity)
-  for(let i = 0; i < 2; i++) {
-    diffuseShader.uniforms.uVelocity.value = velRT[readIdx].texture;
-    renderer.setRenderTarget(velRT[sw()]);
-    renderer.render(scenes.diffuse, cam);
-    readIdx = 1 - readIdx;
+// Simulation step
+function step(dt){
+  // 1. Advect vel
+  aVelM.uniforms.uD.value=dt;
+  aVelM.uniforms.uV.value=vel[ri].texture;
+  aVelM.uniforms.uS.value=vel[ri].texture;
+  setMat(aVelM);ren.setRenderTarget(vel[sw()]);ren.render(s,cam);ri=1-ri;
+  // 2. Vorticity
+  vorM.uniforms.uD.value=dt;
+  vorM.uniforms.uV.value=vel[ri].texture;
+  setMat(vorM);ren.setRenderTarget(vel[sw()]);ren.render(s,cam);ri=1-ri;
+  // 3. Diffuse velocity
+  for(var i=0;i<2;i++){
+    difM.uniforms.uV.value=vel[ri].texture;
+    setMat(difM);ren.setRenderTarget(vel[sw()]);ren.render(s,cam);ri=1-ri;
   }
-  
   // 4. Divergence
-  divShader.uniforms.uVelocity.value = velRT[readIdx].texture;
-  renderer.setRenderTarget(tmpRT);
-  renderer.render(scenes.divergence, cam);
-  
-  // 5. Pressure solve (8 Jacobi iterations)
-  let pRTs = pair(SIM, SIM);
-  // Clear pressure
-  const clearScene = new THREE.Scene();
-  const clearMat = new THREE.RawShaderMaterial({
-    uniforms: {},
-    vertexShader: VSH,
-    fragmentShader: `precision highp float;varying vec2 v;void main(){gl_FragColor=vec4(0.);}`
-  });
-  clearScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), clearMat));
-  renderer.setRenderTarget(pRTs[0]);
-  renderer.render(clearScene, cam);
-  
-  for(let i = 0; i < 10; i++) {
-    pressureShader.uniforms.uPressure.value = pRTs[0].texture;
-    pressureShader.uniforms.uDivergence.value = tmpRT.texture;
-    renderer.setRenderTarget(pRTs[1]);
-    renderer.render(scenes.pressure, cam);
-    [pRTs[0], pRTs[1]] = [pRTs[1], pRTs[0]];
+  divM.uniforms.uV.value=vel[ri].texture;
+  setMat(divM);ren.setRenderTarget(tmp);ren.render(s,cam);
+  // 5. Pressure solve (8 Jacobi)
+  setMat(clrM);ren.setRenderTarget(pr[0]);ren.render(s,cam);
+  for(var i=0;i<8;i++){
+    prM.uniforms.uP.value=pr[0].texture;
+    prM.uniforms.uDiv.value=tmp.texture;
+    setMat(prM);ren.setRenderTarget(pr[1]);ren.render(s,cam);
+    var t=pr[0];pr[0]=pr[1];pr[1]=t;
   }
-  
-  // 6. Project (subtract pressure gradient)
-  projectShader.uniforms.uVelocity.value = velRT[readIdx].texture;
-  projectShader.uniforms.uPressure.value = pRTs[0].texture;
-  renderer.setRenderTarget(velRT[sw()]);
-  renderer.render(scenes.project, cam);
-  readIdx = 1 - readIdx;
-  
-  // 7. Advect dye through velocity
-  advectShader.uniforms.uDt.value = dt;
-  advectShader.uniforms.uVelocity.value = velRT[readIdx].texture;
-  advectShader.uniforms.uSource.value = dyeRT[readIdx].texture;
-  advectShader.uniforms.uDissipation.value = 0.985;
-  renderer.setRenderTarget(dyeRT[sw()]);
-  renderer.render(scenes.advectDye, cam);
-  readIdx = 1 - readIdx;
-  
+  // 6. Project
+  pjM.uniforms.uV.value=vel[ri].texture;
+  pjM.uniforms.uP.value=pr[0].texture;
+  setMat(pjM);ren.setRenderTarget(vel[sw()]);ren.render(s,cam);ri=1-ri;
+  // 7. Advect dye
+  aDyM.uniforms.uD.value=dt;
+  aDyM.uniforms.uV.value=vel[ri].texture;
+  aDyM.uniforms.uS.value=dye[ri].texture;
+  setMat(aDyM);ren.setRenderTarget(dye[sw()]);ren.render(s,cam);ri=1-ri;
   // 8. Display
-  displayMat.uniforms.uDye.value = dyeRT[readIdx].texture;
-  renderer.setRenderTarget(null);
-  renderer.render(scenes.display, cam);
+  dspM.uniforms.uD.value=dye[ri].texture;
+  setMat(dspM);ren.setRenderTarget(null);ren.render(s,cam);
 }
-
-// ===== Splat functions =====
-function splatInk(x, y, radius = 0.04, strength = 0.5) {
-  const px = x / innerWidth;
-  const py = 1.0 - y / innerHeight;
-  const c = INK_COLORS[curInk];
-  
-  // Add ink to dye
-  splatShader.uniforms.uTarget.value = dyeRT[readIdx].texture;
-  splatShader.uniforms.uPos.value.set(px, py);
-  splatShader.uniforms.uColor.value.set(c[0], c[1], c[2]);
-  splatShader.uniforms.uRadius.value = radius;
-  splatShader.uniforms.uStrength.value = strength * 0.4;
-  splatShader.uniforms.uIsVelocity.value = 0;
-  renderer.setRenderTarget(dyeRT[sw()]);
-  renderer.render(scenes.splat, cam);
-  readIdx = 1 - readIdx;
-  
-  // Add force swirl to velocity
-  splatShader.uniforms.uTarget.value = velRT[readIdx].texture;
-  splatShader.uniforms.uPos.value.set(px, py);
-  splatShader.uniforms.uStrength.value = strength * 0.15;
-  splatShader.uniforms.uIsVelocity.value = 1;
-  renderer.setRenderTarget(velRT[sw()]);
-  renderer.render(scenes.splat, cam);
-  readIdx = 1 - readIdx;
-}
-
-function addForce(x, y, dx, dy, strength = 2.0) {
-  const px = x / innerWidth;
-  const py = 1.0 - y / innerHeight;
-  const nx = dx / innerWidth;
-  const ny = -dy / innerHeight;
-  
-  // Splat velocity force
-  splatShader.uniforms.uTarget.value = velRT[readIdx].texture;
-  splatShader.uniforms.uPos.value.set(px, py);
-  splatShader.uniforms.uColor.value.set(nx * strength, ny * strength, 0);
-  splatShader.uniforms.uRadius.value = 0.025;
-  splatShader.uniforms.uStrength.value = 1.0;
-  splatShader.uniforms.uIsVelocity.value = 1;
-  renderer.setRenderTarget(velRT[sw()]);
-  renderer.render(scenes.splat, cam);
-  readIdx = 1 - readIdx;
-  
-  // Also add a tiny ink drop at the force location
-  const c = INK_COLORS[curInk];
-  splatShader.uniforms.uTarget.value = dyeRT[readIdx].texture;
-  splatShader.uniforms.uPos.value.set(px, py);
-  splatShader.uniforms.uColor.value.set(c[0], c[1], c[2]);
-  splatShader.uniforms.uRadius.value = 0.015;
-  splatShader.uniforms.uStrength.value = 0.15;
-  splatShader.uniforms.uIsVelocity.value = 0;
-  renderer.setRenderTarget(dyeRT[sw()]);
-  renderer.render(scenes.splat, cam);
-  readIdx = 1 - readIdx;
-}
-
-// ===== Interaction =====
-let isDown = false, lastX = 0, lastY = 0;
-
-canvas.addEventListener('pointerdown', e => {
-  isDown = true;
-  lastX = e.clientX;
-  lastY = e.clientY;
-  splatInk(e.clientX, e.clientY);
+// Interaction
+var down=false,lx=0,ly=0,timer=0;
+document.getElementById('c').addEventListener('pointerdown',function(e){
+  down=true;lx=e.clientX;ly=e.clientY;
+  splat(e.clientX,e.clientY,0.04,0.5,curC);
   document.getElementById('hint').classList.add('hide');
 });
-
-canvas.addEventListener('pointermove', e => {
-  if (!isDown) return;
-  const dx = e.clientX - lastX;
-  const dy = e.clientY - lastY;
-  if (Math.abs(dx) + Math.abs(dy) > 3) {
-    addForce(e.clientX, e.clientY, dx, dy);
-    lastX = e.clientX;
-    lastY = e.clientY;
-  }
+document.getElementById('c').addEventListener('pointermove',function(e){
+  if(!down)return;
+  var dx=e.clientX-lx,dy=e.clientY-ly;
+  if(Math.abs(dx)+Math.abs(dy)>3){force(e.clientX,e.clientY,dx,dy,2);lx=e.clientX;ly=e.clientY;}
 });
-
-canvas.addEventListener('pointerup', () => { isDown = false; });
-canvas.addEventListener('pointerleave', () => { isDown = false; });
-
-// ===== Toolbar =====
-document.querySelectorAll('.ink').forEach(el => {
-  el.addEventListener('click', () => {
-    document.querySelectorAll('.ink').forEach(e => e.classList.remove('on'));
-    el.classList.add('on');
-    curInk = parseInt(el.dataset.color);
+document.getElementById('c').addEventListener('pointerup',function(){down=false;});
+document.getElementById('c').addEventListener('pointerleave',function(){down=false;});
+// Toolbar
+document.querySelectorAll('.ink').forEach(function(el){
+  el.addEventListener('click',function(){
+    document.querySelectorAll('.ink').forEach(function(e){e.classList.remove('on');});
+    el.classList.add('on');curC=parseInt(el.dataset.color);
   });
 });
-
-document.getElementById('autoBtn').addEventListener('click', () => {
-  autoMode = !autoMode;
-  document.getElementById('autoBtn').classList.toggle('on');
-});
-
-document.getElementById('clearBtn').addEventListener('click', () => {
-  initFields();
-});
-
-// ===== Auto mode =====
-let autoTimer = 0;
-function autoTick() {
-  if (!autoMode) return;
-  autoTimer += 0.016;
-  if (autoTimer > 1.5) {
-    autoTimer = 0;
-    const x = Math.random() * innerWidth * 0.6 + innerWidth * 0.2;
-    const y = Math.random() * innerHeight * 0.6 + innerHeight * 0.2;
-    splatInk(x, y, 0.03 + Math.random() * 0.04, 0.3 + Math.random() * 0.5);
-    // Add a random force to create swirl
-    const fx = (Math.random() - 0.5) * 100;
-    const fy = (Math.random() - 0.5) * 100;
-    addForce(x, y, fx, fy, 1.5 + Math.random());
-    
-    // Cycle through colors
-    curInk = (curInk + 1) % INK_COLORS.length;
-    document.querySelectorAll('.ink').forEach((e, i) => e.classList.toggle('on', i === curInk));
+document.getElementById('autoBtn').addEventListener('click',function(){autoM=!autoM;document.getElementById('autoBtn').classList.toggle('on');});
+document.getElementById('clearBtn').addEventListener('click',clearAll);
+// Initial drops
+for(var i=0;i<6;i++){(function(i){setTimeout(function(){var x=Math.random()*innerWidth*0.6+innerWidth*0.2,y=Math.random()*innerHeight*0.6+innerHeight*0.2;splat(x,y,0.05,0.6,i%7);},i*300);})(i);}
+// Loop
+var lt=performance.now();
+(function L(){
+  try {
+  var n=performance.now(),dt=Math.min((n-lt)/1000,0.05);lt=n;
+  if(autoM){
+    timer+=dt;
+    if(timer>1.5){timer=0;var x=Math.random()*innerWidth*0.6+innerWidth*0.2,y=Math.random()*innerHeight*0.6+innerHeight*0.2;splat(x,y,0.03+0.04*Math.random(),0.3+0.5*Math.random(),curC);force(x,y,(Math.random()-0.5)*100,(Math.random()-0.5)*100,1.5+Math.random());curC=(curC+1)%7;document.querySelectorAll('.ink').forEach(function(e,i){e.classList.toggle('on',i===curC);});}
   }
-}
-
-// ===== Random initial swirl =====
-initFields();
-// Add some initial ink drops
-for(let i = 0; i < 5; i++) {
-  setTimeout(() => {
-    const x = Math.random() * innerWidth * 0.6 + innerWidth * 0.2;
-    const y = Math.random() * innerHeight * 0.6 + innerHeight * 0.2;
-    curInk = i % INK_COLORS.length;
-    splatInk(x, y, 0.05, 0.6);
-  }, i * 200);
-}
-curInk = 0;
-
-// ===== Render Loop =====
-let lastTime = performance.now();
-(function loop() {
-  const now = performance.now();
-  const dt = Math.min((now - lastTime) / 1000, 0.05);
-  lastTime = now;
-  
-  autoTick();
-  stepFluid(dt);
-  
-  requestAnimationFrame(loop);
+  step(dt);
+  }catch(e){console.error('LOOP:',e.message,e.stack);}
+  requestAnimationFrame(L);
 })();
-
-// ===== Resize =====
-addEventListener('resize', () => {
-  renderer.setSize(innerWidth, innerHeight);
-});
+window.addEventListener('resize',function(){ren.setSize(innerWidth,innerHeight);});
 </script>
 </body>
 </html>
