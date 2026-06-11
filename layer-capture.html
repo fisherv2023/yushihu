@@ -76,6 +76,7 @@ const vidCtx = vidCanvas.getContext('2d');
 let vidTex = null;
 
 const screenMat = new THREE.MeshBasicMaterial({ map: null });
+const layerOverlayMat = new THREE.MeshBasicMaterial({ map: null, transparent: true, opacity: 0.6, blending: THREE.NormalBlending, depthTest: false, depthWrite: false });
 
 function getOpacity() {
   return parseFloat(document.getElementById('layerSlider').value) / 10;
@@ -178,6 +179,18 @@ function render(now) {
   quad.material = cameraMat;
   renderer.setRenderTarget(null);
   renderer.render(scene, cam3D);
+
+  // Composite layers via GPU alpha blending (no RTs)
+  if (layers.length > 0) {
+    const op = getOpacity();
+    for (let i = 0; i < layers.length; i++) {
+      layerOverlayMat.map = layers[i].texture;
+      layerOverlayMat.opacity = op;
+      layerOverlayMat.needsUpdate = true;
+      quad.material = layerOverlayMat;
+      renderer.render(scene, cam3D);
+    }
+  }
   return;
 }
 
@@ -191,24 +204,18 @@ document.getElementById('btnSave').addEventListener('click', () => {
   vidTex.colorSpace = THREE.NoColorSpace;
 
   cameraMat.uniforms.uTex.value = vidTex;
-  blit(cameraMat, rtA);
-
-  const sliderW = getOpacity();
-  let src = rtA, dst = rtB;
-  for (let i = 0; i < layers.length; i++) {
-    const w = sliderW / (1 + (i + 1) * sliderW); // progressive average
-    blendMat.uniforms.uBase.value = src.texture;
-    blendMat.uniforms.uLayer.value = layers[i].texture;
-    blendMat.uniforms.uOp.value = w;
-    blit(blendMat, dst);
-    const t = src; src = dst; dst = t;
-  }
-
-  screenMat.map = src.texture;
-  screenMat.needsUpdate = true;
-  quad.material = screenMat;
+  quad.material = cameraMat;
   renderer.setRenderTarget(null);
   renderer.render(scene, cam3D);
+
+  const op = getOpacity();
+  for (let i = 0; i < layers.length; i++) {
+    layerOverlayMat.map = layers[i].texture;
+    layerOverlayMat.opacity = op;
+    layerOverlayMat.needsUpdate = true;
+    quad.material = layerOverlayMat;
+    renderer.render(scene, cam3D);
+  }
 
   const link = document.createElement('a');
   link.download = 'layer-capture-' + Date.now() + '.png';
