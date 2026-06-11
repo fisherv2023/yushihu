@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>Ink Eye</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:#fff;font-family:-apple-system,sans-serif;overflow:hidden;touch-action:manipulation}
+canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1}
+.perm{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.perm .title{font-size:19px;font-weight:600;margin-bottom:6px}
+.perm .desc{font-size:13px;opacity:.55;margin-bottom:22px;text-align:center;line-height:1.5}
+.perm .btn{padding:13px 36px;border-radius:24px;border:none;background:#fff;color:#111;font-size:15px;font-weight:600;cursor:pointer}
+.bar{position:fixed;bottom:48px;left:16px;right:16px;z-index:20;display:flex;align-items:center;justify-content:center;gap:12px;display:none}
+.bar .btn{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.bar .btn.on{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.45)}
+.slider-bar{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:8px;width:70vw;max-width:320px;display:none}
+.slider-bar span{font-size:11px;opacity:.5;min-width:28px}
+.slider{appearance:none;-webkit-appearance:none;flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.15);outline:none}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff}
+.label{position:fixed;top:12px;left:16px;z-index:10;font-size:12px;opacity:.4;display:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="perm" id="perm">
+  <div class="title">Ink Eye</div>
+  <div class="desc">Real-time ink wash filter<br>for art observation</div>
+  <button class="btn" id="permBtn">Allow Camera</button>
+</div>
+<div class="label" id="label"></div>
+<div class="slider-bar" id="sBar">
+  <span>淡</span>
+  <input type="range" class="slider" id="slider" min="1" max="10" value="5">
+  <span>浓</span>
+</div>
+<div class="bar" id="bar">
+  <button class="btn on" id="btnInk">墨</button>
+  <button class="btn" id="btnEdge">线</button>
+  <button class="btn" id="btnSave">⤓</button>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const canvas = document.getElementById('c');
+const perm = document.getElementById('perm');
+const permBtn = document.getElementById('permBtn');
+const bar = document.getElementById('bar');
+const sBar = document.getElementById('sBar');
+const slider = document.getElementById('slider');
+const label = document.getElementById('label');
+
+const renderer = new THREE.WebGLRenderer({ canvas, preserveDrawingBuffer: true, antialias: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+
+const scene = new THREE.Scene();
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+// ── Fragment Shader: Sobel edge + ink tone mapping ──
+const vertexShader = /* glsl */`
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const fragmentShader = /* glsl */`
+  varying vec2 vUv;
+  uniform sampler2D tDiffuse;
+  uniform vec2 uTexSize;
+  uniform float uLevel;   // 1-10, ink depth
+  uniform int uMode;      // 0=ink (edge→tone), 1=lines only, 2=both
+
+  float luminance(vec3 c) {
+    return dot(c, vec3(0.299, 0.587, 0.114));
+  }
+
+  // Sobel edge detection
+  float sobel(vec2 uv, vec2 texel) {
+    float tl = luminance(texture2D(tDiffuse, uv + vec2(-texel.x,  texel.y)).rgb);
+    float t  = luminance(texture2D(tDiffuse, uv + vec2( 0.0,       texel.y)).rgb);
+    float tr = luminance(texture2D(tDiffuse, uv + vec2( texel.x,  texel.y)).rgb);
+    float l  = luminance(texture2D(tDiffuse, uv + vec2(-texel.x,  0.0)).rgb);
+    float r  = luminance(texture2D(tDiffuse, uv + vec2( texel.x,  0.0)).rgb);
+    float bl = luminance(texture2D(tDiffuse, uv + vec2(-texel.x, -texel.y)).rgb);
+    float b  = luminance(texture2D(tDiffuse, uv + vec2( 0.0,      -texel.y)).rgb);
+    float br = luminance(texture2D(tDiffuse, uv + vec2( texel.x, -texel.y)).rgb);
+
+    float gx = -tl - 2.0*l - bl + tr + 2.0*r + br;
+    float gy = -tl - 2.0*t - tr + bl + 2.0*b + br;
+    return sqrt(gx*gx + gy*gy);
+  }
+
+  // Ink tone mapping: edge strength → ink density
+  // Produces 5 classical ink tones: 焦 濃 重 淡 清
+  float inkTone(float edge, float level) {
+    float e = edge * level * 1.2;
+    // Quantize to 5 ink levels with soft transitions
+    // Level 1 (清/lightest): mostly paper, faint edges
+    // Level 5 (焦/darkest): heavy black, strong edges
+    float t = e;
+    t = t / (t + 0.4); // non-linear compression
+    t = 1.0 - t;       // invert: dark edges → low value (ink)
+    // Soft quantization to 5 levels
+    t = floor(t * 5.0 + 0.5) / 5.0;
+    return t;
+  }
+
+  // Paper texture (washi grain)
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+  float paperNoise(vec2 uv) {
+    float n = hash(uv * 420.0) * 0.015
+            + hash(uv * 180.0) * 0.012
+            + hash(uv * 60.0)  * 0.008;
+    return n;
+  }
+
+  void main() {
+    vec2 texel = 1.0 / uTexSize;
+    float edge = sobel(vUv, texel);
+
+    // Combine original luminance with edge for ink effect
+    float lum = luminance(texture2D(tDiffuse, vUv).rgb);
+
+    float ink = inkTone(edge, uLevel);
+
+    vec3 color;
+    if (uMode == 0) {
+      // Ink mode: paper base + edge-driven ink
+      // Mix original luminance with ink overlay
+      float base = mix(0.92, lum, 0.15); // subtle original image
+      float inkOverlay = mix(1.0, ink, 0.85); // heavy ink
+      float result = min(base, inkOverlay);
+      color = vec3(result);
+    } else if (uMode == 1) {
+      // Lines only: white paper + dark edges
+      float line = 1.0 - edge * uLevel * 0.6;
+      color = vec3(clamp(line, 0.0, 1.0));
+    } else {
+      // Both: ink + visible lines
+      float inkVal = inkTone(edge, uLevel);
+      float lineVal = 1.0 - edge * uLevel * 0.5;
+      float lumMix = mix(0.9, lum, 0.1);
+      color = vec3(min(lumMix, min(inkVal, lineVal)));
+    }
+
+    // Paper noise
+    float grain = paperNoise(vUv);
+    color += grain;
+
+    // Subtle vignette
+    vec2 uv2 = vUv * (1.0 - vUv.yx);
+    float vig = pow(uv2.x * uv2.y * 15.0, 0.15);
+    color *= 0.9 + 0.1 * vig;
+
+    gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+  }
+`;
+
+const uniforms = {
+  tDiffuse: { value: null },
+  uTexSize: { value: new THREE.Vector2(innerWidth, innerHeight) },
+  uLevel: { value: 5.0 },
+  uMode: { value: 0 },
+};
+
+const material = new THREE.ShaderMaterial({
+  vertexShader,
+  fragmentShader,
+  uniforms,
+  depthTest: false,
+  depthWrite: false,
+});
+
+const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+scene.add(quad);
+
+// ── Dummy texture (2x2 gray) before camera starts ──
+const dummyCanvas = document.createElement('canvas');
+dummyCanvas.width = 2; dummyCanvas.height = 2;
+const dummyCtx = dummyCanvas.getContext('2d');
+dummyCtx.fillStyle = '#808080';
+dummyCtx.fillRect(0, 0, 2, 2);
+uniforms.tDiffuse.value = new THREE.CanvasTexture(dummyCanvas);
+
+let video, videoTexture, stream;
+
+async function startCam() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    video = document.createElement('video');
+    video.srcObject = stream;
+    video.playsInline = true;
+    await video.play();
+
+    videoTexture = new THREE.VideoTexture(video);
+    videoTexture.colorSpace = THREE.SRGBColorSpace;
+    uniforms.tDiffuse.value = videoTexture;
+
+    perm.style.display = 'none';
+    bar.style.display = 'flex';
+    sBar.style.display = 'flex';
+    label.style.display = 'block';
+    updateLabel();
+  } catch (err) {
+    console.error('Camera error:', err);
+  }
+}
+
+permBtn.addEventListener('click', startCam);
+
+// ── UI ──
+let mode = 0;
+const modeNames = ['INK', 'LINES', 'INK + LINES'];
+
+function updateLabel() {
+  label.textContent = modeNames[mode] + ' ' + slider.value;
+}
+
+document.getElementById('btnInk').addEventListener('click', () => {
+  mode = 0;
+  document.getElementById('btnInk').classList.add('on');
+  document.getElementById('btnEdge').classList.remove('on');
+  updateLabel();
+});
+
+document.getElementById('btnEdge').addEventListener('click', () => {
+  mode = 1;
+  document.getElementById('btnInk').classList.remove('on');
+  document.getElementById('btnEdge').classList.add('on');
+  updateLabel();
+});
+
+slider.addEventListener('input', () => {
+  updateLabel();
+});
+
+document.getElementById('btnSave').addEventListener('click', () => {
+  renderer.render(scene, camera);
+  const dataURL = renderer.domElement.toDataURL('image/png');
+  const link = document.createElement('a');
+  link.download = 'ink-eye-' + Date.now() + '.png';
+  link.href = dataURL;
+  link.click();
+});
+
+// ── Render loop ──
+function render() {
+  requestAnimationFrame(render);
+  uniforms.uMode.value = mode;
+  uniforms.uLevel.value = parseFloat(slider.value);
+  if (videoTexture) videoTexture.needsUpdate = true;
+  renderer.render(scene, camera);
+}
+
+// ── Resize ──
+addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight);
+  uniforms.uTexSize.value.set(innerWidth, innerHeight);
+});
+
+render();
+</script>
+</body>
+</html>
