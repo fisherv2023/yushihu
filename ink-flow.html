@@ -58,14 +58,15 @@ const CFG = {
   DYE_MAX: 512,
   PRESSURE_ITER: 20,
   VEL_DISSIPATION: 0.25,
-  DYE_DISSIPATION: 0.01,
+  DYE_DISSIPATION: 0.03,
   CURL: 14,
   SPLAT_RADIUS: 0.004,
   SPLAT_FORCE: 4000,
-  EDGE_DYE: 0.04,          // base edge → dye (× slider 1.0-2.0)
+  EDGE_DYE: 0.015,         // base edge → dye (× slider 1.0-2.0)
   EDGE_VEL: 2.0,           // edge → perpendicular velocity
-  DARK_DYE: 0.01,          // base dark areas → dye (× slider 1.0-2.0)
+  DARK_DYE: 0.004,         // base dark areas → dye (× slider 1.0-2.0)
   CAM_DISSIPATION: 0.0,    // no fading in camera step (touch ink would vanish!)
+  DYE_CAP: 1.2,            // max absorption per channel — prevents runaway black
 };
 
 const PAPER = new THREE.Color('#efeae0');
@@ -181,7 +182,7 @@ void main(){gl_FragColor=uValue*texture2D(uTexture,vUv);}`, {
 const cameraDyeMat = prog(`precision highp float;varying vec2 vUv;
 uniform sampler2D uDye,uCamera;
 uniform vec2 uCamTexel;
-uniform float uEdgeDye,uDarkDye,uDissipation;
+uniform float uEdgeDye,uDarkDye,uDissipation,uCap;
 
 float lum(vec3 c){return dot(c,vec3(.299,.587,.114));}
 
@@ -213,6 +214,7 @@ void main(){
   vec3 darkInk=camAbs*dark*uDarkDye;
 
   vec3 nd=dye+edgeInk+darkInk;
+  nd=min(nd,uCap);
   nd*=1.-uDissipation;
   gl_FragColor=vec4(max(nd,0.),1.);
 }`, {
@@ -265,7 +267,7 @@ uniform sampler2D uDye,uCamera;uniform vec3 uPaper;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 
 void main(){
-  vec3 A=texture2D(uDye,vUv).rgb*1.5;
+  vec3 A=texture2D(uDye,vUv).rgb*1.0;
   vec3 ink=uPaper*exp(-A);
   vec3 cam=texture2D(uCamera,vUv).rgb;
 
@@ -390,6 +392,7 @@ function step(dt) {
     cameraDyeMat.uniforms.uEdgeDye.value = CFG.EDGE_DYE * sVal;
     cameraDyeMat.uniforms.uDarkDye.value = CFG.DARK_DYE * sVal;
     cameraDyeMat.uniforms.uDissipation.value = CFG.CAM_DISSIPATION;
+    cameraDyeMat.uniforms.uCap.value = CFG.DYE_CAP;
     blit(cameraDyeMat, dye.write);
     dye.swap();
 
