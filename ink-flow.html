@@ -282,7 +282,9 @@ void main(){
   vec3 camSat=mix(vec3(clum),cam,1.25);
   col=mix(camSat,col,d);
   col=clamp(col,0.,1.);
-}`, {
+  gl_FragColor=vec4(col,1.);
+}
+`, {
   uDye:{value:null},uCamera:{value:null},
   uPaper:{value:new THREE.Vector3(PAPER.r,PAPER.g,PAPER.b)},
 });
