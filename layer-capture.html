@@ -198,11 +198,9 @@ function render(now) {
   renderer.setRenderTarget(null);
   renderer.render(scene, cam3D);
 
-  // Debug timestamp
-  if (now % 1000 < 20) {
-    document.getElementById('debug').textContent = 
-      'v' + Date.now() + ' layers:' + layers.length + ' slider:' + getOpacity().toFixed(1);
-  }
+  // Debug timestamp (always visible)
+  document.getElementById('debug').textContent = 
+    'v' + Date.now() + ' L:' + layers.length + ' s:' + getOpacity().toFixed(1);
 }
 
 // Save
