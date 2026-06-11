@@ -173,33 +173,12 @@ function render(now) {
   vidTex = new THREE.CanvasTexture(vidCanvas);
   vidTex.colorSpace = THREE.NoColorSpace;
 
-  if (layers.length === 0) {
-    cameraMat.uniforms.uTex.value = vidTex;
-    quad.material = cameraMat;
-    renderer.setRenderTarget(null);
-    renderer.render(scene, cam3D);
-    return;
-  }
-
-  // Composite all layers
+  // DIAGNOSTIC: render camera directly, skip all compositing
   cameraMat.uniforms.uTex.value = vidTex;
-  blit(cameraMat, rtA);
-
-  const sliderW = getOpacity();
-  for (let i = 0; i < layers.length; i++) {
-    const w = sliderW / (1 + (i + 1) * sliderW); // progressive average
-    blendMat.uniforms.uBase.value = src.texture;
-    blendMat.uniforms.uLayer.value = layers[i].texture;
-    blendMat.uniforms.uOp.value = w;
-    blit(blendMat, dst);
-    const t = src; src = dst; dst = t;
-  }
-
-  screenMat.map = src.texture;
-  screenMat.needsUpdate = true;
-  quad.material = screenMat;
+  quad.material = cameraMat;
   renderer.setRenderTarget(null);
   renderer.render(scene, cam3D);
+  return;
 }
 
 // Save
