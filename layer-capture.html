@@ -52,30 +52,29 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 import * as THREE from 'three';
 
 const MAX_LAYERS = 8;
-const LAYER_OPACITY = 0.6;
-
-function getOpacity() {
-  return parseFloat(document.getElementById('layerSlider').value) / 10;
-}
 
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, preserveDrawingBuffer: true, antialias: true, alpha: false, depth: false, stencil: false });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
-const camera3D = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+const cam3D = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 const scene = new THREE.Scene();
 const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
 scene.add(quad);
 
-// Layers
 const layers = [];
 let video, stream;
 
-// Canvas-based video texture (avoid VideoTexture issues)
+// Canvas-based video texture
 const vidCanvas = document.createElement('canvas');
 const vidCtx = vidCanvas.getContext('2d');
-const screenMat = new THREE.MeshBasicMaterial({ map: null });
 let vidTex = null;
+
+const screenMat = new THREE.MeshBasicMaterial({ map: null });
+
+function getOpacity() {
+  return parseFloat(document.getElementById('layerSlider').value) / 10;
+}
 
 function updateStatus() {
   document.getElementById('status').textContent = layers.length ? `已捕获: ${layers.length}` : '';
@@ -104,7 +103,7 @@ document.getElementById('btnCapture').addEventListener('click', () => {
   cap.width = w; cap.height = h;
   cap.getContext('2d').drawImage(video, 0, 0, w, h);
   const tex = new THREE.CanvasTexture(cap);
-  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.colorSpace = THREE.NoColorSpace;
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
   layers.push({ texture: tex });
@@ -116,11 +115,7 @@ document.getElementById('btnUndo').addEventListener('click', () => {
   updateStatus();
 });
 
-function updateStatus() {
-  document.getElementById('status').textContent = layers.length ? `已捕获: ${layers.length}` : '';
-}
-
-// Display shaders
+// Shaders
 const cameraMat = new THREE.ShaderMaterial({
   vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
   fragmentShader: `precision highp float;varying vec2 vUv;uniform sampler2D uTex;
@@ -136,18 +131,17 @@ uniform sampler2D uBase,uLayer;uniform float uOp;
 void main(){
   vec4 base=texture2D(uBase,vUv);
   vec4 layer=texture2D(uLayer,vUv);
-  // Screen blend (double exposure): 1 - (1-base) * (1-layer*opacity)
   vec3 col=1.-(1.-base.rgb)*(1.-layer.rgb*uOp);
   gl_FragColor=vec4(col,1.);
 }`,
-  uniforms: { uBase: { value: null }, uLayer: { value: null }, uOp: { value: LAYER_OPACITY } },
+  uniforms: { uBase: { value: null }, uLayer: { value: null }, uOp: { value: 0.6 } },
   depthTest: false, depthWrite: false,
 });
 
 function blit(mat, target) {
   quad.material = mat;
   renderer.setRenderTarget(target);
-  renderer.render(scene, camera3D);
+  renderer.render(scene, cam3D);
 }
 
 // Ping-pong RTs
@@ -166,31 +160,29 @@ function render() {
   requestAnimationFrame(render);
   if (!video || !video.videoWidth) return;
 
-  // Draw video → canvas → texture (bypass VideoTexture)
   vidCanvas.width = video.videoWidth;
   vidCanvas.height = video.videoHeight;
   vidCtx.drawImage(video, 0, 0);
   if (!vidTex) {
     vidTex = new THREE.CanvasTexture(vidCanvas);
-    vidTex.colorSpace = THREE.SRGBColorSpace;
+    vidTex.colorSpace = THREE.NoColorSpace;
   } else {
     vidTex.needsUpdate = true;
   }
-  if (!vidTex.colorSpace) vidTex.colorSpace = THREE.NoColorSpace;
 
-  // Composite all layers
   if (layers.length === 0) {
     cameraMat.uniforms.uTex.value = vidTex;
     quad.material = cameraMat;
     renderer.setRenderTarget(null);
-    renderer.render(scene, camera3D);
+    renderer.render(scene, cam3D);
     return;
   }
 
+  // Composite all layers
+  const op = getOpacity();
   cameraMat.uniforms.uTex.value = vidTex;
   blit(cameraMat, rtA);
 
-  const op = getOpacity();
   let src = rtA, dst = rtB;
   for (let i = 0; i < layers.length; i++) {
     blendMat.uniforms.uBase.value = src.texture;
@@ -200,12 +192,11 @@ function render() {
     const t = src; src = dst; dst = t;
   }
 
-  // src now holds the final result
   screenMat.map = src.texture;
   screenMat.needsUpdate = true;
   quad.material = screenMat;
   renderer.setRenderTarget(null);
-  renderer.render(scene, camera3D);
+  renderer.render(scene, cam3D);
 }
 
 // Save
@@ -231,7 +222,7 @@ document.getElementById('btnSave').addEventListener('click', () => {
   screenMat.needsUpdate = true;
   quad.material = screenMat;
   renderer.setRenderTarget(null);
-  renderer.render(scene, camera3D);
+  renderer.render(scene, cam3D);
 
   const link = document.createElement('a');
   link.download = 'layer-capture-' + Date.now() + '.png';
