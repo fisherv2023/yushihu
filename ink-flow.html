@@ -53,9 +53,10 @@ const CFG = {
   CURL: 14,
   SPLAT_RADIUS: 0.004,
   SPLAT_FORCE: 4000,
-  EDGE_DYE: 0.5,          // edge → dye strength
-  EDGE_VEL: 3.5,          // edge → perpendicular velocity
-  DARK_DYE: 0.15,         // dark areas → dye
+  EDGE_DYE: 0.04,          // edge → dye (was 0.5, way too hot)
+  EDGE_VEL: 2.0,           // edge → perpendicular velocity
+  DARK_DYE: 0.01,          // dark areas → dye (was 0.15)
+  CAM_DISSIPATION: 0.08,   // camera dye fade per frame (was 0.01)
 };
 
 const PAPER = new THREE.Color('#efeae0');
@@ -196,9 +197,8 @@ void main(){
 
   // Edge regions deposit heavy ink; dark regions deposit light ink
   float ink=edge*uEdgeDye+dark*uDarkDye;
-
-  // Smooth edge response (avoid harsh binary)
-  ink=ink/(ink+.3);
+  float et=smoothstep(.15,.5,edge);
+  ink=et*uEdgeDye+dark*uDarkDye;
 
   vec3 nd=dye+vec3(ink);
   nd*=1.-uDissipation;
@@ -257,7 +257,7 @@ uniform sampler2D uDye,uCamera;uniform vec3 uPaper;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 
 void main(){
-  vec3 A=texture2D(uDye,vUv).rgb*2.8;
+  vec3 A=texture2D(uDye,vUv).rgb*1.5;
   vec3 ink=uPaper*exp(-A);
   vec3 cam=texture2D(uCamera,vUv).rgb;
 
@@ -374,7 +374,7 @@ function step(dt) {
     cameraDyeMat.uniforms.uCamTexel.value.set(1 / camW, 1 / camH);
     cameraDyeMat.uniforms.uEdgeDye.value = CFG.EDGE_DYE;
     cameraDyeMat.uniforms.uDarkDye.value = CFG.DARK_DYE;
-    cameraDyeMat.uniforms.uDissipation.value = .01;
+    cameraDyeMat.uniforms.uDissipation.value = CFG.CAM_DISSIPATION;
     blit(cameraDyeMat, dye.write);
     dye.swap();
 
