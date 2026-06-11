@@ -6,33 +6,30 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
-<title>Ink Flow - GPU Fluid Simulation</title>
+<title>Ink Flow</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;color:#fff;font-family:-apple-system,sans-serif;overflow:hidden;touch-action:none}
 canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1}
-.panel{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:10px;background:rgba(0,0,0,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:8px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.12)}
-.panel button{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.panel button:active{background:rgba(255,255,255,.18)}
-.panel button.active{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4)}
 .perm{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.92);backdrop-filter:blur(20px)}
 .perm .title{font-size:19px;font-weight:600;margin-bottom:6px}
 .perm .desc{font-size:13px;opacity:.5;margin-bottom:22px;text-align:center}
 .perm .btn{padding:13px 36px;border-radius:24px;border:none;background:#fff;color:#111;font-size:15px;font-weight:600;cursor:pointer}
-.status{position:fixed;top:16px;left:16px;z-index:10;font-size:11px;opacity:.35}
+.panel{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:10px;background:rgba(0,0,0,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:8px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.12)}
+.panel button{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.panel button:active{background:rgba(255,255,255,.18)}
+.status{position:fixed;top:16px;left:16px;z-index:10;font-size:10px;opacity:.3;font-family:monospace}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <div class="perm" id="perm">
   <div class="title">Ink Flow</div>
-  <div class="desc">GPU fluid simulation<br>with live camera</div>
+  <div class="desc">GPU fluid simulation — edges bleed ink</div>
   <button class="btn" id="permBtn">Allow Camera</button>
 </div>
 <div class="status" id="status"></div>
 <div class="panel" id="panel" style="display:none">
-  <button id="btnClear" title="洗い流す">洗</button>
-  <button id="btnPause" title="暂停">⏯</button>
   <button id="btnSave" title="保存">⤓</button>
 </div>
 
@@ -43,21 +40,22 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 import * as THREE from 'three';
 
 /* ════════════════════════════════════════════
-   Ink Flow — GPU Stable Fluids + Camera
-   Adapted from Suminagashi (@hayashimon1)
+   Ink Flow v2 — Edge-driven Stable Fluids
+   Camera edges → continuous dye + velocity bleed
    ════════════════════════════════════════════ */
 
-const config = {
+const CFG = {
   SIM_RES: 128,
   DYE_MAX: 512,
   PRESSURE_ITER: 20,
-  VEL_DISSIPATION: 0.18,
-  DYE_DISSIPATION: 0.01,
-  CURL: 12,
+  VEL_DISSIPATION: 0.25,
+  DYE_DISSIPATION: 0.005,
+  CURL: 14,
   SPLAT_RADIUS: 0.004,
   SPLAT_FORCE: 4000,
-  CAMERA_DEPOSIT: 0.6,    // how much camera image deposits as ink
-  CAMERA_DISSIPATION: 0.4,  // how fast camera ink fades
+  EDGE_DYE: 0.5,          // edge → dye strength
+  EDGE_VEL: 3.5,          // edge → perpendicular velocity
+  DARK_DYE: 0.15,         // dark areas → dye
 };
 
 const PAPER = new THREE.Color('#efeae0');
@@ -92,35 +90,27 @@ scene.add(quad);
 // ── FBO helpers ──
 function makeRT(w, h) {
   return new THREE.WebGLRenderTarget(w, h, {
-    minFilter: THREE.LinearFilter,
-    magFilter: THREE.LinearFilter,
-    wrapS: THREE.ClampToEdgeWrapping,
-    wrapT: THREE.ClampToEdgeWrapping,
-    format: THREE.RGBAFormat,
-    type: THREE.HalfFloatType,
-    depthBuffer: false,
+    minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+    wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
+    format: THREE.RGBAFormat, type: THREE.HalfFloatType, depthBuffer: false,
   });
 }
 function makeDoubleFBO(w, h) {
   return {
-    read: makeRT(w, h),
-    write: makeRT(w, h),
+    read: makeRT(w, h), write: makeRT(w, h),
     texel: new THREE.Vector2(1 / w, 1 / h),
     swap() { const t = this.read; this.read = this.write; this.write = t; },
-    resize(nw, nh) {
-      this.read.setSize(nw, nh); this.write.setSize(nw, nh);
-      this.texel.set(1 / nw, 1 / nh);
-    },
+    resize(nw, nh) { this.read.setSize(nw, nh); this.write.setSize(nw, nh); this.texel.set(1 / nw, 1 / nh); },
   };
 }
 
 function simSizes() {
   const aspect = innerWidth / innerHeight;
-  const sim = config.SIM_RES;
-  const dyeMax = Math.min(config.DYE_MAX, Math.max(innerWidth, innerHeight));
+  const sim = CFG.SIM_RES;
+  const dm = Math.min(CFG.DYE_MAX, Math.max(innerWidth, innerHeight));
   return aspect >= 1
-    ? { sw: Math.round(sim * aspect), sh: sim, dw: dyeMax, dh: Math.round(dyeMax / aspect) }
-    : { sw: sim, sh: Math.round(sim / aspect), dw: Math.round(dyeMax * aspect), dh: dyeMax };
+    ? { sw: Math.round(sim * aspect), sh: sim, dw: dm, dh: Math.round(dm / aspect) }
+    : { sw: sim, sh: Math.round(sim / aspect), dw: Math.round(dm * aspect), dh: dm };
 }
 
 let S = simSizes();
@@ -131,208 +121,163 @@ const curlRT    = makeRT(S.sw, S.sh);
 const divergeRT = makeRT(S.sw, S.sh);
 
 // ── Shaders ──
-const VERT = /* glsl */`
-  varying vec2 vUv;
-  void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }
-`;
-
-function prog(frag, uniforms = {}) {
-  return new THREE.ShaderMaterial({
-    vertexShader: VERT, fragmentShader: frag, uniforms,
-    depthTest: false, depthWrite: false,
-  });
+const VERT = `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`;
+function prog(frag, u = {}) {
+  return new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: frag, uniforms: u, depthTest: false, depthWrite: false });
 }
 
-const advectMat = prog(/* glsl */`
-  precision highp float;
-  varying vec2 vUv;
-  uniform sampler2D uVelocity, uSource;
-  uniform vec2 uTexel;
-  uniform float uDt, uDissipation;
-  void main(){
-    vec2 coord = vUv - uDt * texture2D(uVelocity, vUv).xy * uTexel;
-    vec4 result = texture2D(uSource, coord);
-    gl_FragColor = result / (1.0 + uDissipation * uDt);
-  }
-`, {
-  uVelocity: { value: null }, uSource: { value: null },
-  uTexel: { value: new THREE.Vector2() }, uDt: { value: 0 }, uDissipation: { value: 0 },
+// ---- Simulation passes ----
+const advectMat = prog(`precision highp float;varying vec2 vUv;uniform sampler2D uVelocity,uSource;uniform vec2 uTexel;uniform float uDt,uDissipation;
+void main(){vec2 c=vUv-uDt*texture2D(uVelocity,vUv).xy*uTexel;gl_FragColor=texture2D(uSource,c)/(1.+uDissipation*uDt);}`, {
+  uVelocity:{value:null},uSource:{value:null},uTexel:{value:new THREE.Vector2()},uDt:{value:0},uDissipation:{value:0},
 });
 
-const splatMat = prog(/* glsl */`
-  precision highp float;
-  varying vec2 vUv;
-  uniform sampler2D uTarget;
-  uniform float uAspect, uRadius;
-  uniform vec2 uPoint;
-  uniform vec3 uColor;
-  void main(){
-    vec2 p = vUv - uPoint;
-    p.x *= uAspect;
-    vec3 splat = exp(-dot(p, p) / uRadius) * uColor;
-    gl_FragColor = vec4(texture2D(uTarget, vUv).rgb + splat, 1.0);
-  }
-`, {
-  uTarget: { value: null }, uAspect: { value: 1 }, uRadius: { value: 0.001 },
-  uPoint: { value: new THREE.Vector2() }, uColor: { value: new THREE.Vector3() },
+const splatMat = prog(`precision highp float;varying vec2 vUv;uniform sampler2D uTarget;uniform float uAspect,uRadius;uniform vec2 uPoint;uniform vec3 uColor;
+void main(){vec2 p=vUv-uPoint;p.x*=uAspect;gl_FragColor=vec4(texture2D(uTarget,vUv).rgb+exp(-dot(p,p)/uRadius)*uColor,1.);}`, {
+  uTarget:{value:null},uAspect:{value:1},uRadius:{value:.001},uPoint:{value:new THREE.Vector2()},uColor:{value:new THREE.Vector3()},
 });
 
-const curlMat = prog(/* glsl */`
-  precision highp float;
-  varying vec2 vUv;
-  uniform sampler2D uVelocity;
-  uniform vec2 uTexel;
-  void main(){
-    float L = texture2D(uVelocity, vUv - vec2(uTexel.x, 0.0)).y;
-    float R = texture2D(uVelocity, vUv + vec2(uTexel.x, 0.0)).y;
-    float B = texture2D(uVelocity, vUv - vec2(0.0, uTexel.y)).x;
-    float T = texture2D(uVelocity, vUv + vec2(0.0, uTexel.y)).x;
-    gl_FragColor = vec4(0.5 * (R - L - T + B), 0.0, 0.0, 1.0);
-  }
-`, { uVelocity: { value: null }, uTexel: { value: new THREE.Vector2() } });
-
-const vorticityMat = prog(/* glsl */`
-  precision highp float;
-  varying vec2 vUv;
-  uniform sampler2D uVelocity, uCurl;
-  uniform vec2 uTexel;
-  uniform float uCurlStrength, uDt;
-  void main(){
-    float L = texture2D(uCurl, vUv - vec2(uTexel.x, 0.0)).x;
-    float R = texture2D(uCurl, vUv + vec2(uTexel.x, 0.0)).x;
-    float B = texture2D(uCurl, vUv - vec2(0.0, uTexel.y)).x;
-    float T = texture2D(uCurl, vUv + vec2(0.0, uTexel.y)).x;
-    float C = texture2D(uCurl, vUv).x;
-    vec2 force = 0.5 * vec2(abs(T) - abs(B), abs(R) - abs(L));
-    force /= length(force) + 0.0001;
-    force *= uCurlStrength * C;
-    force.y *= -1.0;
-    vec2 vel = texture2D(uVelocity, vUv).xy + force * uDt;
-    gl_FragColor = vec4(clamp(vel, -1000.0, 1000.0), 0.0, 1.0);
-  }
-`, {
-  uVelocity: { value: null }, uCurl: { value: null },
-  uTexel: { value: new THREE.Vector2() }, uCurlStrength: { value: 0 }, uDt: { value: 0 },
+const curlMat = prog(`precision highp float;varying vec2 vUv;uniform sampler2D uVelocity;uniform vec2 uTexel;
+void main(){float L=texture2D(uVelocity,vUv-vec2(uTexel.x,0.)).y,R=texture2D(uVelocity,vUv+vec2(uTexel.x,0.)).y,B=texture2D(uVelocity,vUv-vec2(0.,uTexel.y)).x,T=texture2D(uVelocity,vUv+vec2(0.,uTexel.y)).x;gl_FragColor=vec4(.5*(R-L-T+B),0.,0.,1.);}`, {
+  uVelocity:{value:null},uTexel:{value:new THREE.Vector2()},
 });
 
-const divergeMat = prog(/* glsl */`
-  precision highp float;
-  varying vec2 vUv;
-  uniform sampler2D uVelocity;
-  uniform vec2 uTexel;
-  void main(){
-    float L = texture2D(uVelocity, vUv - vec2(uTexel.x, 0.0)).x;
-    float R = texture2D(uVelocity, vUv + vec2(uTexel.x, 0.0)).x;
-    float B = texture2D(uVelocity, vUv - vec2(0.0, uTexel.y)).y;
-    float T = texture2D(uVelocity, vUv + vec2(0.0, uTexel.y)).y;
-    vec2 C = texture2D(uVelocity, vUv).xy;
-    if (vUv.x - uTexel.x < 0.0) L = -C.x;
-    if (vUv.x + uTexel.x > 1.0) R = -C.x;
-    if (vUv.y - uTexel.y < 0.0) B = -C.y;
-    if (vUv.y + uTexel.y > 1.0) T = -C.y;
-    gl_FragColor = vec4(0.5 * (R - L + T - B), 0.0, 0.0, 1.0);
-  }
-`, { uVelocity: { value: null }, uTexel: { value: new THREE.Vector2() } });
-
-const pressureMat = prog(/* glsl */`
-  precision highp float;
-  varying vec2 vUv;
-  uniform sampler2D uPressure, uDivergence;
-  uniform vec2 uTexel;
-  void main(){
-    float L = texture2D(uPressure, vUv - vec2(uTexel.x, 0.0)).x;
-    float R = texture2D(uPressure, vUv + vec2(uTexel.x, 0.0)).x;
-    float B = texture2D(uPressure, vUv - vec2(0.0, uTexel.y)).x;
-    float T = texture2D(uPressure, vUv + vec2(0.0, uTexel.y)).x;
-    float div = texture2D(uDivergence, vUv).x;
-    gl_FragColor = vec4((L + R + B + T - div) * 0.25, 0.0, 0.0, 1.0);
-  }
-`, { uPressure: { value: null }, uDivergence: { value: null }, uTexel: { value: new THREE.Vector2() } });
-
-const gradientMat = prog(/* glsl */`
-  precision highp float;
-  varying vec2 vUv;
-  uniform sampler2D uPressure, uVelocity;
-  uniform vec2 uTexel;
-  void main(){
-    float L = texture2D(uPressure, vUv - vec2(uTexel.x, 0.0)).x;
-    float R = texture2D(uPressure, vUv + vec2(uTexel.x, 0.0)).x;
-    float B = texture2D(uPressure, vUv - vec2(0.0, uTexel.y)).x;
-    float T = texture2D(uPressure, vUv + vec2(0.0, uTexel.y)).x;
-    vec2 vel = texture2D(uVelocity, vUv).xy - vec2(R - L, T - B);
-    gl_FragColor = vec4(vel, 0.0, 1.0);
-  }
-`, { uPressure: { value: null }, uVelocity: { value: null }, uTexel: { value: new THREE.Vector2() } });
-
-const clearMat = prog(/* glsl */`
-  precision highp float;
-  varying vec2 vUv;
-  uniform sampler2D uTexture;
-  uniform float uValue;
-  void main(){ gl_FragColor = uValue * texture2D(uTexture, vUv); }
-`, { uTexture: { value: null }, uValue: { value: 0.8 } });
-
-// Camera deposit shader: blends camera frame into dye field as ink
-const cameraDepositMat = prog(/* glsl */`
-  precision highp float;
-  varying vec2 vUv;
-  uniform sampler2D uDye, uCamera;
-  uniform float uDeposit, uDissipation;
-  void main(){
-    vec4 dye = texture2D(uDye, vUv);
-    vec3 cam = texture2D(uCamera, vUv).rgb;
-    // Darker camera areas deposit more ink
-    float lum = dot(cam, vec3(0.299, 0.587, 0.114));
-    float inkSource = (1.0 - lum) * uDeposit;
-    vec3 newDye = dye.rgb + vec3(inkSource);
-    // Fade existing dye slightly
-    newDye *= (1.0 - uDissipation);
-    gl_FragColor = vec4(max(newDye, 0.0), 1.0);
-  }
-`, {
-  uDye: { value: null }, uCamera: { value: null },
-  uDeposit: { value: 0.6 }, uDissipation: { value: 0.4 },
+const vorticityMat = prog(`precision highp float;varying vec2 vUv;uniform sampler2D uVelocity,uCurl;uniform vec2 uTexel;uniform float uCurlStrength,uDt;
+void main(){float L=texture2D(uCurl,vUv-vec2(uTexel.x,0.)).x,R=texture2D(uCurl,vUv+vec2(uTexel.x,0.)).x,B=texture2D(uCurl,vUv-vec2(0.,uTexel.y)).x,T=texture2D(uCurl,vUv+vec2(0.,uTexel.y)).x,C=texture2D(uCurl,vUv).x;vec2 f=.5*vec2(abs(T)-abs(B),abs(R)-abs(L));f/=length(f)+1e-4;f*=uCurlStrength*C;f.y*=-1.;vec2 v=texture2D(uVelocity,vUv).xy+f*uDt;gl_FragColor=vec4(clamp(v,-1e3,1e3),0.,1.);}`, {
+  uVelocity:{value:null},uCurl:{value:null},uTexel:{value:new THREE.Vector2()},uCurlStrength:{value:0},uDt:{value:0},
 });
 
-// Display shader: paper × exp(-dye) for subtractive ink look
-const displayMat = prog(/* glsl */`
-  precision highp float;
-  varying vec2 vUv;
-  uniform sampler2D uDye, uCamera;
-  uniform vec3 uPaper;
-  uniform float uShowCamera;
+const divergeMat = prog(`precision highp float;varying vec2 vUv;uniform sampler2D uVelocity;uniform vec2 uTexel;
+void main(){float L=texture2D(uVelocity,vUv-vec2(uTexel.x,0.)).x,R=texture2D(uVelocity,vUv+vec2(uTexel.x,0.)).x,B=texture2D(uVelocity,vUv-vec2(0.,uTexel.y)).y,T=texture2D(uVelocity,vUv+vec2(0.,uTexel.y)).y;vec2 C=texture2D(uVelocity,vUv).xy;if(vUv.x-uTexel.x<0.)L=-C.x;if(vUv.x+uTexel.x>1.)R=-C.x;if(vUv.y-uTexel.y<0.)B=-C.y;if(vUv.y+uTexel.y>1.)T=-C.y;gl_FragColor=vec4(.5*(R-L+T-B),0.,0.,1.);}`, {
+  uVelocity:{value:null},uTexel:{value:new THREE.Vector2()},
+});
 
-  float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+const pressureMat = prog(`precision highp float;varying vec2 vUv;uniform sampler2D uPressure,uDivergence;uniform vec2 uTexel;
+void main(){float L=texture2D(uPressure,vUv-vec2(uTexel.x,0.)).x,R=texture2D(uPressure,vUv+vec2(uTexel.x,0.)).x,B=texture2D(uPressure,vUv-vec2(0.,uTexel.y)).x,T=texture2D(uPressure,vUv+vec2(0.,uTexel.y)).x;float d=texture2D(uDivergence,vUv).x;gl_FragColor=vec4((L+R+B+T-d)*.25,0.,0.,1.);}`, {
+  uPressure:{value:null},uDivergence:{value:null},uTexel:{value:new THREE.Vector2()},
+});
 
-  void main(){
-    // Absorption from dye field
-    vec3 A = texture2D(uDye, vUv).rgb * 2.5;
+const gradientMat = prog(`precision highp float;varying vec2 vUv;uniform sampler2D uPressure,uVelocity;uniform vec2 uTexel;
+void main(){float L=texture2D(uPressure,vUv-vec2(uTexel.x,0.)).x,R=texture2D(uPressure,vUv+vec2(uTexel.x,0.)).x,B=texture2D(uPressure,vUv-vec2(0.,uTexel.y)).x,T=texture2D(uPressure,vUv+vec2(0.,uTexel.y)).x;vec2 v=texture2D(uVelocity,vUv).xy-vec2(R-L,T-B);gl_FragColor=vec4(v,0.,1.);}`, {
+  uPressure:{value:null},uVelocity:{value:null},uTexel:{value:new THREE.Vector2()},
+});
 
-    // Ink-only: paper × exp(-A)
-    vec3 inkLayer = uPaper * exp(-A);
+const clearMat = prog(`precision highp float;varying vec2 vUv;uniform sampler2D uTexture;uniform float uValue;
+void main(){gl_FragColor=uValue*texture2D(uTexture,vUv);}`, {
+  uTexture:{value:null},uValue:{value:.8},
+});
 
-    // Camera layer (shows through where no ink)
-    vec3 camLayer = texture2D(uCamera, vUv).rgb;
+// ---- Camera → edge-driven dye deposit ----
+const cameraDyeMat = prog(`precision highp float;varying vec2 vUv;
+uniform sampler2D uDye,uCamera;
+uniform vec2 uCamTexel;
+uniform float uEdgeDye,uDarkDye,uDissipation;
 
-    // Blend: ink on top of camera
-    float inkDensity = 1.0 - exp(-length(A) * 0.5);
-    vec3 col = mix(camLayer, inkLayer, inkDensity);
+float lum(vec3 c){return dot(c,vec3(.299,.587,.114));}
 
-    // Paper grain
-    float grain = hash(vUv * 420.0) * 0.012 + hash(vUv * 180.0) * 0.008;
-    col += grain * inkDensity;
+float sobel(vec2 uv,vec2 t){
+  float tl=lum(texture2D(uCamera,uv+vec2(-t.x,t.y)).rgb);
+  float tc=lum(texture2D(uCamera,uv+vec2(0.,t.y)).rgb);
+  float tr=lum(texture2D(uCamera,uv+vec2(t.x,t.y)).rgb);
+  float ml=lum(texture2D(uCamera,uv+vec2(-t.x,0.)).rgb);
+  float mr=lum(texture2D(uCamera,uv+vec2(t.x,0.)).rgb);
+  float bl=lum(texture2D(uCamera,uv+vec2(-t.x,-t.y)).rgb);
+  float bc=lum(texture2D(uCamera,uv+vec2(0.,-t.y)).rgb);
+  float br=lum(texture2D(uCamera,uv+vec2(t.x,-t.y)).rgb);
+  float gx=-tl-2.*ml-bl+tr+2.*mr+br;
+  float gy=-tl-2.*tc-tr+bl+2.*bc+br;
+  return sqrt(gx*gx+gy*gy);
+}
 
-    // Vignette
-    vec2 uv2 = vUv * (1.0 - vUv.yx);
-    float vig = pow(uv2.x * uv2.y * 15.0, 0.15);
-    col *= 0.92 + 0.08 * vig;
+void main(){
+  vec3 dye=texture2D(uDye,vUv).rgb;
+  float edge=sobel(vUv,uCamTexel);
+  float dark=1.-lum(texture2D(uCamera,vUv).rgb);
 
-    gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
-  }
-`, {
-  uDye: { value: null }, uCamera: { value: null },
-  uPaper: { value: new THREE.Vector3(PAPER.r, PAPER.g, PAPER.b) },
-  uShowCamera: { value: 1 },
+  // Edge regions deposit heavy ink; dark regions deposit light ink
+  float ink=edge*uEdgeDye+dark*uDarkDye;
+
+  // Smooth edge response (avoid harsh binary)
+  ink=ink/(ink+.3);
+
+  vec3 nd=dye+vec3(ink);
+  nd*=1.-uDissipation;
+  gl_FragColor=vec4(max(nd,0.),1.);
+}`, {
+  uDye:{value:null},uCamera:{value:null},uCamTexel:{value:new THREE.Vector2()},
+  uEdgeDye:{value:.5},uDarkDye:{value:.15},uDissipation:{value:.01},
+});
+
+// ---- Camera → edge perpendicular velocity ----
+const cameraVelMat = prog(`precision highp float;varying vec2 vUv;
+uniform sampler2D uVelocity,uCamera;
+uniform vec2 uCamTexel;
+uniform float uEdgeVel;
+
+float lum(vec3 c){return dot(c,vec3(.299,.587,.114));}
+
+void main(){
+  vec2 vel=texture2D(uVelocity,vUv).xy;
+
+  // Sobel
+  float tl=lum(texture2D(uCamera,vUv+vec2(-uCamTexel.x,uCamTexel.y)).rgb);
+  float tr=lum(texture2D(uCamera,vUv+vec2(uCamTexel.x,uCamTexel.y)).rgb);
+  float ml=lum(texture2D(uCamera,vUv+vec2(-uCamTexel.x,0.)).rgb);
+  float mr=lum(texture2D(uCamera,vUv+vec2(uCamTexel.x,0.)).rgb);
+  float bl=lum(texture2D(uCamera,vUv+vec2(-uCamTexel.x,-uCamTexel.y)).rgb);
+  float br=lum(texture2D(uCamera,vUv+vec2(uCamTexel.x,-uCamTexel.y)).rgb);
+  float gx=-tl-2.*ml-bl+tr+2.*mr+br;
+  float gx2=-tl+tr-bl+br;
+  float gy=-tl-2.*tl-tr+bl+2.*bl+br;
+  // Fixed: proper Sobel Gy
+  float tc=lum(texture2D(uCamera,vUv+vec2(0.,uCamTexel.y)).rgb);
+  float bc=lum(texture2D(uCamera,vUv+vec2(0.,-uCamTexel.y)).rgb);
+  float gy2=-tl-2.*tc-tr+bl+2.*bc+br;
+
+  float edge=sqrt(gx*gx+gy2*gy2);
+
+  // Perpendicular direction (rotate gradient 90°)
+  // Edge tangent = (gx, gy). Perpendicular = (-gy, gx) or (gy, -gx)
+  // Push outward from edge — use normalized perpendicular
+  vec2 dir=vec2(-gy2,gx);
+  float len=length(dir);
+  if(len>1e-6)dir/=len;
+
+  vel+=dir*edge*uEdgeVel;
+  gl_FragColor=vec4(clamp(vel,-1e3,1e3),0.,1.);
+}`, {
+  uVelocity:{value:null},uCamera:{value:null},uCamTexel:{value:new THREE.Vector2()},
+  uEdgeVel:{value:3.5},
+});
+
+// ---- Display ----
+const displayMat = prog(`precision highp float;varying vec2 vUv;
+uniform sampler2D uDye,uCamera;uniform vec3 uPaper;
+
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+
+void main(){
+  vec3 A=texture2D(uDye,vUv).rgb*2.8;
+  vec3 ink=uPaper*exp(-A);
+  vec3 cam=texture2D(uCamera,vUv).rgb;
+
+  // Ink density determines blend
+  float d=1.-exp(-length(A)*.5);
+  vec3 col=mix(cam,ink,d);
+
+  // Paper grain where ink is present
+  float grain=hash(vUv*420.)*.012+hash(vUv*180.)*.008;
+  col+=grain*d;
+
+  // Vignette
+  vec2 uv2=vUv*(1.-vUv.yx);
+  float vig=pow(uv2.x*uv2.y*15.,.15);
+  col*=.92+.08*vig;
+
+  gl_FragColor=vec4(clamp(col,0.,1.),1.);
+}`, {
+  uDye:{value:null},uCamera:{value:null},
+  uPaper:{value:new THREE.Vector3(PAPER.r,PAPER.g,PAPER.b)},
 });
 
 function blit(mat, target) {
@@ -342,28 +287,27 @@ function blit(mat, target) {
 }
 
 // ── Splat helpers ──
-function splatVelocity(x, y, fx, fy, radiusMul = 1) {
+function splatVelocity(x, y, fx, fy, r = 1) {
   splatMat.uniforms.uTarget.value = velocity.read.texture;
   splatMat.uniforms.uAspect.value = innerWidth / innerHeight;
   splatMat.uniforms.uPoint.value.set(x, y);
-  splatMat.uniforms.uRadius.value = config.SPLAT_RADIUS * radiusMul;
+  splatMat.uniforms.uRadius.value = CFG.SPLAT_RADIUS * r;
   splatMat.uniforms.uColor.value.set(fx, fy, 0);
   blit(splatMat, velocity.write);
   velocity.swap();
 }
-
-function splatDye(x, y, absorption, radiusMul = 1) {
+function splatDye(x, y, a, r = 1) {
   splatMat.uniforms.uTarget.value = dye.read.texture;
   splatMat.uniforms.uAspect.value = innerWidth / innerHeight;
   splatMat.uniforms.uPoint.value.set(x, y);
-  splatMat.uniforms.uRadius.value = config.SPLAT_RADIUS * radiusMul;
-  splatMat.uniforms.uColor.value.copy(absorption);
+  splatMat.uniforms.uRadius.value = CFG.SPLAT_RADIUS * r;
+  splatMat.uniforms.uColor.value.copy(a);
   blit(splatMat, dye.write);
   dye.swap();
 }
 
 // ── Camera ──
-let video, videoTexture, stream, paused = false;
+let video, videoTexture, stream;
 
 async function startCam() {
   try {
@@ -382,11 +326,10 @@ async function startCam() {
     console.error('Camera:', err);
   }
 }
-
 document.getElementById('permBtn').addEventListener('click', startCam);
 
 // ── Pointer ──
-const pointer = { down: false, x: 0, y: 0, px: 0, py: 0, color: INK_COLORS.sumi };
+const ptr = { down: false, x: 0, y: 0, px: 0, py: 0, moved: false };
 
 function toUV(e) {
   const r = renderer.domElement.getBoundingClientRect();
@@ -395,112 +338,111 @@ function toUV(e) {
 
 canvas.addEventListener('pointerdown', e => {
   const p = toUV(e);
-  pointer.down = true;
-  pointer.x = pointer.px = p.x;
-  pointer.y = pointer.py = p.y;
-  // Sample camera color at touch point for ink color
-  if (videoTexture) {
-    const inkAbs = inkAbsorption(INK_COLORS.sumi, 0.25);
-    splatDye(p.x, p.y, inkAbs, 2.0);
-    const angle = Math.random() * Math.PI * 2;
-    splatVelocity(p.x, p.y, Math.cos(angle) * 80, Math.sin(angle) * 80, 2.0);
-  }
+  ptr.down = true; ptr.moved = false;
+  ptr.x = ptr.px = p.x; ptr.y = ptr.py = p.y;
+  splatDye(p.x, p.y, inkAbsorption(INK_COLORS.sumi, .3), 2.5);
+  splatVelocity(p.x, p.y, (Math.random()-.5)*160, (Math.random()-.5)*160, 2.5);
 });
-
 canvas.addEventListener('pointermove', e => {
   const p = toUV(e);
-  pointer.px = pointer.x; pointer.py = pointer.y;
-  pointer.x = p.x; pointer.y = p.y;
+  ptr.px = ptr.x; ptr.py = ptr.y;
+  ptr.x = p.x; ptr.y = p.y;
+  ptr.moved = true;
 });
-
-addEventListener('pointerup', () => { pointer.down = false; });
-addEventListener('pointercancel', () => { pointer.down = false; });
+addEventListener('pointerup', () => { ptr.down = false; });
+addEventListener('pointercancel', () => { ptr.down = false; });
 
 function applyPointer() {
-  const dx = pointer.x - pointer.px;
-  const dy = pointer.y - pointer.py;
+  if (!ptr.moved) return;
+  ptr.moved = false;
+  const dx = ptr.x - ptr.px, dy = ptr.y - ptr.py;
   if (Math.abs(dx) + Math.abs(dy) < 1e-6) return;
-  const fx = dx * config.SPLAT_FORCE;
-  const fy = dy * config.SPLAT_FORCE;
-  splatVelocity(pointer.x, pointer.y, fx, fy, pointer.down ? 2.5 : 1.5);
-  if (pointer.down) {
-    splatDye(pointer.x, pointer.y, inkAbsorption(INK_COLORS.sumi, 0.06 + Math.min(Math.hypot(dx, dy) * 20, 1) * 0.1), 1.0);
+  splatVelocity(ptr.x, ptr.y, dx * CFG.SPLAT_FORCE, dy * CFG.SPLAT_FORCE, ptr.down ? 3. : 1.8);
+  if (ptr.down) {
+    const s = Math.min(Math.hypot(dx, dy) * 25, 1);
+    splatDye(ptr.x, ptr.y, inkAbsorption(INK_COLORS.sumi, .08 + s * .14), 1.2);
   }
-  pointer.px = pointer.x; pointer.py = pointer.y;
 }
 
 // ── Simulation step ──
 function step(dt) {
-  const sw = S.sw, sh = S.sh;
+  // --- Edge-driven camera deposit (dye) ---
+  if (videoTexture) {
+    const camW = video.videoWidth || 640, camH = video.videoHeight || 480;
+    cameraDyeMat.uniforms.uDye.value = dye.read.texture;
+    cameraDyeMat.uniforms.uCamera.value = videoTexture;
+    cameraDyeMat.uniforms.uCamTexel.value.set(1 / camW, 1 / camH);
+    cameraDyeMat.uniforms.uEdgeDye.value = CFG.EDGE_DYE;
+    cameraDyeMat.uniforms.uDarkDye.value = CFG.DARK_DYE;
+    cameraDyeMat.uniforms.uDissipation.value = .01;
+    blit(cameraDyeMat, dye.write);
+    dye.swap();
 
-  // Curl
+    // --- Edge-driven velocity ---
+    cameraVelMat.uniforms.uVelocity.value = velocity.read.texture;
+    cameraVelMat.uniforms.uCamera.value = videoTexture;
+    cameraVelMat.uniforms.uCamTexel.value.set(1 / camW, 1 / camH);
+    cameraVelMat.uniforms.uEdgeVel.value = CFG.EDGE_VEL;
+    blit(cameraVelMat, velocity.write);
+    velocity.swap();
+  }
+
+  // --- Curl ---
   curlMat.uniforms.uVelocity.value = velocity.read.texture;
   curlMat.uniforms.uTexel.value.copy(velocity.texel);
   blit(curlMat, curlRT);
 
-  // Vorticity confinement
+  // --- Vorticity ---
   vorticityMat.uniforms.uVelocity.value = velocity.read.texture;
   vorticityMat.uniforms.uCurl.value = curlRT.texture;
   vorticityMat.uniforms.uTexel.value.copy(velocity.texel);
-  vorticityMat.uniforms.uCurlStrength.value = config.CURL;
+  vorticityMat.uniforms.uCurlStrength.value = CFG.CURL;
   vorticityMat.uniforms.uDt.value = dt;
   blit(vorticityMat, velocity.write);
   velocity.swap();
 
-  // Divergence
+  // --- Divergence ---
   divergeMat.uniforms.uVelocity.value = velocity.read.texture;
   divergeMat.uniforms.uTexel.value.copy(velocity.texel);
   blit(divergeMat, divergeRT);
 
-  // Pressure solve
+  // --- Pressure solve ---
   clearMat.uniforms.uTexture.value = pressure.read.texture;
-  clearMat.uniforms.uValue.value = 0.8;
-  blit(clearMat, pressure.write);
-  pressure.swap();
+  blit(clearMat, pressure.write); pressure.swap();
   pressureMat.uniforms.uDivergence.value = divergeRT.texture;
   pressureMat.uniforms.uTexel.value.copy(velocity.texel);
-  for (let i = 0; i < config.PRESSURE_ITER; i++) {
+  for (let i = 0; i < CFG.PRESSURE_ITER; i++) {
     pressureMat.uniforms.uPressure.value = pressure.read.texture;
     blit(pressureMat, pressure.write);
     pressure.swap();
   }
 
-  // Gradient subtract
+  // --- Gradient subtract ---
   gradientMat.uniforms.uPressure.value = pressure.read.texture;
   gradientMat.uniforms.uVelocity.value = velocity.read.texture;
   gradientMat.uniforms.uTexel.value.copy(velocity.texel);
   blit(gradientMat, velocity.write);
   velocity.swap();
 
-  // Advect velocity
+  // --- Advect velocity ---
   advectMat.uniforms.uVelocity.value = velocity.read.texture;
   advectMat.uniforms.uSource.value = velocity.read.texture;
   advectMat.uniforms.uTexel.value.copy(velocity.texel);
   advectMat.uniforms.uDt.value = dt;
-  advectMat.uniforms.uDissipation.value = config.VEL_DISSIPATION;
+  advectMat.uniforms.uDissipation.value = CFG.VEL_DISSIPATION;
   blit(advectMat, velocity.write);
   velocity.swap();
 
-  // Camera deposit into dye field
-  if (videoTexture && !paused) {
-    cameraDepositMat.uniforms.uDye.value = dye.read.texture;
-    cameraDepositMat.uniforms.uCamera.value = videoTexture;
-    cameraDepositMat.uniforms.uDeposit.value = config.CAMERA_DEPOSIT;
-    cameraDepositMat.uniforms.uDissipation.value = config.CAMERA_DISSIPATION;
-    blit(cameraDepositMat, dye.write);
-    dye.swap();
-  }
-
-  // Advect dye
+  // --- Advect dye ---
   advectMat.uniforms.uVelocity.value = velocity.read.texture;
   advectMat.uniforms.uSource.value = dye.read.texture;
   advectMat.uniforms.uTexel.value.copy(dye.texel);
-  advectMat.uniforms.uDissipation.value = config.DYE_DISSIPATION;
+  advectMat.uniforms.uDissipation.value = CFG.DYE_DISSIPATION;
   blit(advectMat, dye.write);
   dye.swap();
 }
 
-// ── Render loop ──
+// ── Main loop ──
 let lastT = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
@@ -509,35 +451,20 @@ function frame(now) {
   dt = Math.min(dt, 1 / 30);
   if (dt <= 0) return;
 
-  if (!paused) {
-    applyPointer();
-    step(dt);
-  }
+  applyPointer();
+  step(dt);
 
-  // Display
   displayMat.uniforms.uDye.value = dye.read.texture;
   displayMat.uniforms.uCamera.value = videoTexture;
   blit(displayMat, null);
 
-  // Status
-  if (now % 2000 < 20) {
+  if (now % 3000 < 20) {
     document.getElementById('status').textContent =
-      `vel:${S.sw}×${S.sh} dye:${S.dw}×${S.dh} ${(dt*1000).toFixed(0)}ms`;
+      `vel:${S.sw}×${S.sh} dye:${S.dw}×${S.dh} ${(dt*1000).toFixed(0)}ms edges→ink`;
   }
 }
 
-// ── UI ──
-document.getElementById('btnClear').addEventListener('click', () => {
-  // Reset dye by clearing both buffers
-  const clearDye = makeRT(S.dw, S.dh);
-  dye.read = clearDye; dye.write = makeRT(S.dw, S.dh);
-});
-
-document.getElementById('btnPause').addEventListener('click', () => {
-  paused = !paused;
-  document.getElementById('btnPause').classList.toggle('active', paused);
-});
-
+// ── Save ──
 document.getElementById('btnSave').addEventListener('click', () => {
   renderer.render(scene, camera3D);
   const link = document.createElement('a');
