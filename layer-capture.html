@@ -144,47 +144,61 @@ function blit(mat, target) {
   renderer.render(scene, camera3D);
 }
 
-// Composite RT (recreated on resize)
-let compRT = new THREE.WebGLRenderTarget(innerWidth, innerHeight, {
+// Ping-pong RTs for compositing (reading+writing same RT = undefined WebGL behavior)
+let compA = new THREE.WebGLRenderTarget(innerWidth, innerHeight, {
   minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
   wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
   format: THREE.RGBAFormat, depthBuffer: false,
 });
+let compB = compA.clone();
+
+function composite(displayTex, layersArr, flip) {
+  let src = flip ? compB : compA;
+  let dst = flip ? compA : compB;
+
+  // Pass 1: camera → dst
+  displayMat.uniforms.uCamera.value = displayTex;
+  blit(displayMat, dst);
+
+  // Pass 2-N: composite each layer, ping-pong
+  for (let i = 0; i < layersArr.length; i++) {
+    const layer = layersArr[i];
+    const isLast = i === layersArr.length - 1;
+    const read = (i % 2 === 0) ? dst : src;
+    const write = (i % 2 === 0) ? src : dst;
+
+    layerBlendMat.uniforms.uBase.value = read.texture;
+    layerBlendMat.uniforms.uLayer.value = layer.texture;
+    layerBlendMat.uniforms.uOpacity.value = layer.opacity;
+    blit(layerBlendMat, write);
+
+    if (isLast) {
+      // Final result lives in 'write'
+      if (write === compB) {
+        // Swap so compA always holds final result
+        const t = compA; compA = compB; compB = t;
+      }
+    }
+  }
+
+  return compA;
+}
 
 function render() {
   requestAnimationFrame(render);
   if (!videoTexture) return;
 
-  // Pass 1: camera → compRT
-  displayMat.uniforms.uCamera.value = videoTexture;
-  blit(displayMat, compRT);
-
-  // Pass 2-N: composite each layer
-  for (const layer of layers) {
-    layerBlendMat.uniforms.uBase.value = compRT.texture;
-    layerBlendMat.uniforms.uLayer.value = layer.texture;
-    layerBlendMat.uniforms.uOpacity.value = layer.opacity;
-    blit(layerBlendMat, compRT);
-  }
-
-  // Final: blit to screen
-  quad.material = new THREE.MeshBasicMaterial({ map: compRT.texture });
+  const final = composite(videoTexture, layers, false);
+  // Blit to screen
+  quad.material = new THREE.MeshBasicMaterial({ map: final.texture });
   renderer.setRenderTarget(null);
   renderer.render(scene, camera3D);
 }
 
 // Save
 document.getElementById('btnSave').addEventListener('click', () => {
-  // Re-composite for accurate snapshot
-  displayMat.uniforms.uCamera.value = videoTexture;
-  blit(displayMat, compRT);
-  for (const layer of layers) {
-    layerBlendMat.uniforms.uBase.value = compRT.texture;
-    layerBlendMat.uniforms.uLayer.value = layer.texture;
-    layerBlendMat.uniforms.uOpacity.value = layer.opacity;
-    blit(layerBlendMat, compRT);
-  }
-  quad.material = new THREE.MeshBasicMaterial({ map: compRT.texture });
+  const final = composite(videoTexture, layers, true);
+  quad.material = new THREE.MeshBasicMaterial({ map: final.texture });
   renderer.setRenderTarget(null);
   renderer.render(scene, camera3D);
 
@@ -197,7 +211,8 @@ document.getElementById('btnSave').addEventListener('click', () => {
 // Resize
 addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
-  compRT.setSize(innerWidth, innerHeight);
+  compA.setSize(innerWidth, innerHeight);
+  compB.setSize(innerWidth, innerHeight);
 });
 
 render();
