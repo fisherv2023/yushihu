@@ -502,8 +502,8 @@ document.addEventListener('keydown', function(e){
 <div id="peExit" style="display:none;position:fixed;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;padding:6px 14px;border-radius:14px;font-size:12px;font-family:-apple-system,sans-serif;cursor:pointer;border:1px solid rgba(255,255,255,.15)">← EXIT</div>
 <script>
 (function(){
-  if (!window.__pe_loaded) return;
   setTimeout(function(){
+    if (!window.__pe_loaded) return;
     // Add FLOW + EXPO to free tier
     if (typeof FREE_MODES !== 'undefined') FREE_MODES.push(14, 15);
 
