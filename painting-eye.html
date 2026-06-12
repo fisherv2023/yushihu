@@ -573,13 +573,16 @@ function initExpo(){
 
 let mode=null,flowE=null,expoE=null;
 setTimeout(()=>{
-  if(!window.__pe_loaded)return;
-  const menu=document.querySelector('.mode-menu');if(!menu)return;
+  console.log('PE integration: __pe_loaded=', window.__pe_loaded, '__pe_renderer=', !!window.__pe_renderer, '__peCtx=', !!window.__peCtx);
+  if(!window.__pe_loaded){console.log('PE integration: __pe_loaded is false, aborting');return;}
+  const menu=document.querySelector('.mode-menu');
+  console.log('PE integration: menu found=', !!menu);
+  if(!menu)return;
   const o1=document.createElement('div');o1.className='mode-opt';o1.dataset.m='14';o1.textContent='FLOW';
   const o2=document.createElement('div');o2.className='mode-opt';o2.dataset.m='15';o2.textContent='EXPO';
   menu.appendChild(o1);menu.appendChild(o2);
-  async function sF(){mode='flow';if(expoE)expoE.stop();if(!flowE)flowE=initFlow();await flowE.start();document.getElementById('mL').textContent='FLOW';}
-  async function sE(){mode='expo';if(flowE)flowE.stop();if(!expoE)expoE=initExpo();await expoE.start();document.getElementById('mL').textContent='EXPO';}
+  async function sF(){console.log('PE: showFlow called');mode='flow';if(expoE)expoE.stop();if(!flowE)flowE=initFlow();console.log('PE: flowE=', !!flowE);await flowE.start();console.log('PE: flow started');document.getElementById('mL').textContent='FLOW';}
+  async function sE(){console.log('PE: showExpo called');mode='expo';if(flowE)flowE.stop();if(!expoE)expoE=initExpo();console.log('PE: expoE=', !!expoE);await expoE.start();console.log('PE: expo started');document.getElementById('mL').textContent='EXPO';}
   function hide(){mode=null;if(flowE)flowE.stop();if(expoE)expoE.stop();}
   o1.onclick=sF;o2.onclick=sE;
   document.querySelectorAll('.mode-opt[data-m]:not([data-m="14"]):not([data-m="15"])').forEach(o=>{o.addEventListener('click',()=>setTimeout(hide,100));});
