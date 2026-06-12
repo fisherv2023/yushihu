@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>Double Exposure</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:#fff;font-family:-apple-system,sans-serif;overflow:hidden;touch-action:none}
+canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1}
+.perm{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.92)}
+.perm .title{font-size:19px;font-weight:600;margin-bottom:6px}
+.perm .desc{font-size:13px;opacity:.5;margin-bottom:22px;text-align:center}
+.perm .btn{padding:13px 36px;border-radius:24px;border:none;background:#fff;color:#111;font-size:15px;font-weight:600;cursor:pointer}
+.panel{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:8px;background:rgba(0,0,0,.5);backdrop-filter:blur(12px);padding:6px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.12)}
+.panel button{height:36px;padding:0 14px;border-radius:18px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font-size:13px;cursor:pointer}
+.panel button:active{background:rgba(255,255,255,.18)}
+.panel button.primary{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4)}
+.status{position:fixed;top:16px;left:16px;z-index:10;font-size:12px;opacity:.7}
+.mode-bar{position:fixed;bottom:105px;left:50%;transform:translateX(-50%);z-index:10;display:none;align-items:center;gap:8px;width:75vw;max-width:300px}
+.mode-bar span{font-size:10px;opacity:.4;min-width:24px;text-align:center}
+.slider{appearance:none;-webkit-appearance:none;flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.15);outline:none}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="perm" id="perm">
+  <div class="title">Double Exposure</div>
+  <div class="desc">Capture 2 frames<br>choose blend mode</div>
+  <button class="btn" id="permBtn">Allow Camera</button>
+</div>
+<div class="status" id="status"></div>
+<div class="mode-bar" id="modeBar">
+  <span id="modeLabel">Normal</span>
+  <input type="range" class="slider" id="modeSlider" min="0" max="3" value="0" step="1">
+</div>
+<div class="panel" id="panel" style="display:none">
+  <button class="primary" id="btnCapture">● 捕获</button>
+  <button id="btnSave" style="display:none">保存</button>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const MODES = ['Normal', 'Screen', 'Multiply', 'Overlay'];
+const MODE_LABELS_CN = ['正常', '双重曝光', '正片叠底', '叠加'];
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, preserveDrawingBuffer: true, antialias: true, alpha: false, depth: false, stencil: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+const cam3D = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+const scene = new THREE.Scene();
+const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
+scene.add(quad);
+
+const layers = []; // max 2: [{texture}, {texture}]
+let video, stream;
+const vidCanvas = document.createElement('canvas');
+const vidCtx = vidCanvas.getContext('2d');
+let vidTex = null;
+let composing = false; // true after 2nd capture
+
+function getMode() {
+  return parseInt(document.getElementById('modeSlider').value);
+}
+
+async function startCam() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    video = document.createElement('video');
+    video.srcObject = stream; video.playsInline = true;
+    await video.play();
+    document.getElementById('perm').style.display = 'none';
+    document.getElementById('panel').style.display = 'flex';
+  } catch (err) { console.error(err); }
+}
+document.getElementById('permBtn').addEventListener('click', startCam);
+
+// Capture
+document.getElementById('btnCapture').addEventListener('click', () => {
+  if (!video || !video.videoWidth || layers.length >= 2) return;
+  const w = video.videoWidth, h = video.videoHeight;
+  const cap = document.createElement('canvas');
+  cap.width = w; cap.height = h;
+  cap.getContext('2d').drawImage(video, 0, 0, w, h);
+  const tex = new THREE.CanvasTexture(cap);
+  tex.colorSpace = THREE.NoColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  layers.push({ texture: tex });
+
+  if (layers.length === 1) {
+    document.getElementById('status').textContent = '第一张已捕获 • 再拍一张';
+  }
+
+  if (layers.length === 2) {
+    // Done capturing — hide camera, show composite
+    composing = true;
+    document.getElementById('btnCapture').style.display = 'none';
+    document.getElementById('btnSave').style.display = 'flex';
+    document.getElementById('modeBar').style.display = 'flex';
+    document.getElementById('status').textContent = '选择融合模式';
+  }
+});
+
+// Blend shader
+const compositeMat = new THREE.ShaderMaterial({
+  vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
+  fragmentShader: `precision highp float;varying vec2 vUv;
+uniform sampler2D uTexA,uTexB;uniform int uMode;
+void main(){
+  vec4 a=texture2D(uTexA,vUv);
+  vec4 b=texture2D(uTexB,vUv);
+  vec3 col;
+  if(uMode==0)col=mix(a.rgb,b.rgb,.5);           // Normal 50/50
+  else if(uMode==1)col=1.-(1.-a.rgb)*(1.-b.rgb);  // Screen
+  else if(uMode==2)col=a.rgb*b.rgb;               // Multiply
+  else col=mix(a.rgb*b.rgb*2.,1.-(1.-a.rgb)*(1.-b.rgb)*2.,step(.5,b.rgb)); // Overlay
+  gl_FragColor=vec4(col,1.);
+}`,
+  uniforms: { uTexA: { value: null }, uTexB: { value: null }, uMode: { value: 0 } },
+  depthTest: false, depthWrite: false,
+});
+
+// Simple camera shader
+const cameraMat = new THREE.ShaderMaterial({
+  vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
+  fragmentShader: `precision highp float;varying vec2 vUv;uniform sampler2D uTex;
+void main(){gl_FragColor=texture2D(uTex,vUv);}`,
+  uniforms: { uTex: { value: null } },
+  depthTest: false, depthWrite: false,
+});
+
+function render(now) {
+  requestAnimationFrame(render);
+  if (!video || !video.videoWidth) return;
+
+  if (composing && layers.length === 2) {
+    // Show composite of 2 layers
+    compositeMat.uniforms.uTexA.value = layers[0].texture;
+    compositeMat.uniforms.uTexB.value = layers[1].texture;
+    compositeMat.uniforms.uMode.value = getMode();
+    quad.material = compositeMat;
+    renderer.setRenderTarget(null);
+    renderer.render(scene, cam3D);
+  } else {
+    // Live camera
+    vidCanvas.width = video.videoWidth;
+    vidCanvas.height = video.videoHeight;
+    vidCtx.drawImage(video, 0, 0);
+    if (!vidTex) { vidTex = new THREE.CanvasTexture(vidCanvas); vidTex.colorSpace = THREE.NoColorSpace; }
+    else { vidTex.needsUpdate = true; }
+
+    cameraMat.uniforms.uTex.value = vidTex;
+    quad.material = cameraMat;
+    renderer.setRenderTarget(null);
+    renderer.render(scene, cam3D);
+  }
+}
+
+// Mode slider
+document.getElementById('modeSlider').addEventListener('input', () => {
+  document.getElementById('modeLabel').textContent = MODE_LABELS_CN[getMode()];
+});
+
+// Save
+document.getElementById('btnSave').addEventListener('click', () => {
+  compositeMat.uniforms.uTexA.value = layers[0].texture;
+  compositeMat.uniforms.uTexB.value = layers[1].texture;
+  compositeMat.uniforms.uMode.value = getMode();
+  quad.material = compositeMat;
+  renderer.setRenderTarget(null);
+  renderer.render(scene, cam3D);
+
+  const link = document.createElement('a');
+  link.download = 'double-exposure-' + Date.now() + '.png';
+  link.href = renderer.domElement.toDataURL('image/png');
+  link.click();
+});
+
+addEventListener('resize', () => renderer.setSize(innerWidth, innerHeight));
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
