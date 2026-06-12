@@ -68,6 +68,7 @@ const CFG = {
   DYE_DISSIPATION: 0.005,  // gentle overall fade
   DYE_SATURATION: 1.7,     // boost camera color saturation before ink conversion
 };
+window.__inkCFG = CFG;
 
 const PAPER = new THREE.Color('#efeae0');
 const INK_COLORS = {
@@ -513,6 +514,19 @@ addEventListener('resize', () => {
 });
 
 requestAnimationFrame(frame);
+</script>
+<script>
+// Handle postMessage from painting-eye iframe integration
+window.addEventListener('message', function(e) {
+  if (e.data.type === 'slider' && window.__inkCFG) {
+    var v = e.data.value / e.data.max;
+    window.__inkCFG.DYE_DISSIPATION = 0.005 + v * 0.045;
+    window.__inkCFG.EDGE_DYE = 0.01 + v * 0.06;
+  }
+  if (e.data.type === 'license') {
+    try { localStorage.setItem('pe_license', e.data.key); } catch(_) {}
+  }
+});
 </script>
 </body>
 </html>
