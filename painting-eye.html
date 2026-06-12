@@ -602,6 +602,7 @@ setTimeout(() => {
     function sD(x,y,a,r=1){spl.uniforms.uTg.v=dye.read.texture;spl.uniforms.uA.v=innerWidth/innerHeight;spl.uniforms.uP.v.set(x,y);spl.uniforms.uR.v=CFG.SPLAT_RADIUS*r;spl.uniforms.uC.v.copy(a);blit(spl,dye.write);dye.swap();}
 
     let animId, running=false, vidTex=null, video=null;
+    const vc=document.createElement('canvas'),vctx=vc.getContext('2d');
     const ptr={down:false,x:0,y:0,px:0,py:0,moved:false};
     function toUV(e){const r=renderer.domElement.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:1-(e.clientY-r.top)/r.height};}
 
@@ -628,6 +629,8 @@ setTimeout(() => {
       if(!running)return;
       animId=requestAnimationFrame(frame);
       let dt=(now-lastT)/1000;lastT=now;dt=Math.min(dt,1/30);if(dt<=0)return;
+      // Canvas capture from video (avoids VideoTexture issues)
+      if(video&&video.videoWidth){vc.width=video.videoWidth;vc.height=video.videoHeight;vctx.drawImage(video,0,0);if(!vidTex){vidTex=new THREE.CanvasTexture(vc);vidTex.colorSpace=THREE.NoColorSpace;}else{vidTex.needsUpdate=true;}}
       applyPtr();step(dt);
       disp.uniforms.uD.v=dye.read.texture;disp.uniforms.uC.v=vidTex;blit(disp,null);
     }
@@ -642,7 +645,7 @@ setTimeout(() => {
       async start() {
         video = await getVideo();
         if(!video) return;
-        if(!vidTex){vidTex=new THREE.VideoTexture(video);vidTex.colorSpace=THREE.SRGBColorSpace;}
+        vidTex=null; // will be created on first frame
         running=true;lastT=performance.now();animId=requestAnimationFrame(frame);
       },
       stop() {running=false;if(animId)cancelAnimationFrame(animId);}
