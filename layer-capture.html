@@ -99,10 +99,10 @@ document.getElementById('btnCapture').addEventListener('click', () => {
   cap.width = w; cap.height = h;
   cap.getContext('2d').drawImage(video, 0, 0, w, h);
   const tex = new THREE.CanvasTexture(cap);
-  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.colorSpace = THREE.NoColorSpace;
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
-  layers.push({ texture: tex });
+  layers.push({ texture: tex, opacity: getOpacity() });
   updateStatus();
 });
 
@@ -167,7 +167,7 @@ function render() {
   vidCtx.drawImage(video, 0, 0);
   if (!vidTex) {
     vidTex = new THREE.CanvasTexture(vidCanvas);
-    vidTex.colorSpace = THREE.SRGBColorSpace;
+    vidTex.colorSpace = THREE.NoColorSpace;
   } else {
     vidTex.needsUpdate = true;
   }
@@ -183,19 +183,21 @@ function render() {
   }
 
   // With layers: composite
-  const op = getOpacity();
   // Pass 1: camera → rtA
   cameraMat.uniforms.uTex.value = vidTex;
   blit(cameraMat, rtA);
 
-  // Pass 2-N: blend each layer
+  // Progressive average: each layer weighted by its capture-time opacity
   let src = rtA, dst = rtB;
+  let totalW = 1; // camera
   for (let i = 0; i < layers.length; i++) {
+    const o = layers[i].opacity;
+    totalW += o;
+    const w = o / totalW; // progressive weight: layer / (camera + all layers so far)
     blendMat.uniforms.uBase.value = src.texture;
     blendMat.uniforms.uLayer.value = layers[i].texture;
-    blendMat.uniforms.uOp.value = op;
+    blendMat.uniforms.uOp.value = w;
     blit(blendMat, dst);
-    // Swap for next iteration
     const t = src; src = dst; dst = t;
   }
 
@@ -212,16 +214,19 @@ document.getElementById('btnSave').addEventListener('click', () => {
   vidCtx.drawImage(video, 0, 0);
   vidTex.needsUpdate = true;
 
-  const op = getOpacity();
-  // Pass 1: camera → rtA
+  // Progressive average: each layer weighted by its capture-time opacity
   cameraMat.uniforms.uTex.value = vidTex;
   blit(cameraMat, rtA);
 
   let src = rtA, dst = rtB;
+  let totalW = 1;
   for (let i = 0; i < layers.length; i++) {
+    const o = layers[i].opacity;
+    totalW += o;
+    const w = o / totalW;
     blendMat.uniforms.uBase.value = src.texture;
     blendMat.uniforms.uLayer.value = layers[i].texture;
-    blendMat.uniforms.uOp.value = op;
+    blendMat.uniforms.uOp.value = w;
     blit(blendMat, dst);
     const t = src; src = dst; dst = t;
   }
