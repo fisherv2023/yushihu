@@ -536,8 +536,6 @@ setTimeout(() => {
     o.addEventListener('click', () => setTimeout(hideModes, 100));
   });
   document.addEventListener('keydown', e => {
-    if (e.key === 'i' && !e.ctrlKey && !e.metaKey) { showInk(); e.preventDefault(); }
-    if (e.key === 'd' && !e.ctrlKey && !e.metaKey) { showDE(); e.preventDefault(); }
     if (e.key === 'Escape') hideModes();
   });
 
@@ -669,8 +667,14 @@ setTimeout(() => {
       else{vc.width=video.videoWidth;vc.height=video.videoHeight;vctx.drawImage(video,0,0);if(!vidTex){vidTex=new THREE.CanvasTexture(vc);vidTex.colorSpace=THREE.NoColorSpace;}else{vidTex.needsUpdate=true;}camMat.uniforms.uT.v=vidTex;quad.material=camMat;renderer.setRenderTarget(null);renderer.render(scene,cam3D);}
     }
 
-    c2.addEventListener('click',capture);
-    c2.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){selMode=(selMode+1)%6;if(composing)document.getElementById('mL').textContent='DE '+MODE_CN[selMode];}if(e.key==='ArrowDown'){selMode=(selMode+5)%6;if(composing)document.getElementById('mL').textContent='DE '+MODE_CN[selMode];}});
+    c2.addEventListener('click',e => {
+      if(composing && layers.length===2) {
+        selMode=(selMode+1)%6;
+        document.getElementById('mL').textContent='DE '+MODE_CN[selMode];
+        return;
+      }
+      capture();
+    });
 
     return {
       start() {video=getVideo();if(!video)return;running=true;animId=requestAnimationFrame(frame);},
