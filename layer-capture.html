@@ -6,9 +6,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <title>Layer Capture</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -23,7 +20,6 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .panel button:active{background:rgba(255,255,255,.18)}
 .panel button.primary{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4)}
 .status{position:fixed;top:16px;right:16px;z-index:10;font-size:12px;opacity:.5}
-.debug{position:fixed;top:16px;left:16px;z-index:10;font-size:11px;opacity:.9;font-family:monospace;color:#ff0;text-shadow:0 0 4px #000}
 .slider-row{position:fixed;bottom:105px;left:50%;transform:translateX(-50%);z-index:10;display:none;align-items:center;gap:8px;width:60vw;max-width:240px}
 .slider-row span{font-size:10px;opacity:.4}
 .slider{appearance:none;-webkit-appearance:none;flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.15);outline:none}
@@ -38,7 +34,6 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
   <button class="btn" id="permBtn">Allow Camera</button>
 </div>
 <div class="status" id="status"></div>
-<div class="debug" id="debug">LOADING...</div>
 <div class="slider-row" id="sliderRow">
   <span>淡</span>
   <input type="range" class="slider" id="layerSlider" min="1" max="10" value="6">
@@ -57,33 +52,28 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 import * as THREE from 'three';
 
 const MAX_LAYERS = 8;
+const LAYER_OPACITY = 0.6;
 
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, preserveDrawingBuffer: true, antialias: true, alpha: false, depth: false, stencil: false });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
-const cam3D = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+const camera3D = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 const scene = new THREE.Scene();
 const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
 scene.add(quad);
 
+// Layers
 const layers = [];
 let video, stream;
 
-// Canvas-based video texture
+// Canvas-based video texture (avoid VideoTexture issues)
 const vidCanvas = document.createElement('canvas');
 const vidCtx = vidCanvas.getContext('2d');
 let vidTex = null;
 
-const screenMat = new THREE.MeshBasicMaterial({ map: null });
-const layerOverlayMat = new THREE.MeshBasicMaterial({ map: null, transparent: true, opacity: 0.6, blending: THREE.NormalBlending, depthTest: false, depthWrite: false });
-
 function getOpacity() {
   return parseFloat(document.getElementById('layerSlider').value) / 10;
-}
-
-function updateStatus() {
-  document.getElementById('status').textContent = layers.length ? `已捕获: ${layers.length}` : '';
 }
 
 async function startCam() {
@@ -109,7 +99,7 @@ document.getElementById('btnCapture').addEventListener('click', () => {
   cap.width = w; cap.height = h;
   cap.getContext('2d').drawImage(video, 0, 0, w, h);
   const tex = new THREE.CanvasTexture(cap);
-  tex.colorSpace = THREE.NoColorSpace;
+  tex.colorSpace = THREE.SRGBColorSpace;
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
   layers.push({ texture: tex });
@@ -121,7 +111,11 @@ document.getElementById('btnUndo').addEventListener('click', () => {
   updateStatus();
 });
 
-// Shaders
+function updateStatus() {
+  document.getElementById('status').textContent = layers.length ? `已捕获: ${layers.length}` : '';
+}
+
+// Display shaders
 const cameraMat = new THREE.ShaderMaterial({
   vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
   fragmentShader: `precision highp float;varying vec2 vUv;uniform sampler2D uTex;
@@ -134,15 +128,21 @@ const blendMat = new THREE.ShaderMaterial({
   vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
   fragmentShader: `precision highp float;varying vec2 vUv;
 uniform sampler2D uBase,uLayer;uniform float uOp;
-void main(){gl_FragColor=mix(texture2D(uBase,vUv),texture2D(uLayer,vUv),uOp);}`,
-  uniforms: { uBase: { value: null }, uLayer: { value: null }, uOp: { value: 0.6 } },
+void main(){
+  vec4 base=texture2D(uBase,vUv);
+  vec4 layer=texture2D(uLayer,vUv);
+  // Simple mix (replaces screen blend that went too bright)
+  vec3 col=mix(base.rgb,layer.rgb,uOp);
+  gl_FragColor=vec4(col,1.);
+}`,
+  uniforms: { uBase: { value: null }, uLayer: { value: null }, uOp: { value: LAYER_OPACITY } },
   depthTest: false, depthWrite: false,
 });
 
 function blit(mat, target) {
   quad.material = mat;
   renderer.setRenderTarget(target);
-  renderer.render(scene, cam3D);
+  renderer.render(scene, camera3D);
 }
 
 // Ping-pong RTs
@@ -157,41 +157,52 @@ let rtB = new THREE.WebGLRenderTarget(innerWidth, innerHeight, {
   format: THREE.RGBAFormat, depthBuffer: false,
 });
 
-function render(now) {
+function render() {
   requestAnimationFrame(render);
-
-  // Debug always visible
-  document.getElementById('debug').textContent = 
-    'v' + Date.now().toString().slice(-6) + ' L:' + layers.length + ' s:' + getOpacity().toFixed(1);
-
   if (!video || !video.videoWidth) return;
 
-  // Create fresh texture every frame (avoids GPU cache issues)
+  // Draw video → canvas → texture (bypass VideoTexture)
   vidCanvas.width = video.videoWidth;
   vidCanvas.height = video.videoHeight;
   vidCtx.drawImage(video, 0, 0);
-  if (vidTex) vidTex.dispose();
-  vidTex = new THREE.CanvasTexture(vidCanvas);
-  vidTex.colorSpace = THREE.NoColorSpace;
-
-  // DIAGNOSTIC: render camera directly, skip all compositing
-  cameraMat.uniforms.uTex.value = vidTex;
-  quad.material = cameraMat;
-  renderer.setRenderTarget(null);
-  renderer.render(scene, cam3D);
-
-  // Composite layers via GPU alpha blending (no RTs)
-  if (layers.length > 0) {
-    const op = getOpacity();
-    for (let i = 0; i < layers.length; i++) {
-      layerOverlayMat.map = layers[i].texture;
-      layerOverlayMat.opacity = op;
-      layerOverlayMat.needsUpdate = true;
-      quad.material = layerOverlayMat;
-      renderer.render(scene, cam3D);
-    }
+  if (!vidTex) {
+    vidTex = new THREE.CanvasTexture(vidCanvas);
+    vidTex.colorSpace = THREE.SRGBColorSpace;
+  } else {
+    vidTex.needsUpdate = true;
   }
-  return;
+
+  // Always show all layers (slider controls opacity now)
+  if (layers.length === 0) {
+    // No layers: render camera directly to screen
+    cameraMat.uniforms.uTex.value = vidTex;
+    quad.material = cameraMat;
+    renderer.setRenderTarget(null);
+    renderer.render(scene, camera3D);
+    return;
+  }
+
+  // With layers: composite
+  const op = getOpacity();
+  // Pass 1: camera → rtA
+  cameraMat.uniforms.uTex.value = vidTex;
+  blit(cameraMat, rtA);
+
+  // Pass 2-N: blend each layer
+  let src = rtA, dst = rtB;
+  for (let i = 0; i < layers.length; i++) {
+    blendMat.uniforms.uBase.value = src.texture;
+    blendMat.uniforms.uLayer.value = layers[i].texture;
+    blendMat.uniforms.uOp.value = op;
+    blit(blendMat, dst);
+    // Swap for next iteration
+    const t = src; src = dst; dst = t;
+  }
+
+  // src now holds the final result
+  quad.material = new THREE.MeshBasicMaterial({ map: src.texture });
+  renderer.setRenderTarget(null);
+  renderer.render(scene, camera3D);
 }
 
 // Save
@@ -199,23 +210,25 @@ document.getElementById('btnSave').addEventListener('click', () => {
   vidCanvas.width = video.videoWidth;
   vidCanvas.height = video.videoHeight;
   vidCtx.drawImage(video, 0, 0);
-  if (vidTex) vidTex.dispose();
-  vidTex = new THREE.CanvasTexture(vidCanvas);
-  vidTex.colorSpace = THREE.NoColorSpace;
-
-  cameraMat.uniforms.uTex.value = vidTex;
-  quad.material = cameraMat;
-  renderer.setRenderTarget(null);
-  renderer.render(scene, cam3D);
+  vidTex.needsUpdate = true;
 
   const op = getOpacity();
+  // Pass 1: camera → rtA
+  cameraMat.uniforms.uTex.value = vidTex;
+  blit(cameraMat, rtA);
+
+  let src = rtA, dst = rtB;
   for (let i = 0; i < layers.length; i++) {
-    layerOverlayMat.map = layers[i].texture;
-    layerOverlayMat.opacity = op;
-    layerOverlayMat.needsUpdate = true;
-    quad.material = layerOverlayMat;
-    renderer.render(scene, cam3D);
+    blendMat.uniforms.uBase.value = src.texture;
+    blendMat.uniforms.uLayer.value = layers[i].texture;
+    blendMat.uniforms.uOp.value = op;
+    blit(blendMat, dst);
+    const t = src; src = dst; dst = t;
   }
+
+  quad.material = new THREE.MeshBasicMaterial({ map: src.texture });
+  renderer.setRenderTarget(null);
+  renderer.render(scene, camera3D);
 
   const link = document.createElement('a');
   link.download = 'layer-capture-' + Date.now() + '.png';
