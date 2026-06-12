@@ -187,13 +187,13 @@ function render() {
   cameraMat.uniforms.uTex.value = vidTex;
   blit(cameraMat, rtA);
 
-  // Each layer uses its own stored opacity from capture time
+  // Live global slider: all layers use current value, real-time preview
   let src = rtA, dst = rtB;
   let totalW = 1; // camera
+  const sw = getOpacity();
   for (let i = 0; i < layers.length; i++) {
-    const o = layers[i].opacity;
-    totalW += o;
-    const w = o / totalW;
+    totalW += sw;
+    const w = sw / totalW;
     blendMat.uniforms.uBase.value = src.texture;
     blendMat.uniforms.uLayer.value = layers[i].texture;
     blendMat.uniforms.uOp.value = w;
@@ -214,7 +214,7 @@ document.getElementById('btnSave').addEventListener('click', () => {
   vidCtx.drawImage(video, 0, 0);
   vidTex.needsUpdate = true;
 
-  // Progressive average: each layer weighted by its capture-time opacity
+  // Save uses each layer's stored opacity (not live slider)
   cameraMat.uniforms.uTex.value = vidTex;
   blit(cameraMat, rtA);
 
