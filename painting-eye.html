@@ -501,7 +501,6 @@ document.addEventListener('keydown', function(e){
 });
 </script>
 
-<canvas id="c2" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2;pointer-events:auto"></canvas>
 <script type="module">
 // FLOW + EXPO — use painting-eye's renderer directly (no second context)
 import * as THREE from 'three';
@@ -585,6 +584,6 @@ setTimeout(()=>{
   o1.onclick=sF;o2.onclick=sE;
   document.querySelectorAll('.mode-opt[data-m]:not([data-m="14"]):not([data-m="15"])').forEach(o=>{o.addEventListener('click',()=>setTimeout(hide,100));});
 },500);
-
+</script>
 </body>
 </html>
