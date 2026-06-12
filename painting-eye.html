@@ -507,27 +507,27 @@ setTimeout(() => {
   if (!menu) return;
 
   // ── Add mode entries ──
-  const o1 = document.createElement('div'); o1.className='mode-opt'; o1.dataset.m='14'; o1.textContent='INK';
-  const o2 = document.createElement('div'); o2.className='mode-opt'; o2.dataset.m='15'; o2.textContent='DE';
+  const o1 = document.createElement('div'); o1.className='mode-opt'; o1.dataset.m='14'; o1.textContent='FLOW';
+  const o2 = document.createElement('div'); o2.className='mode-opt'; o2.dataset.m='15'; o2.textContent='EXPO';
   menu.appendChild(o1); menu.appendChild(o2);
 
   const c2 = document.getElementById('c2'), c1 = document.getElementById('c');
   let inkEngine = null, deEngine = null;
 
   // ── Canvas switching ──
-  function showInk() {
+  async function showInk() {
     if (deEngine) deEngine.stop();
     if (!inkEngine) inkEngine = initInk();
     c1.style.display = 'none'; c2.style.display = 'block';
-    inkEngine.start();
-    document.getElementById('mL').textContent = 'INK';
+    await inkEngine.start();
+    document.getElementById('mL').textContent = 'FLOW';
   }
-  function showDE() {
+  async function showDE() {
     if (inkEngine) inkEngine.stop();
     if (!deEngine) deEngine = initDE();
     c1.style.display = 'none'; c2.style.display = 'block';
-    deEngine.start();
-    document.getElementById('mL').textContent = 'DE';
+    await deEngine.start();
+    document.getElementById('mL').textContent = 'EXPO';
   }
   function hideModes() {
     if (inkEngine) inkEngine.stop();
@@ -544,10 +544,20 @@ setTimeout(() => {
     if (e.key === 'Escape') hideModes();
   });
 
-  // ── Get shared video element ──
-  function getVideo() {
-    const videos = document.querySelectorAll('video');
-    return videos.length > 0 ? videos[0] : null;
+  // ── Get independent camera stream ──
+  let sharedStream = null, sharedVideo = null;
+  async function getVideo() {
+    if (sharedVideo) return sharedVideo;
+    try {
+      sharedStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+      });
+      sharedVideo = document.createElement('video');
+      sharedVideo.srcObject = sharedStream;
+      sharedVideo.playsInline = true;
+      await sharedVideo.play();
+      return sharedVideo;
+    } catch(e) { console.error('Camera for FLOW/EXPO:', e); return null; }
   }
 
   // ═══════════════════════════════════════════
@@ -629,8 +639,8 @@ setTimeout(() => {
     addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);S=ss();vel.resize(S.sw,S.sh);pres.resize(S.sw,S.sh);cRT.setSize(S.sw,S.sh);dRT.setSize(S.sw,S.sh);dye.resize(S.dw,S.dh);});
 
     return {
-      start() {
-        video = getVideo();
+      async start() {
+        video = await getVideo();
         if(!video) return;
         if(!vidTex){vidTex=new THREE.VideoTexture(video);vidTex.colorSpace=THREE.SRGBColorSpace;}
         running=true;lastT=performance.now();animId=requestAnimationFrame(frame);
@@ -661,7 +671,7 @@ setTimeout(() => {
       const w=video.videoWidth,h=video.videoHeight,cap=document.createElement('canvas');cap.width=w;cap.height=h;cap.getContext('2d').drawImage(video,0,0,w,h);
       const t=new THREE.CanvasTexture(cap);t.colorSpace=THREE.NoColorSpace;t.minFilter=THREE.LinearFilter;t.magFilter=THREE.LinearFilter;
       layers.push({texture:t});
-      if(layers.length===2){composing=true;document.getElementById('mL').textContent='DE '+MODE_CN[selMode];}
+      if(layers.length===2){composing=true;document.getElementById('mL').textContent='EXPO '+MODE_CN[selMode];}
     }
 
     function frame(){
@@ -682,7 +692,7 @@ setTimeout(() => {
     });
 
     return {
-      start() {video=getVideo();if(!video)return;running=true;animId=requestAnimationFrame(frame);},
+      async start() {video=await getVideo();if(!video)return;running=true;animId=requestAnimationFrame(frame);},
       stop() {running=false;if(animId)cancelAnimationFrame(animId);composing=false;layers.length=0;vidTex=null;}
     };
   }
