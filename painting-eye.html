@@ -501,6 +501,7 @@ document.addEventListener('keydown', function(e){
 <iframe id="peIframe" allow="camera;microphone" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
 <div id="peExit" style="display:none;position:fixed;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;padding:6px 14px;border-radius:14px;font-size:12px;font-family:-apple-system,sans-serif;cursor:pointer;border:1px solid rgba(255,255,255,.15)">← EXIT</div>
 <script>
+// v2 — __pe_loaded check INSIDE setTimeout
 (function(){
   setTimeout(function(){
     if (!window.__pe_loaded) return;
