@@ -527,16 +527,18 @@ function initFlow() {
   return{async start(){video=await getVideo();if(!video)return;ctxMgr.block();vidTex=null;running=true;lastT=performance.now();animId=ctxMgr.raf(frame);},stop(){running=false;if(animId)cancelAnimationFrame(animId);ctxMgr.unblock();}};
 }
 function initExpo(){
-  const MODE_CN=['正常','双重曝光','正片叠底','叠加','变亮','变暗'];
+  // MINIMAL TEST: raw camera through shared renderer
   const renderer=window.__pe_renderer;
   const cam3D=new THREE.OrthographicCamera(-1,1,1,-1,0,1),expoScene=new THREE.Scene(),quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),null);expoScene.add(quad);
-  const layers=[];let composing=false,running=false,animId,selMode=0,vidTex=null,video=null;const vc=document.createElement('canvas'),vctx=vc.getContext('2d');
-  const compMat=new THREE.ShaderMaterial({vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:'precision highp float;varying vec2 vUv;uniform sampler2D uA,uB;uniform int uM;void main(){vec4 a=texture2D(uA,vUv),b=texture2D(uB,vUv);vec3 c;if(uM==0)c=mix(a.rgb,b.rgb,.5);else if(uM==1)c=1.-(1.-a.rgb)*(1.-b.rgb);else if(uM==2)c=a.rgb*b.rgb;else if(uM==3)c=mix(a.rgb*b.rgb*2.,1.-(1.-a.rgb)*(1.-b.rgb)*2.,step(.5,b.rgb));else if(uM==4)c=max(a.rgb,b.rgb);else c=min(a.rgb,b.rgb);gl_FragColor=vec4(c,1.);}',uniforms:{uA:{v:null},uB:{v:null},uM:{v:0}},depthTest:false,depthWrite:false});
   const camMat=new THREE.ShaderMaterial({vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:'precision highp float;varying vec2 vUv;uniform sampler2D uT;void main(){gl_FragColor=texture2D(uT,vUv);}',uniforms:{uT:{v:null}},depthTest:false,depthWrite:false});
-  function capture(){if(!video||!video.videoWidth||layers.length>=2)return;const w=video.videoWidth,h=video.videoHeight,cap=document.createElement('canvas');cap.width=w;cap.height=h;cap.getContext('2d').drawImage(video,0,0,w,h);const t=new THREE.CanvasTexture(cap);t.colorSpace=THREE.NoColorSpace;t.minFilter=THREE.LinearFilter;t.magFilter=THREE.LinearFilter;layers.push({texture:t});if(layers.length===2){composing=true;document.getElementById('mL').textContent='EXPO '+MODE_CN[selMode];}}
-  function frame(){if(!running)return;animId=ctxMgr.raf(frame);if(!video||!video.videoWidth)return;if(composing&&layers.length===2){compMat.uniforms.uA.v=layers[0].texture;compMat.uniforms.uB.v=layers[1].texture;compMat.uniforms.uM.v=selMode;quad.material=compMat;renderer.setRenderTarget(null);renderer.render(expoScene,cam3D);}else{vc.width=video.videoWidth;vc.height=video.videoHeight;vctx.drawImage(video,0,0);if(!vidTex){vidTex=new THREE.CanvasTexture(vc);vidTex.colorSpace=THREE.NoColorSpace;}else{vidTex.needsUpdate=true;}camMat.uniforms.uT.v=vidTex;quad.material=camMat;renderer.setRenderTarget(null);renderer.render(expoScene,cam3D);}}
-  document.getElementById('c').addEventListener('click',e=>{if(mode!=='expo')return;if(composing&&layers.length===2){selMode=(selMode+1)%6;document.getElementById('mL').textContent='EXPO '+MODE_CN[selMode];}else capture();});
-  return{async start(){video=await getVideo();if(!video)return;ctxMgr.block();running=true;animId=ctxMgr.raf(frame);},stop(){running=false;if(animId)cancelAnimationFrame(animId);composing=false;layers.length=0;vidTex=null;ctxMgr.unblock();}};
+  let animId,running=false,vidTex=null,video=null,frameCount=0;const vc=document.createElement('canvas'),vctx=vc.getContext('2d');
+  function frame(){if(!running)return;animId=ctxMgr.raf(frame);
+    if(frameCount<3)console.log('EXPO frame',frameCount,'video=',!!video,'vw=',video?.videoWidth,'vidTex=',!!vidTex);
+    frameCount++;
+    if(video&&video.videoWidth){vc.width=video.videoWidth;vc.height=video.videoHeight;vctx.drawImage(video,0,0);if(!vidTex){vidTex=new THREE.CanvasTexture(vc);vidTex.colorSpace=THREE.NoColorSpace;vidTex.minFilter=THREE.LinearFilter;vidTex.magFilter=THREE.LinearFilter;}else{vidTex.needsUpdate=true;}
+    camMat.uniforms.uT.v=vidTex;quad.material=camMat;renderer.setRenderTarget(null);renderer.render(expoScene,cam3D);}
+  }
+  return{async start(){video=getVideo();if(!video){console.log('EXPO: no video element');return;}console.log('EXPO start: video=',!!video,'vw=',video.videoWidth);ctxMgr.block();running=true;animId=ctxMgr.raf(frame);},stop(){running=false;if(animId)cancelAnimationFrame(animId);ctxMgr.unblock();}};
 }
 
 let mode=null,flowE=null,expoE=null;
