@@ -518,21 +518,21 @@ setTimeout(() => {
   async function showInk() {
     if (deEngine) deEngine.stop();
     if (!inkEngine) inkEngine = initInk();
-    c1.style.display = 'none'; c2.style.display = 'block';
+    c1.style.opacity = '0'; c1.style.pointerEvents = 'none'; c2.style.display = 'block';
     await inkEngine.start();
     document.getElementById('mL').textContent = 'FLOW';
   }
   async function showDE() {
     if (inkEngine) inkEngine.stop();
     if (!deEngine) deEngine = initDE();
-    c1.style.display = 'none'; c2.style.display = 'block';
+    c1.style.opacity = '0'; c1.style.pointerEvents = 'none'; c2.style.display = 'block';
     await deEngine.start();
     document.getElementById('mL').textContent = 'EXPO';
   }
   function hideModes() {
     if (inkEngine) inkEngine.stop();
     if (deEngine) deEngine.stop();
-    c1.style.display = 'block'; c2.style.display = 'none';
+    c1.style.display = 'block'; c1.style.opacity = '1'; c1.style.pointerEvents = 'auto'; c2.style.display = 'none';
   }
 
   o1.onclick = showInk;
