@@ -503,6 +503,10 @@ document.addEventListener('keydown', function(e){
 <script>
 // v2 — __pe_loaded check INSIDE setTimeout
 (function(){
+  // Make mode menu scrollable (16 items on mobile)
+  var style = document.createElement('style');
+  style.textContent = '.mode-menu{max-height:70vh;overflow-y:auto;-webkit-overflow-scrolling:touch}';
+  document.head.appendChild(style);
   setTimeout(function(){
     if (!window.__pe_loaded) return;
     // Add FLOW + EXPO to free tier
