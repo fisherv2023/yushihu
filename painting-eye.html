@@ -503,12 +503,13 @@ document.addEventListener('keydown', function(e){
 
 <canvas id="c2" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2;pointer-events:auto"></canvas>
 <script type="module">
-// WebGL FLOW + EXPO with rAF pausing for mobile GPU
+// FLOW + EXPO — single WebGL context (shared with painting-eye via c1)
 import * as THREE from 'three';
 
-const c2 = document.getElementById('c2');
 const c1 = document.getElementById('c');
 const ctxMgr = window.__peCtx;
+const c2El = document.getElementById('c2');
+if (c2El) c2El.remove(); // no second canvas needed
 
 let sharedVideo = null, sharedStream = null;
 async function getVideo() {
@@ -525,10 +526,16 @@ async function getVideo() {
   } catch(e) { return null; }
 }
 
+function createSharedRenderer() {
+  const gl = c1.getContext('webgl2');
+  return new THREE.WebGLRenderer({canvas: c1, context: gl, antialias: false, alpha: false, depth: false, stencil: false});
+}
+
+// ═══ FLOW ═══
 function initFlow() {
   const CFG={SIM_RES:128,DYE_MAX:768,PRESSURE_ITER:20,VEL_DISSIPATION:0.25,DYE_DISSIPATION:0.005,CURL:14,SPLAT_RADIUS:0.004,SPLAT_FORCE:4000,EDGE_DYE:0.035,EDGE_VEL:1.2,DARK_DYE:0.008,CAM_DISSIPATION:0.0,DYE_SATURATION:1.7};
   const PAPER=new THREE.Color('#efeae0');
-  const renderer=new THREE.WebGLRenderer({canvas:c2,antialias:false,alpha:false,depth:false,stencil:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.autoClear=false;
+  const renderer=createSharedRenderer();renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.autoClear=false;
   const cam3D=new THREE.OrthographicCamera(-1,1,1,-1,0,1),scene=new THREE.Scene(),quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),null);scene.add(quad);
   function mRT(w,h){return new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,wrapS:THREE.ClampToEdgeWrapping,wrapT:THREE.ClampToEdgeWrapping,format:THREE.RGBAFormat,type:THREE.HalfFloatType,depthBuffer:false});}
   function mDB(w,h){return{read:mRT(w,h),write:mRT(w,h),texel:new THREE.Vector2(1/w,1/h),swap(){const t=this.read;this.read=this.write;this.write=t;},resize(nw,nh){this.read.setSize(nw,nh);this.write.setSize(nw,nh);this.texel.set(1/nw,1/nh);}};}
@@ -550,28 +557,28 @@ function initFlow() {
   function blit(m,t){quad.material=m;renderer.setRenderTarget(t);renderer.render(scene,cam3D);}
   function sV(x,y,fx,fy,r=1){spl.uniforms.uTg.v=vel.read.texture;spl.uniforms.uA.v=innerWidth/innerHeight;spl.uniforms.uP.v.set(x,y);spl.uniforms.uR.v=CFG.SPLAT_RADIUS*r;spl.uniforms.uC.v.set(fx,fy,0);blit(spl,vel.write);vel.swap();}
   let animId,running=false,vidTex=null,video=null,lastT;const vc=document.createElement('canvas'),vctx=vc.getContext('2d');const ptr={down:false,x:0,y:0,px:0,py:0,moved:false};
-  function toUV(e){const r=renderer.domElement.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:1-(e.clientY-r.top)/r.height};}
+  function toUV(e){const r=c1.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:1-(e.clientY-r.top)/r.height};}
   function step(dt){if(vidTex&&video){const cw=video.videoWidth||640,ch=video.videoHeight||480;cDye.uniforms.uD.v=dye.read.texture;cDye.uniforms.uC.v=vidTex;cDye.uniforms.uT.v.set(1/cw,1/ch);cDye.uniforms.uE.v=CFG.EDGE_DYE;cDye.uniforms.uK.v=CFG.DARK_DYE;cDye.uniforms.uDiss.v=CFG.CAM_DISSIPATION;cDye.uniforms.uS.v=CFG.DYE_SATURATION;blit(cDye,dye.write);dye.swap();cVel.uniforms.uV.v=vel.read.texture;cVel.uniforms.uC.v=vidTex;cVel.uniforms.uT.v.set(1/cw,1/ch);cVel.uniforms.uE.v=CFG.EDGE_VEL;blit(cVel,vel.write);vel.swap();}cur.uniforms.uV.v=vel.read.texture;cur.uniforms.uT.v.copy(vel.texel);blit(cur,cRT);vor.uniforms.uV.v=vel.read.texture;vor.uniforms.uC.v=cRT.texture;vor.uniforms.uT.v.copy(vel.texel);vor.uniforms.uCS.v=CFG.CURL;vor.uniforms.uDt.v=dt;blit(vor,vel.write);vel.swap();divg.uniforms.uV.v=vel.read.texture;divg.uniforms.uT.v.copy(vel.texel);blit(divg,dRT);clr.uniforms.uT.v=pres.read.texture;blit(clr,pres.write);pres.swap();prs.uniforms.uD.v=dRT.texture;prs.uniforms.uT.v.copy(vel.texel);for(let i=0;i<CFG.PRESSURE_ITER;i++){prs.uniforms.uP.v=pres.read.texture;blit(prs,pres.write);pres.swap();}grd.uniforms.uP.v=pres.read.texture;grd.uniforms.uV.v=vel.read.texture;grd.uniforms.uT.v.copy(vel.texel);blit(grd,vel.write);vel.swap();adv.uniforms.uV.v=vel.read.texture;adv.uniforms.uS.v=vel.read.texture;adv.uniforms.uT.v.copy(vel.texel);adv.uniforms.uD.v=dt;adv.uniforms.uDiss.v=CFG.VEL_DISSIPATION;blit(adv,vel.write);vel.swap();adv.uniforms.uV.v=vel.read.texture;adv.uniforms.uS.v=dye.read.texture;adv.uniforms.uT.v.copy(dye.texel);adv.uniforms.uDiss.v=CFG.DYE_DISSIPATION;blit(adv,dye.write);dye.swap();}
   function applyPtr(){if(!ptr.moved)return;ptr.moved=false;const dx=ptr.x-ptr.px,dy=ptr.y-ptr.py;if(Math.abs(dx)+Math.abs(dy)<1e-6)return;sV(ptr.x,ptr.y,dx*CFG.SPLAT_FORCE,dy*CFG.SPLAT_FORCE,ptr.down?3.:1.8);}
   function frame(now){if(!running)return;animId=requestAnimationFrame(frame);let dt=(now-lastT)/1000;lastT=now;dt=Math.min(dt,1/30);if(dt<=0)return;if(video&&video.videoWidth){vc.width=video.videoWidth;vc.height=video.videoHeight;vctx.drawImage(video,0,0);if(!vidTex){vidTex=new THREE.CanvasTexture(vc);vidTex.colorSpace=THREE.NoColorSpace;}else{vidTex.needsUpdate=true;}}applyPtr();step(dt);disp.uniforms.uD.v=dye.read.texture;disp.uniforms.uC.v=vidTex;blit(disp,null);}
-  c2.addEventListener('pointerdown',e=>{const p=toUV(e);ptr.down=true;ptr.moved=false;ptr.x=ptr.px=p.x;ptr.y=ptr.py=p.y;if(video&&vidTex)sV(p.x,p.y,(Math.random()-.5)*160,(Math.random()-.5)*160,2.5);});
-  c2.addEventListener('pointermove',e=>{const p=toUV(e);ptr.px=ptr.x;ptr.py=ptr.y;ptr.x=p.x;ptr.y=p.y;ptr.moved=true;});
-  c2.addEventListener('pointerup',()=>{ptr.down=false;});
+  c1.addEventListener('pointerdown',e=>{const p=toUV(e);ptr.down=true;ptr.moved=false;ptr.x=ptr.px=p.x;ptr.y=ptr.py=p.y;if(video&&vidTex)sV(p.x,p.y,(Math.random()-.5)*160,(Math.random()-.5)*160,2.5);});
+  c1.addEventListener('pointermove',e=>{const p=toUV(e);ptr.px=ptr.x;ptr.py=ptr.y;ptr.x=p.x;ptr.y=p.y;ptr.moved=true;});
+  c1.addEventListener('pointerup',()=>{ptr.down=false;});
   addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);S=ss();vel.resize(S.sw,S.sh);pres.resize(S.sw,S.sh);cRT.setSize(S.sw,S.sh);dRT.setSize(S.sw,S.sh);dye.resize(S.dw,S.dh);});
-  return{async start(){video=await getVideo();if(!video)return;ctxMgr.block();vidTex=null;running=true;lastT=performance.now();animId=requestAnimationFrame(frame);},stop(){running=false;if(animId)cancelAnimationFrame(animId);ctxMgr.unblock();}};
+  return{async start(){video=await getVideo();if(!video)return;ctxMgr.block();vidTex=null;running=true;lastT=performance.now();animId=requestAnimationFrame(frame);},stop(){running=false;if(animId)cancelAnimationFrame(animId);ctxMgr.unblock();renderer.dispose();}};
 }
 
 function initExpo(){
   const MODE_CN=['正常','双重曝光','正片叠底','叠加','变亮','变暗'];
-  const renderer=new THREE.WebGLRenderer({canvas:c2,preserveDrawingBuffer:true,antialias:true,alpha:false,depth:false,stencil:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);
+  const renderer=createSharedRenderer();renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.autoClear=false;
   const cam3D=new THREE.OrthographicCamera(-1,1,1,-1,0,1),scene=new THREE.Scene(),quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),null);scene.add(quad);
   const layers=[];let composing=false,running=false,animId,selMode=0,vidTex=null,video=null;const vc=document.createElement('canvas'),vctx=vc.getContext('2d');
   const compMat=new THREE.ShaderMaterial({vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:'precision highp float;varying vec2 vUv;uniform sampler2D uA,uB;uniform int uM;void main(){vec4 a=texture2D(uA,vUv),b=texture2D(uB,vUv);vec3 c;if(uM==0)c=mix(a.rgb,b.rgb,.5);else if(uM==1)c=1.-(1.-a.rgb)*(1.-b.rgb);else if(uM==2)c=a.rgb*b.rgb;else if(uM==3)c=mix(a.rgb*b.rgb*2.,1.-(1.-a.rgb)*(1.-b.rgb)*2.,step(.5,b.rgb));else if(uM==4)c=max(a.rgb,b.rgb);else c=min(a.rgb,b.rgb);gl_FragColor=vec4(c,1.);}',uniforms:{uA:{v:null},uB:{v:null},uM:{v:0}},depthTest:false,depthWrite:false});
   const camMat=new THREE.ShaderMaterial({vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:'precision highp float;varying vec2 vUv;uniform sampler2D uT;void main(){gl_FragColor=texture2D(uT,vUv);}',uniforms:{uT:{v:null}},depthTest:false,depthWrite:false});
   function capture(){if(!video||!video.videoWidth||layers.length>=2)return;const w=video.videoWidth,h=video.videoHeight,cap=document.createElement('canvas');cap.width=w;cap.height=h;cap.getContext('2d').drawImage(video,0,0,w,h);const t=new THREE.CanvasTexture(cap);t.colorSpace=THREE.NoColorSpace;t.minFilter=THREE.LinearFilter;t.magFilter=THREE.LinearFilter;layers.push({texture:t});if(layers.length===2){composing=true;document.getElementById('mL').textContent='EXPO '+MODE_CN[selMode];}}
   function frame(){if(!running)return;animId=requestAnimationFrame(frame);if(!video||!video.videoWidth)return;if(composing&&layers.length===2){compMat.uniforms.uA.v=layers[0].texture;compMat.uniforms.uB.v=layers[1].texture;compMat.uniforms.uM.v=selMode;quad.material=compMat;renderer.setRenderTarget(null);renderer.render(scene,cam3D);}else{vc.width=video.videoWidth;vc.height=video.videoHeight;vctx.drawImage(video,0,0);if(!vidTex){vidTex=new THREE.CanvasTexture(vc);vidTex.colorSpace=THREE.NoColorSpace;}else{vidTex.needsUpdate=true;}camMat.uniforms.uT.v=vidTex;quad.material=camMat;renderer.setRenderTarget(null);renderer.render(scene,cam3D);}}
-  c2.addEventListener('click',e=>{if(composing&&layers.length===2){selMode=(selMode+1)%6;document.getElementById('mL').textContent='EXPO '+MODE_CN[selMode];}else capture();});
-  return{async start(){video=await getVideo();if(!video)return;ctxMgr.block();running=true;animId=requestAnimationFrame(frame);},stop(){running=false;if(animId)cancelAnimationFrame(animId);composing=false;layers.length=0;vidTex=null;ctxMgr.unblock();}};
+  c1.addEventListener('click',e=>{if(composing&&layers.length===2){selMode=(selMode+1)%6;document.getElementById('mL').textContent='EXPO '+MODE_CN[selMode];}else capture();});
+  return{async start(){video=await getVideo();if(!video)return;ctxMgr.block();running=true;animId=requestAnimationFrame(frame);},stop(){running=false;if(animId)cancelAnimationFrame(animId);composing=false;layers.length=0;vidTex=null;ctxMgr.unblock();renderer.dispose();}};
 }
 
 setTimeout(()=>{
@@ -581,9 +588,9 @@ setTimeout(()=>{
   const o2=document.createElement('div');o2.className='mode-opt';o2.dataset.m='15';o2.textContent='EXPO';
   menu.appendChild(o1);menu.appendChild(o2);
   let flowE=null,expoE=null;
-  async function sF(){if(expoE)expoE.stop();if(!flowE)flowE=initFlow();c1.style.display='none';c2.style.display='block';await flowE.start();document.getElementById('mL').textContent='FLOW';}
-  async function sE(){if(flowE)flowE.stop();if(!expoE)expoE=initExpo();c1.style.display='none';c2.style.display='block';await expoE.start();document.getElementById('mL').textContent='EXPO';}
-  function hide(){if(flowE)flowE.stop();if(expoE)expoE.stop();c1.style.display='block';c2.style.display='none';}
+  async function sF(){if(expoE)expoE.stop();if(!flowE)flowE=initFlow();await flowE.start();document.getElementById('mL').textContent='FLOW';}
+  async function sE(){if(flowE)flowE.stop();if(!expoE)expoE=initExpo();await expoE.start();document.getElementById('mL').textContent='EXPO';}
+  function hide(){if(flowE)flowE.stop();if(expoE)expoE.stop();}
   o1.onclick=sF;o2.onclick=sE;
   document.querySelectorAll('.mode-opt[data-m]:not([data-m="14"]):not([data-m="15"])').forEach(o=>{o.addEventListener('click',()=>setTimeout(hide,100));});
 },500);
