@@ -102,7 +102,7 @@ document.getElementById('btnCapture').addEventListener('click', () => {
   tex.colorSpace = THREE.NoColorSpace;
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
-  layers.push({ texture: tex });
+  layers.push({ texture: tex, opacity: getOpacity() });
   updateStatus();
 });
 
@@ -187,13 +187,13 @@ function render() {
   cameraMat.uniforms.uTex.value = vidTex;
   blit(cameraMat, rtA);
 
-  // Progressive average: all layers use current slider value
+  // Each layer uses its own stored opacity from capture time
   let src = rtA, dst = rtB;
   let totalW = 1; // camera
-  const sw = getOpacity();
   for (let i = 0; i < layers.length; i++) {
-    totalW += sw;
-    const w = sw / totalW;
+    const o = layers[i].opacity;
+    totalW += o;
+    const w = o / totalW;
     blendMat.uniforms.uBase.value = src.texture;
     blendMat.uniforms.uLayer.value = layers[i].texture;
     blendMat.uniforms.uOp.value = w;
