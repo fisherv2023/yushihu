@@ -36,7 +36,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 <div class="status" id="status"></div>
 <div class="mode-bar" id="modeBar">
   <span id="modeLabel">Normal</span>
-  <input type="range" class="slider" id="modeSlider" min="0" max="3" value="0" step="1">
+  <input type="range" class="slider" id="modeSlider" min="0" max="5" value="0" step="1">
 </div>
 <div class="panel" id="panel" style="display:none">
   <button class="primary" id="btnCapture">● 捕获</button>
@@ -49,8 +49,8 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 <script type="module">
 import * as THREE from 'three';
 
-const MODES = ['Normal', 'Screen', 'Multiply', 'Overlay'];
-const MODE_LABELS_CN = ['正常', '双重曝光', '正片叠底', '叠加'];
+const MODES = ['Normal', 'Screen', 'Multiply', 'Overlay', 'Lighten', 'Darken'];
+const MODE_LABELS_CN = ['正常', '双重曝光', '正片叠底', '叠加', '变亮', '变暗'];
 
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, preserveDrawingBuffer: true, antialias: true, alpha: false, depth: false, stencil: false });
@@ -125,7 +125,9 @@ void main(){
   if(uMode==0)col=mix(a.rgb,b.rgb,.5);           // Normal 50/50
   else if(uMode==1)col=1.-(1.-a.rgb)*(1.-b.rgb);  // Screen
   else if(uMode==2)col=a.rgb*b.rgb;               // Multiply
-  else col=mix(a.rgb*b.rgb*2.,1.-(1.-a.rgb)*(1.-b.rgb)*2.,step(.5,b.rgb)); // Overlay
+  else if(uMode==3)col=mix(a.rgb*b.rgb*2.,1.-(1.-a.rgb)*(1.-b.rgb)*2.,step(.5,b.rgb)); // Overlay
+  else if(uMode==4)col=max(a.rgb,b.rgb);           // Lighten
+  else col=min(a.rgb,b.rgb);                       // Darken
   gl_FragColor=vec4(col,1.);
 }`,
   uniforms: { uTexA: { value: null }, uTexB: { value: null }, uMode: { value: 0 } },
