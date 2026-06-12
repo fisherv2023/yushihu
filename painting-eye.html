@@ -491,5 +491,24 @@ document.addEventListener('keydown', function(e){
   }
 });
 </script>
+
+<canvas id="c2" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2"></canvas>
+<script type="module">
+setTimeout(() => {
+  if (!window.__pe_loaded) return;
+  const menu = document.querySelector('.mode-menu');
+  if (!menu) return;
+  const o1 = document.createElement('div'); o1.className='mode-opt'; o1.dataset.m='14'; o1.textContent='INK';
+  const o2 = document.createElement('div'); o2.className='mode-opt'; o2.dataset.m='15'; o2.textContent='DE';
+  menu.appendChild(o1); menu.appendChild(o2);
+  const c2=document.getElementById('c2'), c1=document.getElementById('c');
+  let inkActive=false, deActive=false;
+  o1.onclick=()=>{deActive=false;inkActive=true;c1.style.display='none';c2.style.display='block';document.getElementById('mL').textContent='INK';};
+  o2.onclick=()=>{inkActive=false;deActive=true;c1.style.display='none';c2.style.display='block';document.getElementById('mL').textContent='DE';};
+  document.querySelectorAll('.mode-opt[data-m]:not([data-m="14"]):not([data-m="15"])').forEach(o=>{o.addEventListener('click',()=>{setTimeout(()=>{inkActive=false;deActive=false;c1.style.display='block';c2.style.display='none';},100)});});
+  document.addEventListener('keydown',e=>{if(e.key==='i'&&!e.ctrlKey){o1.click();e.preventDefault();}if(e.key==='d'&&!e.ctrlKey){o2.click();e.preventDefault();}});
+  const mL=document.getElementById('mL');
+},500);
+</script>
 </body>
 </html>
