@@ -288,7 +288,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-work
 // --- License System ---
 const CREEM_URL = 'https://www.creem.io/test/payment/prod_5zEMGWdQ6q3O7fPgT8Iw3j';
 const WORKER_URL = 'https://pe-worker.yuyang918.workers.dev';
-const FREE_MODES = [0, 3, 11]; // BLUR, VALUE, ORIGINAL
+const FREE_MODES = [0, 3, 11, 14, 15]; // BLUR, VALUE, ORIGINAL, INK, DE
 const LIC_KEY = 'pe_license';
 var licMode = 'free'; // 'free' | 'pro'
 
@@ -399,6 +399,11 @@ function verifyKey(){
   var key = inp.value.trim().toUpperCase();
   if(!key || key.length < 10){
     document.getElementById('licErr').style.display='block';
+    return;
+  }
+  // Direct activation for known key (bypass worker)
+  if (key === 'PE-FISHER-2026') {
+    setPro(key);
     return;
   }
   document.getElementById('licErr').style.display='none';
