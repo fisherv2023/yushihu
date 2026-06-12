@@ -497,55 +497,23 @@ document.addEventListener('keydown', function(e){
 });
 </script>
 
-<canvas id="c2" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2"></canvas>
+<canvas id="c2" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2;pointer-events:auto"></canvas>
 <script type="module">
-import * as THREE from 'three';
-
+// Canvas 2D only — no second WebGL context to avoid mobile conflicts
 setTimeout(() => {
   if (!window.__pe_loaded) return;
   const menu = document.querySelector('.mode-menu');
   if (!menu) return;
 
-  // ── Add mode entries ──
   const o1 = document.createElement('div'); o1.className='mode-opt'; o1.dataset.m='14'; o1.textContent='FLOW';
   const o2 = document.createElement('div'); o2.className='mode-opt'; o2.dataset.m='15'; o2.textContent='EXPO';
   menu.appendChild(o1); menu.appendChild(o2);
 
   const c2 = document.getElementById('c2'), c1 = document.getElementById('c');
-  let inkEngine = null, deEngine = null;
+  const ctx2 = c2.getContext('2d');
+  let mode = null, animId = null, running = false;
+  let sharedVideo = null, sharedStream = null;
 
-  // ── Canvas switching ──
-  async function showInk() {
-    if (deEngine) deEngine.stop();
-    if (!inkEngine) inkEngine = initInk();
-    c1.style.opacity = '0'; c1.style.pointerEvents = 'none'; c2.style.display = 'block';
-    await inkEngine.start();
-    document.getElementById('mL').textContent = 'FLOW';
-  }
-  async function showDE() {
-    if (inkEngine) inkEngine.stop();
-    if (!deEngine) deEngine = initDE();
-    c1.style.opacity = '0'; c1.style.pointerEvents = 'none'; c2.style.display = 'block';
-    await deEngine.start();
-    document.getElementById('mL').textContent = 'EXPO';
-  }
-  function hideModes() {
-    if (inkEngine) inkEngine.stop();
-    if (deEngine) deEngine.stop();
-    c1.style.display = 'block'; c1.style.opacity = '1'; c1.style.pointerEvents = 'auto'; c2.style.display = 'none';
-  }
-
-  o1.onclick = showInk;
-  o2.onclick = showDE;
-  document.querySelectorAll('.mode-opt[data-m]:not([data-m="14"]):not([data-m="15"])').forEach(o => {
-    o.addEventListener('click', () => setTimeout(hideModes, 100));
-  });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') hideModes();
-  });
-
-  // ── Get independent camera stream ──
-  let sharedStream = null, sharedVideo = null;
   async function getVideo() {
     if (sharedVideo) return sharedVideo;
     try {
@@ -557,148 +525,132 @@ setTimeout(() => {
       sharedVideo.playsInline = true;
       await sharedVideo.play();
       return sharedVideo;
-    } catch(e) { console.error('Camera for FLOW/EXPO:', e); return null; }
+    } catch(e) { return null; }
   }
 
-  // ═══════════════════════════════════════════
-  // INK FLOW — Stable Fluids GPU simulation
-  // ═══════════════════════════════════════════
-  function initInk() {
-    const CFG = {
-      SIM_RES:128,DYE_MAX:768,PRESSURE_ITER:20,VEL_DISSIPATION:0.25,DYE_DISSIPATION:0.005,
-      CURL:14,SPLAT_RADIUS:0.004,SPLAT_FORCE:4000,EDGE_DYE:0.035,EDGE_VEL:1.2,
-      DARK_DYE:0.008,CAM_DISSIPATION:0.0,DYE_SATURATION:1.7,
-    };
-    const PAPER = new THREE.Color('#efeae0');
+  // ── EXPO: Double exposure via Canvas 2D ──
+  const expoLayers = [];
+  let expoComposing = false, expoModeIdx = 0;
+  const EXPO_MODES = ['正常','双重曝光','正片叠底','叠加','变亮','变暗'];
 
-    const renderer = new THREE.WebGLRenderer({canvas:c2,antialias:false,alpha:false,depth:false,stencil:false});
-    renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.autoClear=false;
-    const cam3D = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
-    const scene = new THREE.Scene();
-    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2,2),null);scene.add(quad);
-    const ptx = makeDFBO,pRT = makeRT;
-    function makeRT(w,h){return new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,wrapS:THREE.ClampToEdgeWrapping,wrapT:THREE.ClampToEdgeWrapping,format:THREE.RGBAFormat,type:THREE.HalfFloatType,depthBuffer:false});}
-    function makeDFBO(w,h){return{read:makeRT(w,h),write:makeRT(w,h),texel:new THREE.Vector2(1/w,1/h),swap(){const t=this.read;this.read=this.write;this.write=t;},resize(nw,nh){this.read.setSize(nw,nh);this.write.setSize(nw,nh);this.texel.set(1/nw,1/nh);}};}
-    function ss(){const a=innerWidth/innerHeight,s=CFG.SIM_RES,d=Math.min(CFG.DYE_MAX,Math.max(innerWidth,innerHeight));return a>=1?{sw:Math.round(s*a),sh:s,dw:d,dh:Math.round(d/a)}:{sw:s,sh:Math.round(s/a),dw:Math.round(d*a),dh:d};}
-    let S=ss();
-    const vel=ptx(S.sw,S.sh),dye=ptx(S.dw,S.dh),pres=ptx(S.sw,S.sh),cRT=pRT(S.sw,S.sh),dRT=pRT(S.sw,S.sh);
-    const V=`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`;
-    function p(f,u={}){return new THREE.ShaderMaterial({vertexShader:V,fragmentShader:f,uniforms:u,depthTest:false,depthWrite:false});}
+  function expoCapture() {
+    if (!sharedVideo || !sharedVideo.videoWidth || expoLayers.length >= 2) return;
+    const w = sharedVideo.videoWidth, h = sharedVideo.videoHeight;
+    const cap = document.createElement('canvas'); cap.width = w; cap.height = h;
+    cap.getContext('2d').drawImage(sharedVideo, 0, 0, w, h);
+    expoLayers.push(cap);
+    if (expoLayers.length === 2) {
+      expoComposing = true;
+      document.getElementById('mL').textContent = 'EXPO ' + EXPO_MODES[expoModeIdx];
+    }
+  }
 
-    const adv=p(`precision highp float;varying vec2 vUv;uniform sampler2D uV,uS;uniform vec2 uT;uniform float uD,uDiss;void main(){vec2 c=vUv-uD*texture2D(uV,vUv).xy*uT;gl_FragColor=texture2D(uS,c)/(1.+uDiss*uD);}`,{uV:{v:null},uS:{v:null},uT:{v:new THREE.Vector2()},uD:{v:0},uDiss:{v:0}});
-    const spl=p(`precision highp float;varying vec2 vUv;uniform sampler2D uTg;uniform float uA,uR;uniform vec2 uP;uniform vec3 uC;void main(){vec2 p=vUv-uP;p.x*=uA;gl_FragColor=vec4(texture2D(uTg,vUv).rgb+exp(-dot(p,p)/uR)*uC,1.);}`,{uTg:{v:null},uA:{v:1},uR:{v:.001},uP:{v:new THREE.Vector2()},uC:{v:new THREE.Vector3()}});
-    const cur=p(`precision highp float;varying vec2 vUv;uniform sampler2D uV;uniform vec2 uT;void main(){float L=texture2D(uV,vUv-vec2(uT.x,0.)).y,R=texture2D(uV,vUv+vec2(uT.x,0.)).y,B=texture2D(uV,vUv-vec2(0.,uT.y)).x,T=texture2D(uV,vUv+vec2(0.,uT.y)).x;gl_FragColor=vec4(.5*(R-L-T+B),0.,0.,1.);}`,{uV:{v:null},uT:{v:new THREE.Vector2()}});
-    const vor=p(`precision highp float;varying vec2 vUv;uniform sampler2D uV,uC;uniform vec2 uT;uniform float uCS,uDt;void main(){float L=texture2D(uC,vUv-vec2(uT.x,0.)).x,R=texture2D(uC,vUv+vec2(uT.x,0.)).x,B=texture2D(uC,vUv-vec2(0.,uT.y)).x,T=texture2D(uC,vUv+vec2(0.,uT.y)).x,C=texture2D(uC,vUv).x;vec2 f=.5*vec2(abs(T)-abs(B),abs(R)-abs(L));f/=length(f)+1e-4;f*=uCS*C;f.y*=-1.;vec2 v=texture2D(uV,vUv).xy+f*uDt;gl_FragColor=vec4(clamp(v,-1e3,1e3),0.,1.);}`,{uV:{v:null},uC:{v:null},uT:{v:new THREE.Vector2()},uCS:{v:0},uDt:{v:0}});
-    const divg=p(`precision highp float;varying vec2 vUv;uniform sampler2D uV;uniform vec2 uT;void main(){float L=texture2D(uV,vUv-vec2(uT.x,0.)).x,R=texture2D(uV,vUv+vec2(uT.x,0.)).x,B=texture2D(uV,vUv-vec2(0.,uT.y)).y,T=texture2D(uV,vUv+vec2(0.,uT.y)).y;vec2 C=texture2D(uV,vUv).xy;if(vUv.x-uT.x<0.)L=-C.x;if(vUv.x+uT.x>1.)R=-C.x;if(vUv.y-uT.y<0.)B=-C.y;if(vUv.y+uT.y>1.)T=-C.y;gl_FragColor=vec4(.5*(R-L+T-B),0.,0.,1.);}`,{uV:{v:null},uT:{v:new THREE.Vector2()}});
-    const prs=p(`precision highp float;varying vec2 vUv;uniform sampler2D uP,uD;uniform vec2 uT;void main(){float L=texture2D(uP,vUv-vec2(uT.x,0.)).x,R=texture2D(uP,vUv+vec2(uT.x,0.)).x,B=texture2D(uP,vUv-vec2(0.,uT.y)).x,T=texture2D(uP,vUv+vec2(0.,uT.y)).x,d=texture2D(uD,vUv).x;gl_FragColor=vec4((L+R+B+T-d)*.25,0.,0.,1.);}`,{uP:{v:null},uD:{v:null},uT:{v:new THREE.Vector2()}});
-    const grd=p(`precision highp float;varying vec2 vUv;uniform sampler2D uP,uV;uniform vec2 uT;void main(){float L=texture2D(uP,vUv-vec2(uT.x,0.)).x,R=texture2D(uP,vUv+vec2(uT.x,0.)).x,B=texture2D(uP,vUv-vec2(0.,uT.y)).x,T=texture2D(uP,vUv+vec2(0.,uT.y)).x;vec2 v=texture2D(uV,vUv).xy-vec2(R-L,T-B);gl_FragColor=vec4(v,0.,1.);}`,{uP:{v:null},uV:{v:null},uT:{v:new THREE.Vector2()}});
-    const clr=p(`precision highp float;varying vec2 vUv;uniform sampler2D uT;uniform float uV;void main(){gl_FragColor=uV*texture2D(uT,vUv);}`,{uT:{v:null},uV:{v:.8}});
-    const cDye=p(`precision highp float;varying vec2 vUv;uniform sampler2D uD,uC;uniform vec2 uT;uniform float uE,uK,uDiss,uS;float l(vec3 c){return dot(c,vec3(.299,.587,.114));}float s2(vec2 uv,vec2 t){float tl=l(texture2D(uC,uv+vec2(-t.x,t.y)).rgb),tc=l(texture2D(uC,uv+vec2(0.,t.y)).rgb),tr=l(texture2D(uC,uv+vec2(t.x,t.y)).rgb),ml=l(texture2D(uC,uv+vec2(-t.x,0.)).rgb),mr=l(texture2D(uC,uv+vec2(t.x,0.)).rgb),bl=l(texture2D(uC,uv+vec2(-t.x,-t.y)).rgb),bc=l(texture2D(uC,uv+vec2(0.,-t.y)).rgb),br=l(texture2D(uC,uv+vec2(t.x,-t.y)).rgb);float gx=-tl-2.*ml-bl+tr+2.*mr+br,gy=-tl-2.*tc-tr+bl+2.*bc+br;return sqrt(gx*gx+gy*gy);}void main(){vec3 d=texture2D(uD,vUv).rgb;float e=s2(vUv,uT);vec3 cc=texture2D(uC,vUv).rgb,cl=dot(cc,vec3(.299,.587,.114)),b=mix(vec3(cl),cc,uS);float dk=1.-cl,et=smoothstep(.15,.5,e);vec3 ca=-log(max(b,.012)),ei=ca*et*uE,di=ca*dk*uK,nd=d+ei+di;nd=nd/(1.+nd*.2);nd*=1.-uDiss;gl_FragColor=vec4(max(nd,0.),1.);}`,{uD:{v:null},uC:{v:null},uT:{v:new THREE.Vector2()},uE:{v:.5},uK:{v:.15},uDiss:{v:.01},uS:{v:1.7}});
-    const cVel=p(`precision highp float;varying vec2 vUv;uniform sampler2D uV,uC;uniform vec2 uT;uniform float uE;float l(vec3 c){return dot(c,vec3(.299,.587,.114));}void main(){vec2 v=texture2D(uV,vUv).xy;float tl=l(texture2D(uC,vUv+vec2(-uT.x,uT.y)).rgb),tr=l(texture2D(uC,vUv+vec2(uT.x,uT.y)).rgb),ml=l(texture2D(uC,vUv+vec2(-uT.x,0.)).rgb),mr=l(texture2D(uC,vUv+vec2(uT.x,0.)).rgb),bl=l(texture2D(uC,vUv+vec2(-uT.x,-uT.y)).rgb),br=l(texture2D(uC,vUv+vec2(uT.x,-uT.y)).rgb);float gx=-tl-2.*ml-bl+tr+2.*mr+br,tc=l(texture2D(uC,vUv+vec2(0.,uT.y)).rgb),bc=l(texture2D(uC,vUv+vec2(0.,-uT.y)).rgb),gy=-tl-2.*tc-tr+bl+2.*bc+br,e=sqrt(gx*gx+gy*gy),et=smoothstep(.15,.5,e);vec2 dir=vec2(-gy,gx);float len=length(dir);if(len>1e-6)dir/=len;v+=dir*et*uE;gl_FragColor=vec4(clamp(v,-1e3,1e3),0.,1.);}`,{uV:{v:null},uC:{v:null},uT:{v:new THREE.Vector2()},uE:{v:3.5}});
-    const disp=p(`precision highp float;varying vec2 vUv;uniform sampler2D uD,uC;uniform vec3 uP;void main(){vec3 A=texture2D(uD,vUv).rgb*1.5,ink=uP*exp(-A),cam=texture2D(uC,vUv).rgb;float d=smoothstep(.02,.06,length(A));vec3 col=mix(cam,ink,d),cl=dot(cam,vec3(.299,.587,.114)),cs=mix(vec3(cl),cam,1.25);col=mix(cs,col,d);gl_FragColor=vec4(clamp(col,0.,1.),1.);}`,{uD:{v:null},uC:{v:null},uP:{v:new THREE.Vector3(PAPER.r,PAPER.g,PAPER.b)}});
+  function expoApplyMode(a, b, m) {
+    const out = document.createElement('canvas'); out.width = a.width; out.height = a.height;
+    const ctx = out.getContext('2d');
+    const da = ctx.createImageData(a.width, a.height);
+    const pa = a.getContext('2d').getImageData(0, 0, a.width, a.height).data;
+    const pb = b.getContext('2d').getImageData(0, 0, b.width, b.height).data;
+    for (let i = 0; i < pa.length; i += 4) {
+      let r1 = pa[i]/255, g1 = pa[i+1]/255, b1 = pa[i+2]/255;
+      let r2 = pb[i]/255, g2 = pb[i+1]/255, b2 = pb[i+2]/255;
+      let r, g, b;
+      if (m === 0) { r = (r1+r2)/2; g = (g1+g2)/2; b = (b1+b2)/2; }
+      else if (m === 1) { r = 1-(1-r1)*(1-r2); g = 1-(1-g1)*(1-g2); b = 1-(1-b1)*(1-b2); }
+      else if (m === 2) { r = r1*r2; g = g1*g2; b = b1*b2; }
+      else if (m === 3) { r = r2<0.5?2*r1*r2:1-2*(1-r1)*(1-r2); g = g2<0.5?2*g1*g2:1-2*(1-g1)*(1-g2); b = b2<0.5?2*b1*b2:1-2*(1-b1)*(1-b2); }
+      else if (m === 4) { r = Math.max(r1,r2); g = Math.max(g1,g2); b = Math.max(b1,b2); }
+      else { r = Math.min(r1,r2); g = Math.min(g1,g2); b = Math.min(b1,b2); }
+      da.data[i]=Math.round(r*255); da.data[i+1]=Math.round(g*255); da.data[i+2]=Math.round(b*255); da.data[i+3]=255;
+    }
+    ctx.putImageData(da, 0, 0);
+    return out;
+  }
 
-    function blit(m,t){quad.material=m;renderer.setRenderTarget(t);renderer.render(scene,cam3D);}
-    function sV(x,y,fx,fy,r=1){spl.uniforms.uTg.v=vel.read.texture;spl.uniforms.uA.v=innerWidth/innerHeight;spl.uniforms.uP.v.set(x,y);spl.uniforms.uR.v=CFG.SPLAT_RADIUS*r;spl.uniforms.uC.v.set(fx,fy,0);blit(spl,vel.write);vel.swap();}
-    function sD(x,y,a,r=1){spl.uniforms.uTg.v=dye.read.texture;spl.uniforms.uA.v=innerWidth/innerHeight;spl.uniforms.uP.v.set(x,y);spl.uniforms.uR.v=CFG.SPLAT_RADIUS*r;spl.uniforms.uC.v.copy(a);blit(spl,dye.write);dye.swap();}
-
-    let animId, running=false, vidTex=null, video=null;
-    const vc=document.createElement('canvas'),vctx=vc.getContext('2d');
-    const ptr={down:false,x:0,y:0,px:0,py:0,moved:false};
-    function toUV(e){const r=renderer.domElement.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:1-(e.clientY-r.top)/r.height};}
-
-    function step(dt){
-      if(vidTex&&video){
-        const cw=video.videoWidth||640,ch=video.videoHeight||480;
-        cDye.uniforms.uD.v=dye.read.texture;cDye.uniforms.uC.v=vidTex;cDye.uniforms.uT.v.set(1/cw,1/ch);cDye.uniforms.uE.v=CFG.EDGE_DYE;cDye.uniforms.uK.v=CFG.DARK_DYE;cDye.uniforms.uDiss.v=CFG.CAM_DISSIPATION;cDye.uniforms.uS.v=CFG.DYE_SATURATION;blit(cDye,dye.write);dye.swap();
-        cVel.uniforms.uV.v=vel.read.texture;cVel.uniforms.uC.v=vidTex;cVel.uniforms.uT.v.set(1/cw,1/ch);cVel.uniforms.uE.v=CFG.EDGE_VEL;blit(cVel,vel.write);vel.swap();
+  // ── FLOW: Simplified ink filter via Canvas 2D (Sobel edge + tone) ──
+  function flowFrame() {
+    if (!running || mode !== 'flow') return;
+    animId = requestAnimationFrame(flowFrame);
+    if (!sharedVideo || !sharedVideo.videoWidth) return;
+    const w = sharedVideo.videoWidth, h = sharedVideo.videoHeight;
+    c2.width = innerWidth; c2.height = innerHeight;
+    // Draw video scaled to canvas
+    ctx2.drawImage(sharedVideo, 0, 0, c2.width, c2.height);
+    // Apply Sobel edge + ink tone
+    const imgData = ctx2.getImageData(0, 0, c2.width, c2.height);
+    const d = imgData.data;
+    const w4 = c2.width * 4;
+    const out = new Uint8ClampedArray(d.length);
+    for (let y = 1; y < c2.height-1; y++) {
+      for (let x = 1; x < c2.width-1; x++) {
+        const i = y*w4 + x*4;
+        const tl = (d[i-4-w4]+d[i-3-w4]+d[i-2-w4])/3, tc = (d[i-w4]+d[i+1-w4]+d[i+2-w4])/3, tr = (d[i+4-w4]+d[i+5-w4]+d[i+6-w4])/3;
+        const ml = (d[i-4]+d[i-3]+d[i-2])/3, mr = (d[i+4]+d[i+5]+d[i+6])/3;
+        const bl = (d[i-4+w4]+d[i-3+w4]+d[i-2+w4])/3, bc = (d[i+w4]+d[i+1+w4]+d[i+2+w4])/3, br = (d[i+4+w4]+d[i+5+w4]+d[i+6+w4])/3;
+        const gx = -tl - 2*ml - bl + tr + 2*mr + br;
+        const gy = -tl - 2*tc - tr + bl + 2*bc + br;
+        const edge = Math.sqrt(gx*gx + gy*gy) / 3;
+        const ink = 255 - edge;
+        out[i] = out[i+1] = out[i+2] = ink;
+        out[i+3] = 255;
       }
-      cur.uniforms.uV.v=vel.read.texture;cur.uniforms.uT.v.copy(vel.texel);blit(cur,cRT);
-      vor.uniforms.uV.v=vel.read.texture;vor.uniforms.uC.v=cRT.texture;vor.uniforms.uT.v.copy(vel.texel);vor.uniforms.uCS.v=CFG.CURL;vor.uniforms.uDt.v=dt;blit(vor,vel.write);vel.swap();
-      divg.uniforms.uV.v=vel.read.texture;divg.uniforms.uT.v.copy(vel.texel);blit(divg,dRT);
-      clr.uniforms.uT.v=pres.read.texture;blit(clr,pres.write);pres.swap();prs.uniforms.uD.v=dRT.texture;prs.uniforms.uT.v.copy(vel.texel);
-      for(let i=0;i<CFG.PRESSURE_ITER;i++){prs.uniforms.uP.v=pres.read.texture;blit(prs,pres.write);pres.swap();}
-      grd.uniforms.uP.v=pres.read.texture;grd.uniforms.uV.v=vel.read.texture;grd.uniforms.uT.v.copy(vel.texel);blit(grd,vel.write);vel.swap();
-      adv.uniforms.uV.v=vel.read.texture;adv.uniforms.uS.v=vel.read.texture;adv.uniforms.uT.v.copy(vel.texel);adv.uniforms.uD.v=dt;adv.uniforms.uDiss.v=CFG.VEL_DISSIPATION;blit(adv,vel.write);vel.swap();
-      adv.uniforms.uV.v=vel.read.texture;adv.uniforms.uS.v=dye.read.texture;adv.uniforms.uT.v.copy(dye.texel);adv.uniforms.uDiss.v=CFG.DYE_DISSIPATION;blit(adv,dye.write);dye.swap();
     }
-
-    function applyPtr(){if(!ptr.moved)return;ptr.moved=false;const dx=ptr.x-ptr.px,dy=ptr.y-ptr.py;if(Math.abs(dx)+Math.abs(dy)<1e-6)return;sV(ptr.x,ptr.y,dx*CFG.SPLAT_FORCE,dy*CFG.SPLAT_FORCE,ptr.down?3.:1.8);}
-
-    let lastT;
-    function frame(now){
-      if(!running)return;
-      animId=requestAnimationFrame(frame);
-      let dt=(now-lastT)/1000;lastT=now;dt=Math.min(dt,1/30);if(dt<=0)return;
-      // Canvas capture from video (avoids VideoTexture issues)
-      if(video&&video.videoWidth){vc.width=video.videoWidth;vc.height=video.videoHeight;vctx.drawImage(video,0,0);if(!vidTex){vidTex=new THREE.CanvasTexture(vc);vidTex.colorSpace=THREE.NoColorSpace;}else{vidTex.needsUpdate=true;}}
-      applyPtr();step(dt);
-      disp.uniforms.uD.v=dye.read.texture;disp.uniforms.uC.v=vidTex;blit(disp,null);
-    }
-
-    c2.addEventListener('pointerdown',e=>{const p=toUV(e);ptr.down=true;ptr.moved=false;ptr.x=ptr.px=p.x;ptr.y=ptr.py=p.y;if(video&&vidTex)sV(p.x,p.y,(Math.random()-.5)*160,(Math.random()-.5)*160,2.5);});
-    c2.addEventListener('pointermove',e=>{const p=toUV(e);ptr.px=ptr.x;ptr.py=ptr.y;ptr.x=p.x;ptr.y=p.y;ptr.moved=true;});
-    c2.addEventListener('pointerup',()=>{ptr.down=false;});
-
-    addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);S=ss();vel.resize(S.sw,S.sh);pres.resize(S.sw,S.sh);cRT.setSize(S.sw,S.sh);dRT.setSize(S.sw,S.sh);dye.resize(S.dw,S.dh);});
-
-    return {
-      async start() {
-        video = await getVideo();
-        if(!video) return;
-        vidTex=null; // will be created on first frame
-        running=true;lastT=performance.now();animId=requestAnimationFrame(frame);
-      },
-      stop() {running=false;if(animId)cancelAnimationFrame(animId);}
-    };
+    ctx2.putImageData(new ImageData(out, c2.width, c2.height), 0, 0);
   }
 
-  // ═══════════════════════════════════════════
-  // DOUBLE EXPOSURE
-  // ═══════════════════════════════════════════
-  function initDE() {
-    const MODE_CN = ['正常','双重曝光','正片叠底','叠加','变亮','变暗'];
-    const renderer = new THREE.WebGLRenderer({canvas:c2,preserveDrawingBuffer:true,antialias:true,alpha:false,depth:false,stencil:false});
-    renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);
-    const cam3D = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
-    const scene = new THREE.Scene();
-    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2,2),null);scene.add(quad);
-
-    const layers = []; let composing=false, running=false, animId, selMode=0, vidTex=null, video=null;
-    const vc=document.createElement('canvas'),vctx=vc.getContext('2d');
-
-    const compMat = new THREE.ShaderMaterial({vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,fragmentShader:`precision highp float;varying vec2 vUv;uniform sampler2D uA,uB;uniform int uM;void main(){vec4 a=texture2D(uA,vUv),b=texture2D(uB,vUv);vec3 c;if(uM==0)c=mix(a.rgb,b.rgb,.5);else if(uM==1)c=1.-(1.-a.rgb)*(1.-b.rgb);else if(uM==2)c=a.rgb*b.rgb;else if(uM==3)c=mix(a.rgb*b.rgb*2.,1.-(1.-a.rgb)*(1.-b.rgb)*2.,step(.5,b.rgb));else if(uM==4)c=max(a.rgb,b.rgb);else c=min(a.rgb,b.rgb);gl_FragColor=vec4(c,1.);}`,uniforms:{uA:{v:null},uB:{v:null},uM:{v:0}},depthTest:false,depthWrite:false});
-    const camMat = new THREE.ShaderMaterial({vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,fragmentShader:`precision highp float;varying vec2 vUv;uniform sampler2D uT;void main(){gl_FragColor=texture2D(uT,vUv);}`,uniforms:{uT:{v:null}},depthTest:false,depthWrite:false});
-
-    function capture(){
-      if(!video||!video.videoWidth||layers.length>=2)return;
-      const w=video.videoWidth,h=video.videoHeight,cap=document.createElement('canvas');cap.width=w;cap.height=h;cap.getContext('2d').drawImage(video,0,0,w,h);
-      const t=new THREE.CanvasTexture(cap);t.colorSpace=THREE.NoColorSpace;t.minFilter=THREE.LinearFilter;t.magFilter=THREE.LinearFilter;
-      layers.push({texture:t});
-      if(layers.length===2){composing=true;document.getElementById('mL').textContent='EXPO '+MODE_CN[selMode];}
+  function expoFrame() {
+    if (!running || mode !== 'expo') return;
+    animId = requestAnimationFrame(expoFrame);
+    if (!sharedVideo || !sharedVideo.videoWidth) return;
+    c2.width = innerWidth; c2.height = innerHeight;
+    if (expoComposing && expoLayers.length === 2) {
+      const result = expoApplyMode(expoLayers[0], expoLayers[1], expoModeIdx);
+      ctx2.drawImage(result, 0, 0, c2.width, c2.height);
+    } else {
+      ctx2.drawImage(sharedVideo, 0, 0, c2.width, c2.height);
     }
-
-    function frame(){
-      if(!running)return;
-      animId=requestAnimationFrame(frame);
-      if(!video||!video.videoWidth)return;
-      if(composing&&layers.length===2){compMat.uniforms.uA.v=layers[0].texture;compMat.uniforms.uB.v=layers[1].texture;compMat.uniforms.uM.v=selMode;quad.material=compMat;renderer.setRenderTarget(null);renderer.render(scene,cam3D);}
-      else{vc.width=video.videoWidth;vc.height=video.videoHeight;vctx.drawImage(video,0,0);if(!vidTex){vidTex=new THREE.CanvasTexture(vc);vidTex.colorSpace=THREE.NoColorSpace;}else{vidTex.needsUpdate=true;}camMat.uniforms.uT.v=vidTex;quad.material=camMat;renderer.setRenderTarget(null);renderer.render(scene,cam3D);}
-    }
-
-    c2.addEventListener('click',e => {
-      if(composing && layers.length===2) {
-        selMode=(selMode+1)%6;
-        document.getElementById('mL').textContent='DE '+MODE_CN[selMode];
-        return;
-      }
-      capture();
-    });
-
-    return {
-      async start() {video=await getVideo();if(!video)return;running=true;animId=requestAnimationFrame(frame);},
-      stop() {running=false;if(animId)cancelAnimationFrame(animId);composing=false;layers.length=0;vidTex=null;}
-    };
   }
+
+  async function showFlow() {
+    if (running) { cancelAnimationFrame(animId); running = false; }
+    mode = 'flow';
+    if (!sharedVideo) await getVideo();
+    if (!sharedVideo) return;
+    expoLayers.length = 0; expoComposing = false;
+    c1.style.opacity = '0'; c2.style.display = 'block';
+    running = true; animId = requestAnimationFrame(flowFrame);
+    document.getElementById('mL').textContent = 'FLOW';
+  }
+
+  async function showExpo() {
+    if (running) { cancelAnimationFrame(animId); running = false; }
+    mode = 'expo';
+    if (!sharedVideo) await getVideo();
+    if (!sharedVideo) return;
+    c1.style.opacity = '0'; c2.style.display = 'block';
+    running = true; animId = requestAnimationFrame(expoFrame);
+    document.getElementById('mL').textContent = 'EXPO';
+  }
+
+  function hideModes() {
+    running = false;
+    if (animId) cancelAnimationFrame(animId);
+    expoLayers.length = 0; expoComposing = false; mode = null;
+    c1.style.display = 'block'; c1.style.opacity = '1'; c2.style.display = 'none';
+  }
+
+  o1.onclick = showFlow;
+  o2.onclick = showExpo;
+  c2.addEventListener('click', () => {
+    if (mode === 'expo') {
+      if (expoComposing) { expoModeIdx = (expoModeIdx + 1) % 6; document.getElementById('mL').textContent = 'EXPO ' + EXPO_MODES[expoModeIdx]; }
+      else expoCapture();
+    }
+  });
+  document.querySelectorAll('.mode-opt[data-m]:not([data-m="14"]):not([data-m="15"])').forEach(o => {
+    o.addEventListener('click', () => setTimeout(hideModes, 100));
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') hideModes(); });
 
 }, 500);
 </script>
