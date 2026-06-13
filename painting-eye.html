@@ -529,6 +529,11 @@ document.addEventListener('keydown', function(e){
       canvas.style.display = 'none';
       if (name === 'FLOW') { expoIframe.style.display = 'none'; flowIframe.style.display = 'block'; flowIframe.src = flowIframe.src || 'ink-flow.html?embed=1'; }
       else { flowIframe.style.display = 'none'; expoIframe.style.display = 'block'; expoIframe.src = expoIframe.src || 'de.html?embed=1'; }
+      // Push activation code to iframe after it loads
+      var lic = localStorage.getItem('pe_license');
+      if (lic) setTimeout(function(){
+        try { iframe.contentWindow.postMessage({type:'license', key:lic}, '*'); } catch(e){}
+      }, 300);
       exitBtn.style.display = 'block';
       if (mL) mL.textContent = name;
       // Update mode selector button

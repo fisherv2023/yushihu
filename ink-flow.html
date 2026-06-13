@@ -600,6 +600,9 @@ window.addEventListener('message', function(e) {
 
 // Embedded in painting-eye: hide own UI
 if (window.self !== window.top) {
+  // Auto-activate from localStorage (set by painting-eye)
+  var lic = localStorage.getItem('pe_license');
+  if (lic) window.parent.postMessage({type:'license', key:lic}, '*');
   document.addEventListener('DOMContentLoaded', function(){
     ['perm','modeLabel','sBar','act','bBar','palOverlay'].forEach(function(id){
       var el = document.getElementById(id);
