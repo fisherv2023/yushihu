@@ -530,12 +530,16 @@ window.addEventListener('message', function(e) {
   }
 });
 
-// Embedded in painting-eye: hide own UI, use parent's buttons
+// Embedded in painting-eye: hide own UI
 if (window.self !== window.top) {
   document.addEventListener('DOMContentLoaded', function(){
     ['perm','status','sBar','panel'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.style.display = 'none';
+    });
+    // Hide ALL non-canvas elements
+    document.querySelectorAll('body > *:not(canvas)').forEach(function(el){
+      el.style.display = 'none';
     });
   });
 }

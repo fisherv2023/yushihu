@@ -101,10 +101,10 @@ document.getElementById('btnCapture').addEventListener('click', () => {
 
   if (layers.length === 1) {
     document.getElementById('status').textContent = '第一张已捕获 • 再拍一张';
+    window.parent.postMessage({type:'expoStatus', text:'EXPO 1/2'}, '*');
   }
 
   if (layers.length === 2) {
-    // Done capturing — hide camera, show composite
     composing = true;
     document.getElementById('btnCapture').style.display = 'none';
     document.getElementById('btnSave').style.display = 'flex';
@@ -173,6 +173,9 @@ function render(now) {
 // Mode slider
 document.getElementById('modeSlider').addEventListener('input', () => {
   document.getElementById('modeLabel').textContent = MODE_LABELS_CN[getMode()];
+  if (window.self !== window.top) {
+    window.parent.postMessage({type:'expoMode', text: MODE_LABELS_CN[getMode()]}, '*');
+  }
 });
 
 // Save
@@ -220,6 +223,10 @@ if (window.self !== window.top) {
     ['perm','status','modeBar','panel'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.style.display = 'none';
+    });
+    // Hide ALL non-canvas elements
+    document.querySelectorAll('body > *:not(canvas)').forEach(function(el){
+      el.style.display = 'none';
     });
   });
 }
