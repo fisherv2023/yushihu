@@ -164,15 +164,16 @@ scene.add(fullQuad);
 // ── Capture ──
 document.getElementById('capBtn').addEventListener('click', () => {
   if (!video || !video.videoWidth || layers.length >= 2) return;
-  // Ensure video is active after retake cycles
-  if (video.paused || video.readyState < 2) { 
-    video.play().catch(() => {});
-    return;
-  }
+  // Ensure video is playing and has a stable frame
+  if (video.paused) video.play().catch(() => {});
+  if (video.readyState < 2) return; // not enough data yet, try next click
   const w = video.videoWidth, h = video.videoHeight;
   const cap = document.createElement('canvas');
   cap.width = w; cap.height = h;
   cap.getContext('2d').drawImage(video, 0, 0, w, h);
+  // Verify capture is valid (not a corrupt/striped frame)
+  var px = cap.getContext('2d').getImageData(w>>1, h>>1, 1, 1).data;
+  if (px[0] === 0 && px[1] === 0 && px[2] === 0) return; // black center = bad frame, retry
   const tex = new THREE.CanvasTexture(cap);
   tex.colorSpace = THREE.NoColorSpace;
   tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
@@ -258,6 +259,8 @@ document.getElementById('switchBtn').addEventListener('click', () => {
 function render(now) {
   requestAnimationFrame(render);
   if (!video || !video.videoWidth) return;
+
+  if (videoTexture) videoTexture.needsUpdate = true;
 
   if (composing && layers.length === 2) {
     compositeMat.uniforms.uTexA.value = layers[0].texture;
