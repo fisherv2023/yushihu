@@ -78,11 +78,11 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
   <input type="range" class="slider" id="slider" min="1" max="10" value="4">
 </div>
 <div class="palette" id="palOverlay">
-  <div class="swatch" style="background:#1a1a1a" data-ink="0.1,0.1,0.1"></div>
-  <div class="swatch" style="background:#2a1a0a" data-ink="0.35,0.25,0.15"></div>
-  <div class="swatch" style="background:#1a2a3a" data-ink="0.25,0.3,0.45"></div>
-  <div class="swatch" style="background:#3a1a2a" data-ink="0.45,0.2,0.3"></div>
-  <div class="swatch" style="background:#2a3a1a" data-ink="0.3,0.45,0.2"></div>
+  <div class="swatch" style="background:#2c2416" data-ink="0.17,0.14,0.09" title="焦墨"></div>
+  <div class="swatch" style="background:#3a3a3a" data-ink="0.23,0.23,0.23" title="浓墨"></div>
+  <div class="swatch" style="background:#4a4a4a" data-ink="0.29,0.29,0.29" title="淡墨"></div>
+  <div class="swatch" style="background:#2a3040" data-ink="0.16,0.19,0.25" title="花青"></div>
+  <div class="swatch" style="background:#3a2a22" data-ink="0.23,0.16,0.13" title="赭石"></div>
 </div>
 
 <script type="importmap">
@@ -308,13 +308,13 @@ void main(){
 
 // ---- Display ----
 const displayMat = prog(`precision highp float;varying vec2 vUv;
-uniform sampler2D uDye,uCamera;uniform vec3 uPaper,uInkColor;
+uniform sampler2D uDye,uCamera;uniform vec3 uPaper;
 
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 
 void main(){
   vec3 A=texture2D(uDye,vUv).rgb*1.5;
-  vec3 ink=uPaper*exp(-A)*uInkColor;
+  vec3 ink=uPaper*exp(-A);
   vec3 cam=texture2D(uCamera,vUv).rgb;
 
   // Sharp threshold for opaque ink — no gray film
@@ -331,7 +331,6 @@ void main(){
 `, {
   uDye:{value:null},uCamera:{value:null},
   uPaper:{value:new THREE.Vector3(PAPER.r,PAPER.g,PAPER.b)},
-  uInkColor:{value:new THREE.Vector3(1,1,1)},
 });
 
 function blit(mat, target) {
@@ -411,6 +410,7 @@ canvas.addEventListener('pointerdown', e => {
   ptr.x = ptr.px = p.x; ptr.y = ptr.py = p.y;
   const col = sampleCameraColor({x: p.x, y: p.y});
   splatDye(p.x, p.y, inkAbsorption(col, .3), 2.5);
+  if (palInkColor) splatDye(p.x, p.y, inkAbsorption(palInkColor, .15), 2.0);
   splatVelocity(p.x, p.y, (Math.random()-.5)*160, (Math.random()-.5)*160, 2.5);
 });
 canvas.addEventListener('pointermove', e => {
@@ -432,6 +432,7 @@ function applyPointer() {
     const s = Math.min(Math.hypot(dx, dy) * 25, 1);
     const col = sampleCameraColor({x: ptr.x, y: ptr.y});
     splatDye(ptr.x, ptr.y, inkAbsorption(col, .08 + s * .14), 1.2);
+    if (palInkColor) splatDye(ptr.x, ptr.y, inkAbsorption(palInkColor, .04), 0.8);
   }
 }
 
@@ -635,10 +636,12 @@ document.getElementById('palBtn').addEventListener('click', () => {
 });
 
 // ── Ink color selection ──
+let palInkColor = null;
 document.querySelectorAll('#palOverlay .swatch').forEach(sw => {
   sw.addEventListener('click', () => {
     const [r, g, b] = sw.dataset.ink.split(',').map(Number);
-    displayMat.uniforms.uInkColor.value.set(r, g, b);
+    palInkColor = new THREE.Vector3(r, g, b);
+    // Inject palette ink on touch alongside camera-derived ink
   });
 });
 
@@ -647,8 +650,11 @@ let bgTexture = null;
 document.getElementById('uploadBtn').addEventListener('click', () => {
   const input = document.createElement('input');
   input.type = 'file'; input.accept = 'image/*';
+  input.style.display = 'none';
+  document.body.appendChild(input);
   input.onchange = (e) => {
     const file = e.target.files[0];
+    document.body.removeChild(input);
     if (!file) return;
     const img = new Image();
     img.onload = () => {
