@@ -199,7 +199,6 @@ window.addEventListener('message', function(e) {
   if (e.data.type === 'slider') {
     var slider = document.getElementById('modeSlider');
     if (slider) {
-      // Map 1-5 to 0-5 blend mode indices
       slider.value = Math.round((e.data.value - 1) / 4 * 5);
       slider.dispatchEvent(new Event('input'));
     }
@@ -208,6 +207,16 @@ window.addEventListener('message', function(e) {
     try { localStorage.setItem('pe_license', e.data.key); } catch(_) {}
   }
 });
+
+// Embedded in painting-eye: hide own UI, use parent's buttons
+if (window.self !== window.top) {
+  document.addEventListener('DOMContentLoaded', function(){
+    ['perm','status','modeBar','panel'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+  });
+}
 </script>
 </body>
 </html>

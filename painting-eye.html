@@ -498,7 +498,8 @@ document.addEventListener('keydown', function(e){
 </script>
 
 <!-- FLOW/EXPO integration via iframe (independent WebGL context) -->
-<iframe id="peIframe" allow="camera;microphone" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
+<iframe id="peFlow" src="ink-flow.html?embed=1" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
+<iframe id="peExpo" src="de.html?embed=1" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
 <div id="peExit" style="display:none;position:fixed;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;padding:6px 14px;border-radius:14px;font-size:12px;font-family:-apple-system,sans-serif;cursor:pointer;border:1px solid rgba(255,255,255,.15)">← EXIT</div>
 <script>
 // v2 — __pe_loaded check INSIDE setTimeout
@@ -518,44 +519,43 @@ document.addEventListener('keydown', function(e){
     var o2 = document.createElement('div'); o2.className='mode-opt'; o2.dataset.m='15'; o2.textContent='EXPO';
     menu.appendChild(o1); menu.appendChild(o2);
 
-    var iframe = document.getElementById('peIframe');
+    var flowIframe = document.getElementById('peFlow');
+    var expoIframe = document.getElementById('peExpo');
     var exitBtn = document.getElementById('peExit');
     var canvas = document.getElementById('c');
     var mL = document.getElementById('mL');
-    var sBar = document.getElementById('sBar');
     var dropper = document.getElementById('dropper');
-    var modeSel = document.getElementById('mSel');
-    var auxBtns = document.getElementById('aux');
     var activeMode = null;
 
-    function enterMode(name, url) {
+    function enterMode(name, iframe) {
       activeMode = name;
       canvas.style.display = 'none';
-      iframe.src = url;
-      iframe.style.display = 'block';
+      if (name === 'FLOW') { expoIframe.style.display = 'none'; flowIframe.style.display = 'block'; }
+      else { flowIframe.style.display = 'none'; expoIframe.style.display = 'block'; }
       exitBtn.style.display = 'block';
       if (mL) mL.textContent = name;
-      // Hide painting-eye-only UI
       if (dropper) dropper.style.display = 'none';
-      if (sBar) sBar.style.display = 'flex'; // keep slider visible
-      // Show slider for mode switching / intensity control
+      // Auto-close mode menu
+      var menu = document.querySelector('.mode-menu');
+      if (menu) menu.classList.remove('show');
+      // Slider config
       var slider = document.getElementById('slider');
       if (slider) { slider.max = 5; slider.value = 3; }
     }
 
     function exitMode() {
       activeMode = null;
-      iframe.style.display = 'none';
+      flowIframe.style.display = 'none';
+      expoIframe.style.display = 'none';
       canvas.style.display = 'block';
       exitBtn.style.display = 'none';
       if (dropper) dropper.style.display = '';
-      // Restore slider default
       var slider = document.getElementById('slider');
       if (slider) { slider.max = 10; slider.value = 4; }
     }
 
-    o1.onclick = function(){ enterMode('FLOW', 'ink-flow.html'); };
-    o2.onclick = function(){ enterMode('EXPO', 'de.html'); };
+    o1.onclick = function(){ enterMode('FLOW', flowIframe); };
+    o2.onclick = function(){ enterMode('EXPO', expoIframe); };
     exitBtn.onclick = exitMode;
 
     // Click any other mode to exit
@@ -563,12 +563,14 @@ document.addEventListener('keydown', function(e){
       o.addEventListener('click', exitMode);
     });
 
-    // Slider sends postMessage to iframe
+    // Slider sends postMessage to active iframe
     var slider = document.getElementById('slider');
     if (slider) {
       slider.addEventListener('input', function(){
-        if (activeMode && iframe.contentWindow) {
-          iframe.contentWindow.postMessage({type:'slider', value: parseInt(slider.value), max: parseInt(slider.max)}, '*');
+        if (!activeMode) return;
+        var target = activeMode === 'FLOW' ? flowIframe : expoIframe;
+        if (target.contentWindow) {
+          target.contentWindow.postMessage({type:'slider', value: parseInt(slider.value), max: parseInt(slider.max)}, '*');
         }
       });
     }
@@ -578,13 +580,15 @@ document.addEventListener('keydown', function(e){
       if (e.key === 'Escape' && activeMode) exitMode();
     });
 
-    // License: check localStorage for activation
+    // License: pass activation to both iframes on load
     var licKey = localStorage.getItem('pe_license');
     if (licKey) {
-      iframe.addEventListener('load', function(){
-        if (iframe.contentWindow && iframe.contentWindow.postMessage) {
-          iframe.contentWindow.postMessage({type:'license', key: licKey}, '*');
-        }
+      [flowIframe, expoIframe].forEach(function(fr){
+        fr.addEventListener('load', function(){
+          if (fr.contentWindow && fr.contentWindow.postMessage) {
+            fr.contentWindow.postMessage({type:'license', key: licKey}, '*');
+          }
+        });
       });
     }
   }, 500);
