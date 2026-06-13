@@ -300,7 +300,7 @@ document.getElementById('uploadBtn').addEventListener('click', () => {
 // ── Render loop ──
 function render(now) {
   requestAnimationFrame(render);
-  if (!video || !video.videoWidth) return;
+  if (!composing && (!video || !video.videoWidth)) return;
 
   if (videoTexture) videoTexture.needsUpdate = true;
 
