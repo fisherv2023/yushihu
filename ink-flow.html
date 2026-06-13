@@ -27,6 +27,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .group-l{justify-content:flex-end}
 .group-r{justify-content:flex-start}
 .aux-btn{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;opacity:.45;transition:.2s}
+.aux-btn.on{opacity:1;border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.1)}
 /* slider */
 .slider-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:20;width:70vw;max-width:320px}
 .slider{appearance:none;-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.15);outline:none}
@@ -560,6 +561,58 @@ document.getElementById('btnSave').addEventListener('click', () => {
   link.href = renderer.domElement.toDataURL('image/png');
   link.click();
 });
+
+// ── Grid / Frame overlays ──
+let gMode = 0, fMode = 0; // 0=off, 1=basic, 2=dense (grid) / spiral,3=fib,4=diag (frame)
+const gCanvas = document.createElement('canvas');
+gCanvas.style.cssText = 'position:fixed;inset:0;z-index:5;pointer-events:none;display:none';
+document.body.appendChild(gCanvas);
+const gCtx = gCanvas.getContext('2d');
+
+function drawOverlays() {
+  gCanvas.width = innerWidth; gCanvas.height = innerHeight;
+  gCtx.clearRect(0, 0, gCanvas.width, gCanvas.height);
+  const show = gMode > 0 || fMode > 0;
+  gCanvas.style.display = show ? 'block' : 'none';
+  if (!show) return;
+  // Grid
+  if (gMode === 1) {
+    gCtx.strokeStyle = 'rgba(255,255,255,.15)'; gCtx.lineWidth = 1;
+    const rx = innerWidth / 3, ry = innerHeight / 3;
+    for (let i = 1; i < 3; i++) { gCtx.beginPath(); gCtx.moveTo(rx * i, 0); gCtx.lineTo(rx * i, innerHeight); gCtx.stroke(); }
+    for (let i = 1; i < 3; i++) { gCtx.beginPath(); gCtx.moveTo(0, ry * i); gCtx.lineTo(innerWidth, ry * i); gCtx.stroke(); }
+  }
+  if (gMode === 2) {
+    gCtx.strokeStyle = 'rgba(255,255,255,.1)'; gCtx.lineWidth = .5;
+    const rx = innerWidth / 6, ry = innerHeight / 6;
+    for (let i = 1; i < 6; i++) { gCtx.beginPath(); gCtx.moveTo(rx * i, 0); gCtx.lineTo(rx * i, innerHeight); gCtx.stroke(); }
+    for (let i = 1; i < 6; i++) { gCtx.beginPath(); gCtx.moveTo(0, ry * i); gCtx.lineTo(innerWidth, ry * i); gCtx.stroke(); }
+  }
+  // Frame
+  if (fMode === 1) {
+    gCtx.strokeStyle = 'rgba(255,255,255,.25)'; gCtx.lineWidth = 1;
+    const s = Math.min(innerWidth, innerHeight) * 0.28;
+    const cx = innerWidth / 2, cy = innerHeight / 2;
+    gCtx.beginPath(); gCtx.arc(cx, cy, s, 0, Math.PI * 2); gCtx.stroke();
+    gCtx.beginPath(); gCtx.arc(cx, cy, s * 1.3, 0, Math.PI * 2); gCtx.stroke();
+    gCtx.beginPath(); gCtx.arc(cx, cy, s * 2.6, 0, Math.PI * 2); gCtx.stroke();
+  }
+}
+
+// Toggle handlers
+document.getElementById('gridBtn').addEventListener('click', () => {
+  gMode = (gMode + 1) % 3;
+  document.getElementById('gridBtn').classList.toggle('on', gMode > 0);
+  drawOverlays();
+});
+document.getElementById('frameBtn').addEventListener('click', () => {
+  fMode = (fMode + 1) % 2;
+  document.getElementById('frameBtn').classList.toggle('on', fMode > 0);
+  drawOverlays();
+});
+
+// Redraw overlays on resize
+addEventListener('resize', drawOverlays);
 
 // ── Resize ──
 addEventListener('resize', () => {
