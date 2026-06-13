@@ -169,11 +169,14 @@ document.getElementById('capBtn').addEventListener('click', () => {
   if (video.paused) video.play().catch(() => {});
   if (video.readyState < 2) return; // not enough data yet, try next click
   const w = video.videoWidth, h = video.videoHeight;
+  const maxTexSize = 1920;
+  const scale = Math.min(1, maxTexSize / Math.max(w, h));
+  const tw = Math.round(w * scale), th = Math.round(h * scale);
   const cap = document.createElement('canvas');
-  cap.width = w; cap.height = h;
-  cap.getContext('2d').drawImage(video, 0, 0, w, h);
+  cap.width = tw; cap.height = th;
+  cap.getContext('2d').drawImage(video, 0, 0, tw, th);
   // Verify capture is valid (not a corrupt/striped frame)
-  var px = cap.getContext('2d').getImageData(w>>1, h>>1, 1, 1).data;
+  var px = cap.getContext('2d').getImageData(tw>>1, th>>1, 1, 1).data;
   if (px[0] === 0 && px[1] === 0 && px[2] === 0) return; // black center = bad frame, retry
   const tex = new THREE.CanvasTexture(cap);
   tex.colorSpace = THREE.NoColorSpace;
@@ -210,6 +213,9 @@ document.getElementById('btnRetake').addEventListener('click', () => {
   layers = [];
   composing = false;
   selMode = 0;
+  // Release GPU uniform references
+  compositeMat.uniforms.uTexA.value = null;
+  compositeMat.uniforms.uTexB.value = null;
   compositeMat.uniforms.uMode.value = 0;
   document.getElementById('modeSlider').value = 0;
   document.getElementById('act').classList.remove('show');
@@ -278,6 +284,8 @@ document.getElementById('uploadBtn').addEventListener('click', () => {
       layers.forEach(l => l.texture.dispose());
       layers = [{ texture: tex, canvas: c }];
       composing = false;
+      compositeMat.uniforms.uTexA.value = null;
+      compositeMat.uniforms.uTexB.value = null;
       document.getElementById('modeLabel').textContent = 'EXPO 1/2';
       window.parent.postMessage({type:'expoStatus', text:'EXPO 1/2'}, '*');
       document.getElementById('act').classList.remove('show');
