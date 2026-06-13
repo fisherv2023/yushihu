@@ -109,11 +109,10 @@ async function startCam() {
     document.getElementById('sBar').style.display = 'block';
     document.getElementById('modeLabel').textContent = 'EXPO';
 
-    if (!videoTexture) {
-      videoTexture = new THREE.VideoTexture(video);
-      videoTexture.colorSpace = THREE.NoColorSpace;
-      videoTexture.minFilter = THREE.LinearFilter; videoTexture.magFilter = THREE.LinearFilter;
-    }
+    if (videoTexture) videoTexture.dispose();
+    videoTexture = new THREE.VideoTexture(video);
+    videoTexture.colorSpace = THREE.NoColorSpace;
+    videoTexture.minFilter = THREE.LinearFilter; videoTexture.magFilter = THREE.LinearFilter;
   } catch (err) {
     console.error('Camera:', err);
   }
