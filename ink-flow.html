@@ -349,7 +349,7 @@ let video, videoTexture, stream, facingMode = 'environment';
 async function startCam() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: facingMode, width: { ideal: 640 }, height: { ideal: 480 } }
+      video: { facingMode: facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }
     });
     video = document.createElement('video');
     video.srcObject = stream;
@@ -549,12 +549,25 @@ document.getElementById('switchBtn').addEventListener('click', () => {
   }
 });
 
-document.getElementById('btnSave').addEventListener('click', () => {
+document.getElementById('btnSave').addEventListener('click', async () => {
   renderer.render(scene, camera3D);
-  const link = document.createElement('a');
-  link.download = 'ink-flow-' + Date.now() + '.png';
-  link.href = renderer.domElement.toDataURL('image/png');
-  link.click();
+  const blob = await new Promise(r => renderer.domElement.toBlob(r, 'image/png'));
+  if (navigator.share) {
+    try {
+      await navigator.share({ files: [new File([blob], 'ink-flow.png', { type: 'image/png' })] });
+    } catch(e) {
+      // Fallback: download
+      const link = document.createElement('a');
+      link.download = 'ink-flow-' + Date.now() + '.png';
+      link.href = URL.createObjectURL(blob);
+      link.click();
+    }
+  } else {
+    const link = document.createElement('a');
+    link.download = 'ink-flow-' + Date.now() + '.png';
+    link.href = URL.createObjectURL(blob);
+    link.click();
+  }
 });
 
 // ── Resize ──
