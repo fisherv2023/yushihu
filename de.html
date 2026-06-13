@@ -282,17 +282,26 @@ document.getElementById('uploadBtn').addEventListener('click', () => {
       const tex = new THREE.CanvasTexture(c);
       tex.colorSpace = THREE.NoColorSpace;
       tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
-      // Reset any previous captures
-      layers.forEach(l => l.texture.dispose());
-      layers = [{ texture: tex, canvas: c }];
-      composing = false;
-      compositeMat.uniforms.uTexA.value = null;
-      compositeMat.uniforms.uTexB.value = null;
-      document.getElementById('modeLabel').textContent = 'EXPO 1/2';
-      window.parent.postMessage({type:'expoStatus', text:'EXPO 1/2'}, '*');
-      document.getElementById('act').classList.remove('show');
-      document.getElementById('sBar').style.display = 'none';
+      layers.push({ texture: tex, canvas: c });
       document.getElementById('uploadBtn').classList.add('on');
+
+      if (layers.length === 1) {
+        composing = false;
+        compositeMat.uniforms.uTexA.value = null;
+        compositeMat.uniforms.uTexB.value = null;
+        document.getElementById('modeLabel').textContent = 'EXPO 1/2';
+        window.parent.postMessage({type:'expoStatus', text:'EXPO 1/2'}, '*');
+        document.getElementById('act').classList.remove('show');
+        document.getElementById('sBar').style.display = 'none';
+      }
+
+      if (layers.length === 2) {
+        composing = true;
+        document.getElementById('modeLabel').textContent = 'EXPO ' + MODE_LABELS_CN[getMode()];
+        window.parent.postMessage({type:'expoStatus', text:'EXPO ' + MODE_LABELS_CN[getMode()]}, '*');
+        document.getElementById('sBar').style.display = 'block';
+        document.getElementById('act').classList.add('show');
+      }
     };
     img.src = URL.createObjectURL(file);
   };
