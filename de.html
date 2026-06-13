@@ -107,7 +107,8 @@ async function startCam() {
     document.getElementById('perm').style.display = 'none';
     document.getElementById('bBar').style.display = 'flex';
     document.getElementById('sBar').style.display = 'block';
-    document.getElementById('modeLabel').textContent = 'EXPO';
+    // Preserve capture status if already in progress
+    if (layers.length === 0) document.getElementById('modeLabel').textContent = 'EXPO';
 
     if (videoTexture) videoTexture.dispose();
     videoTexture = new THREE.VideoTexture(video);
