@@ -537,6 +537,11 @@ document.addEventListener('keydown', function(e){
       // Highlight active mode option
       document.querySelectorAll('.mode-opt').forEach(function(o){ o.classList.toggle('sel', o.dataset.m === (name==='FLOW'?'14':'15')); });
       if (dropper) dropper.style.display = 'none';
+      // Hide painting-eye-only buttons in FLOW/EXPO mode
+      ['gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
       // Auto-close mode menu
       var menu = document.querySelector('.mode-menu');
       if (menu) menu.classList.remove('show');
@@ -551,7 +556,15 @@ document.addEventListener('keydown', function(e){
       expoIframe.style.display = 'none';
       canvas.style.display = 'block';
       exitBtn.style.display = 'none';
+      // Click ORIGINAL mode to properly reset painting-eye state
+      var origOpt = document.querySelector('.mode-opt[data-m="11"]');
+      if (origOpt) origOpt.click();
       if (dropper) dropper.style.display = '';
+      // Restore hidden buttons
+      ['gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.style.display = '';
+      });
       var slider = document.getElementById('slider');
       if (slider) { slider.max = 10; slider.value = 4; }
     }
