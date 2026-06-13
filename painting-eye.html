@@ -615,6 +615,9 @@ document.addEventListener('keydown', function(e){
       if (e.data.type === 'expoMode' && activeMode === 'EXPO') {
         if (mL) mL.textContent = 'EXPO ' + e.data.text;
       }
+      if (e.data.type === 'exit') {
+        exitMode();
+      }
     });
     // Escape key exits
     document.addEventListener('keydown', function(e){
