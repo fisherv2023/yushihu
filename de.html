@@ -192,6 +192,8 @@ document.getElementById('btnSave').addEventListener('click', () => {
 
 addEventListener('resize', () => renderer.setSize(innerWidth, innerHeight));
 requestAnimationFrame(render);
+// Auto-start camera when embedded in painting-eye
+if (window.self !== window.top) startCam();
 </script>
 <script>
 // Handle postMessage from painting-eye iframe integration
@@ -208,12 +210,17 @@ window.addEventListener('message', function(e) {
   }
 });
 
-// Embedded in painting-eye: hide own UI, use parent's buttons
+// Embedded in painting-eye: hide own UI, use canvas tap to capture
 if (window.self !== window.top) {
   document.addEventListener('DOMContentLoaded', function(){
     ['perm','status','modeBar','panel'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.style.display = 'none';
+    });
+    // Canvas tap to capture (replaces hidden capture button)
+    document.getElementById('c').addEventListener('click', function(){
+      var btn = document.getElementById('btnCapture');
+      if (btn) btn.click();
     });
   });
 }

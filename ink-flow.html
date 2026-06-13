@@ -514,6 +514,8 @@ addEventListener('resize', () => {
 });
 
 requestAnimationFrame(frame);
+// Auto-start camera when embedded in painting-eye
+if (window.self !== window.top) startCam();
 </script>
 <script>
 // Handle postMessage from painting-eye iframe integration

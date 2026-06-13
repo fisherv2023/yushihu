@@ -498,8 +498,8 @@ document.addEventListener('keydown', function(e){
 </script>
 
 <!-- FLOW/EXPO integration via iframe (independent WebGL context) -->
-<iframe id="peFlow" src="ink-flow.html?embed=1" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
-<iframe id="peExpo" src="de.html?embed=1" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
+<iframe id="peFlow" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
+<iframe id="peExpo" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
 <div id="peExit" style="display:none;position:fixed;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;padding:6px 14px;border-radius:14px;font-size:12px;font-family:-apple-system,sans-serif;cursor:pointer;border:1px solid rgba(255,255,255,.15)">← EXIT</div>
 <script>
 // v2 — __pe_loaded check INSIDE setTimeout
@@ -527,8 +527,8 @@ document.addEventListener('keydown', function(e){
     function enterMode(name, iframe) {
       activeMode = name;
       canvas.style.display = 'none';
-      if (name === 'FLOW') { expoIframe.style.display = 'none'; flowIframe.style.display = 'block'; }
-      else { flowIframe.style.display = 'none'; expoIframe.style.display = 'block'; }
+      if (name === 'FLOW') { expoIframe.style.display = 'none'; flowIframe.style.display = 'block'; flowIframe.src = flowIframe.src || 'ink-flow.html?embed=1'; }
+      else { flowIframe.style.display = 'none'; expoIframe.style.display = 'block'; expoIframe.src = expoIframe.src || 'de.html?embed=1'; }
       exitBtn.style.display = 'block';
       if (mL) mL.textContent = name;
       // Update mode selector button
