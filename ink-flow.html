@@ -21,17 +21,12 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .cap-btn{position:relative;width:60px;height:60px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .cap-btn::after{content:'';position:absolute;top:5px;left:5px;width:44px;height:44px;border-radius:50%;background:#fff}
 /* bottom bar */
-.bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:20;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 16px;column-gap:6px}
-.group-l,.group-r{display:flex;align-items:center;gap:8px}
-.group-l{justify-content:flex-end}
-.group-r{justify-content:flex-start}
+.bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:0 16px}
+.group-l{display:flex;align-items:center;gap:8px}
+.group-r{display:flex;align-items:center;gap:8px}
+.cap-wrap{position:absolute;left:50%;transform:translateX(-50%)}
 .aux-btn{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;opacity:.45;transition:.2s}
 .aux-btn.on{opacity:1;border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.1)}
-/* palette */
-.palette{position:fixed;top:48px;right:12px;z-index:15;display:none;flex-direction:column;gap:4px}
-.palette.show{display:flex}
-.palette .swatch{width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.2);box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer;transition:transform .15s}
-.palette .swatch:active{transform:scale(1.2)}
 /* slider */
 .slider-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:20;width:70vw;max-width:320px}
 .slider{appearance:none;-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.15);outline:none}
@@ -68,18 +63,10 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
   </div>
   <div class="group-r" id="aux">
     <div class="aux-btn" id="switchBtn" title="Flip Camera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></div>
-    <div class="aux-btn" id="palBtn" title="Palette"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2C17.5222 2 22 5.97778 22 10.8889C22 13.9556 19.5111 16.4444 16.4444 16.4444H14.4778C13.5556 16.4444 12.8111 17.1889 12.8111 18.1111C12.8111 18.5333 12.9778 18.9222 13.2333 19.2111C13.5 19.5111 13.6667 19.9 13.6667 20.3333C13.6667 21.2556 12.9 22 12 22C6.47778 22 2 17.5222 2 12C2 6.47778 6.47778 2 12 2ZM10.8111 18.1111C10.8111 16.0843 12.451 14.4444 14.4778 14.4444H16.4444C18.4065 14.4444 20 12.851 20 10.8889C20 7.1392 16.4677 4 12 4C7.58235 4 4 7.58235 4 12C4 16.19 7.2226 19.6285 11.324 19.9718C10.9948 19.4168 10.8111 18.7761 10.8111 18.1111ZM7.5 12C6.67157 12 6 11.3284 6 10.5C6 9.67157 6.67157 9 7.5 9C8.32843 9 9 9.67157 9 10.5C9 11.3284 8.32843 12 7.5 12ZM16.5 12C15.6716 12 15 11.3284 15 10.5C15 9.67157 15.6716 9 16.5 9C17.3284 9 18 9.67157 18 10.5C18 11.3284 17.3284 12 16.5 12ZM12 9C11.1716 9 10.5 8.32843 10.5 7.5C10.5 6.67157 11.1716 6 12 6C12.8284 6 13.5 6.67157 13.5 7.5C13.5 8.32843 12.8284 9 12 9Z"/></svg></div>
   </div>
 </div>
 <div class="slider-bar" id="sBar">
   <input type="range" class="slider" id="slider" min="1" max="10" value="4">
-</div>
-<div class="palette" id="palOverlay">
-  <div class="swatch" style="background:#2c2416" data-ink="0.17,0.14,0.09" title="焦墨"></div>
-  <div class="swatch" style="background:#3a3a3a" data-ink="0.23,0.23,0.23" title="浓墨"></div>
-  <div class="swatch" style="background:#4a4a4a" data-ink="0.29,0.29,0.29" title="淡墨"></div>
-  <div class="swatch" style="background:#2a3040" data-ink="0.16,0.19,0.25" title="花青"></div>
-  <div class="swatch" style="background:#3a2a22" data-ink="0.23,0.16,0.13" title="赭石"></div>
 </div>
 
 <script type="importmap">
@@ -407,7 +394,6 @@ canvas.addEventListener('pointerdown', e => {
   ptr.x = ptr.px = p.x; ptr.y = ptr.py = p.y;
   const col = sampleCameraColor({x: p.x, y: p.y});
   splatDye(p.x, p.y, inkAbsorption(col, .3), 2.5);
-  if (palInkColor) splatDye(p.x, p.y, inkAbsorption(palInkColor, .15), 2.0);
   splatVelocity(p.x, p.y, (Math.random()-.5)*160, (Math.random()-.5)*160, 2.5);
 });
 canvas.addEventListener('pointermove', e => {
@@ -429,7 +415,6 @@ function applyPointer() {
     const s = Math.min(Math.hypot(dx, dy) * 25, 1);
     const col = sampleCameraColor({x: ptr.x, y: ptr.y});
     splatDye(ptr.x, ptr.y, inkAbsorption(col, .08 + s * .14), 1.2);
-    if (palInkColor) splatDye(ptr.x, ptr.y, inkAbsorption(palInkColor, .04), 0.8);
   }
 }
 
@@ -570,23 +555,6 @@ document.getElementById('btnSave').addEventListener('click', () => {
   link.download = 'ink-flow-' + Date.now() + '.png';
   link.href = renderer.domElement.toDataURL('image/png');
   link.click();
-});
-
-// ── Resize ──
-let palOn = false;
-document.getElementById('palBtn').addEventListener('click', () => {
-  palOn = !palOn;
-  document.getElementById('palBtn').classList.toggle('on', palOn);
-  document.getElementById('palOverlay').classList.toggle('show', palOn);
-});
-
-// ── Ink color selection ──
-let palInkColor = null;
-document.querySelectorAll('#palOverlay .swatch').forEach(sw => {
-  sw.addEventListener('click', () => {
-    const [r, g, b] = sw.dataset.ink.split(',').map(Number);
-    palInkColor = new THREE.Vector3(r, g, b);
-  });
 });
 
 // ── Resize ──
