@@ -531,6 +531,11 @@ document.addEventListener('keydown', function(e){
       else { flowIframe.style.display = 'none'; expoIframe.style.display = 'block'; }
       exitBtn.style.display = 'block';
       if (mL) mL.textContent = name;
+      // Update mode selector button
+      var mText = document.getElementById('mText');
+      if (mText) mText.textContent = name;
+      // Highlight active mode option
+      document.querySelectorAll('.mode-opt').forEach(function(o){ o.classList.toggle('sel', o.dataset.m === (name==='FLOW'?'14':'15')); });
       if (dropper) dropper.style.display = 'none';
       // Auto-close mode menu
       var menu = document.querySelector('.mode-menu');
