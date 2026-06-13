@@ -510,9 +510,6 @@ document.addEventListener('keydown', function(e){
   document.head.appendChild(style);
   setTimeout(function(){
     if (!window.__pe_loaded) return;
-    // Add FLOW + EXPO to free tier
-    if (typeof FREE_MODES !== 'undefined') FREE_MODES.push(14, 15);
-
     var menu = document.querySelector('.mode-menu');
     if (!menu) return;
     var o1 = document.createElement('div'); o1.className='mode-opt'; o1.dataset.m='14'; o1.textContent='FLOW';
@@ -554,8 +551,14 @@ document.addEventListener('keydown', function(e){
       if (slider) { slider.max = 10; slider.value = 4; }
     }
 
-    o1.onclick = function(){ enterMode('FLOW', flowIframe); };
-    o2.onclick = function(){ enterMode('EXPO', expoIframe); };
+    o1.onclick = function(){
+      if (typeof licMode !== 'undefined' && licMode !== 'pro') { if (typeof openLicOverlay === 'function') openLicOverlay(); return; }
+      enterMode('FLOW', flowIframe);
+    };
+    o2.onclick = function(){
+      if (typeof licMode !== 'undefined' && licMode !== 'pro') { if (typeof openLicOverlay === 'function') openLicOverlay(); return; }
+      enterMode('EXPO', expoIframe);
+    };
     exitBtn.onclick = exitMode;
 
     // Click any other mode to exit
