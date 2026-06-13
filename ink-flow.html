@@ -28,6 +28,11 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .group-r{justify-content:flex-start}
 .aux-btn{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;opacity:.45;transition:.2s}
 .aux-btn.on{opacity:1;border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.1)}
+/* palette */
+.palette{position:fixed;top:48px;right:12px;z-index:15;display:none;flex-direction:column;gap:4px}
+.palette.show{display:flex}
+.palette .swatch{width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.2);box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer;transition:transform .15s}
+.palette .swatch:active{transform:scale(1.2)}
 /* slider */
 .slider-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:20;width:70vw;max-width:320px}
 .slider{appearance:none;-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.15);outline:none}
@@ -72,6 +77,13 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 </div>
 <div class="slider-bar" id="sBar">
   <input type="range" class="slider" id="slider" min="1" max="10" value="4">
+</div>
+<div class="palette" id="palOverlay">
+  <div class="swatch" style="background:#1a1a1a" data-ink="0.1,0.1,0.1"></div>
+  <div class="swatch" style="background:#2a1a0a" data-ink="0.35,0.25,0.15"></div>
+  <div class="swatch" style="background:#1a2a3a" data-ink="0.25,0.3,0.45"></div>
+  <div class="swatch" style="background:#3a1a2a" data-ink="0.45,0.2,0.3"></div>
+  <div class="swatch" style="background:#2a3a1a" data-ink="0.3,0.45,0.2"></div>
 </div>
 
 <script type="importmap">
@@ -297,13 +309,13 @@ void main(){
 
 // ---- Display ----
 const displayMat = prog(`precision highp float;varying vec2 vUv;
-uniform sampler2D uDye,uCamera;uniform vec3 uPaper;
+uniform sampler2D uDye,uCamera;uniform vec3 uPaper,uInkColor;
 
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 
 void main(){
   vec3 A=texture2D(uDye,vUv).rgb*1.5;
-  vec3 ink=uPaper*exp(-A);
+  vec3 ink=uPaper*exp(-A)*uInkColor;
   vec3 cam=texture2D(uCamera,vUv).rgb;
 
   // Sharp threshold for opaque ink — no gray film
@@ -320,6 +332,7 @@ void main(){
 `, {
   uDye:{value:null},uCamera:{value:null},
   uPaper:{value:new THREE.Vector3(PAPER.r,PAPER.g,PAPER.b)},
+  uInkColor:{value:new THREE.Vector3(1,1,1)},
 });
 
 function blit(mat, target) {
@@ -519,7 +532,7 @@ function frame(now) {
   }
 
   displayMat.uniforms.uDye.value = dye.read.texture;
-  displayMat.uniforms.uCamera.value = videoTexture;
+  displayMat.uniforms.uCamera.value = bgTexture || videoTexture;
   blit(displayMat, null);
 
 }
@@ -614,6 +627,46 @@ document.getElementById('frameBtn').addEventListener('click', () => {
 // Redraw overlays on resize
 addEventListener('resize', drawOverlays);
 
+// ── Palette toggle ──
+let palOn = false;
+document.getElementById('palBtn').addEventListener('click', () => {
+  palOn = !palOn;
+  document.getElementById('palBtn').classList.toggle('on', palOn);
+  document.getElementById('palOverlay').classList.toggle('show', palOn);
+});
+
+// ── Ink color selection ──
+document.querySelectorAll('#palOverlay .swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    const [r, g, b] = sw.dataset.ink.split(',').map(Number);
+    displayMat.uniforms.uInkColor.value.set(r, g, b);
+  });
+});
+
+// ── Upload background image ──
+let bgTexture = null;
+document.getElementById('uploadBtn').addEventListener('click', () => {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      if (bgTexture) bgTexture.dispose();
+      bgTexture = new THREE.CanvasTexture(c);
+      bgTexture.colorSpace = THREE.NoColorSpace;
+      bgTexture.minFilter = THREE.LinearFilter; bgTexture.magFilter = THREE.LinearFilter;
+      document.getElementById('uploadBtn').classList.add('on');
+    };
+    img.src = URL.createObjectURL(file);
+  };
+  input.click();
+});
+
 // ── Resize ──
 addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
@@ -645,7 +698,7 @@ window.addEventListener('message', function(e) {
 // Embedded in painting-eye: hide own UI
 if (window.self !== window.top) {
   document.addEventListener('DOMContentLoaded', function(){
-    ['perm','modeLabel','sBar','act','bBar'].forEach(function(id){
+    ['perm','modeLabel','sBar','act','bBar','palOverlay'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
