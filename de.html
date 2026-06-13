@@ -60,6 +60,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
   </div>
   <div class="group-r" id="aux">
     <div class="aux-btn" id="switchBtn" title="Flip Camera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></div>
+    <div class="aux-btn" id="uploadBtn" title="Upload Photo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M24 19H21V23H19V19H16L20 15L24 19ZM21.0078 3C21.5555 3 21.9999 3.44482 22 3.99316V13H20V5H4V18.999L14 9L17 12V14.8291L14 11.8281L6.82715 19H14V21H2.99219C2.44451 21 2.00013 20.5552 2 20.0068V3.99316C2.00013 3.44463 2.45577 3 2.99219 3H21.0078ZM8 7C9.10457 7 10 7.89543 10 9C10 10.1046 9.10457 11 8 11C6.89543 11 6 10.1046 6 9C6 7.89543 6.89543 7 8 7Z"/></svg></div>
   </div>
 </div>
 <div class="slider-bar" id="sBar">
@@ -73,7 +74,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 import * as THREE from 'three';
 
 const MODES = ['Normal', 'Screen', 'Multiply', 'Overlay', 'Lighten', 'Darken'];
-const MODE_LABELS_CN = ['正常', '双重曝光', '正片叠底', '叠加', '变亮', '变暗'];
+const MODE_LABELS_CN = ['Normal', 'Screen', 'Multiply', 'Overlay', 'Lighten', 'Darken'];
 
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas: canvas, preserveDrawingBuffer: true, antialias: false });
@@ -214,6 +215,7 @@ document.getElementById('btnRetake').addEventListener('click', () => {
   document.getElementById('act').classList.remove('show');
   document.getElementById('modeLabel').textContent = 'EXPO';
   document.getElementById('sBar').style.display = 'none';
+  document.getElementById('uploadBtn').classList.remove('on');
   fullQuad.material = displayMat;
   renderer.render(scene, camera3D);
 });
@@ -247,12 +249,44 @@ document.getElementById('exitBtn').addEventListener('click', () => {
 });
 
 // ── Switch Camera ──
-document.getElementById('switchBtn').addEventListener('click', () => {
-  if (stream) {
-    stream.getTracks().forEach(t => t.stop());
-    facingMode = facingMode === 'environment' ? 'user' : 'environment';
-    startCam();
-  }
+document.getElementById('switchBtn').addEventListener('click', async () => {
+  const s = stream;
+  if (s) s.getTracks().forEach(t => t.stop());
+  facingMode = facingMode === 'environment' ? 'user' : 'environment';
+  await startCam();
+});
+
+// ── Upload Photo ──
+document.getElementById('uploadBtn').addEventListener('click', () => {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    document.body.removeChild(input);
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.NoColorSpace;
+      tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+      // Reset any previous captures
+      layers.forEach(l => l.texture.dispose());
+      layers = [{ texture: tex, canvas: c }];
+      composing = false;
+      document.getElementById('modeLabel').textContent = 'EXPO 1/2';
+      window.parent.postMessage({type:'expoStatus', text:'EXPO 1/2'}, '*');
+      document.getElementById('act').classList.remove('show');
+      document.getElementById('sBar').style.display = 'none';
+      document.getElementById('uploadBtn').classList.add('on');
+    };
+    img.src = URL.createObjectURL(file);
+  };
+  input.click();
 });
 
 // ── Render loop ──
