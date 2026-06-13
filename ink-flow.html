@@ -349,7 +349,7 @@ let video, videoTexture, stream, facingMode = 'environment';
 async function startCam() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }
+      video: { facingMode: facingMode, width: { ideal: 4096 }, height: { ideal: 2160 } }
     });
     video = document.createElement('video');
     video.srcObject = stream;
