@@ -9,38 +9,61 @@
 <title>Double Exposure</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;color:#fff;font-family:-apple-system,sans-serif;overflow:hidden;touch-action:none}
+body{background:#000;color:#fff;font-family:-apple-system,sans-serif;overflow:hidden;touch-action:manipulation}
 canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1}
+/* top-left label */
+.ml{position:fixed;top:12px;left:16px;z-index:10;font-size:14px;font-weight:600;letter-spacing:.03em;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+/* mode selector / exit */
+.mode-cur{padding:6px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;min-width:80px;justify-content:center;color:#fff}
+/* capture button */
+.cap-wrap{position:absolute;left:50%;transform:translateX(-50%)}
+.cap-btn{position:relative;width:60px;height:60px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cap-btn::after{content:'';position:absolute;top:5px;left:5px;width:44px;height:44px;border-radius:50%;background:#fff}
+/* bottom bar */
+.bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:0 16px}
+.group-l{display:flex;align-items:center;gap:8px}
+.group-r{display:flex;align-items:center;gap:8px}
+.aux-btn{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;opacity:.45;transition:.2s}
+/* slider */
+.slider-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:20;width:70vw;max-width:320px}
+.slider{appearance:none;-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.15);outline:none}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#fff}
+/* act buttons (retake/save) */
+.act{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:30;display:none;gap:12px}
+.act.show{display:flex}
+.act-btn{padding:6px 18px;border-radius:18px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:13px;cursor:pointer}
+/* permission overlay */
 .perm{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.92)}
-.perm .title{font-size:19px;font-weight:600;margin-bottom:6px}
-.perm .desc{font-size:13px;opacity:.5;margin-bottom:22px;text-align:center}
-.perm .btn{padding:13px 36px;border-radius:24px;border:none;background:#fff;color:#111;font-size:15px;font-weight:600;cursor:pointer}
-.panel{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:8px;background:rgba(0,0,0,.5);backdrop-filter:blur(12px);padding:6px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.12)}
-.panel button{height:36px;padding:0 14px;border-radius:18px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font-size:13px;cursor:pointer}
-.panel button:active{background:rgba(255,255,255,.18)}
-.panel button.primary{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4)}
-.status{position:fixed;top:16px;left:16px;z-index:10;font-size:12px;opacity:.7}
-.mode-bar{position:fixed;bottom:105px;left:50%;transform:translateX(-50%);z-index:10;display:none;align-items:center;gap:8px;width:75vw;max-width:300px}
-.mode-bar span{font-size:10px;opacity:.4;min-width:24px;text-align:center}
-.slider{appearance:none;-webkit-appearance:none;flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.15);outline:none}
-.slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff}
+.perm h2{font-size:20px;font-weight:600;margin-bottom:8px}
+.perm .byline{font-size:13px;opacity:.5;margin-bottom:20px}
+.perm .btn{padding:14px 40px;border-radius:24px;border:none;background:#fff;color:#111;font-size:15px;font-weight:600;cursor:pointer}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<div class="ml" id="modeLabel">EXPO</div>
 <div class="perm" id="perm">
-  <div class="title">Double Exposure</div>
-  <div class="desc">Capture 2 frames<br>choose blend mode</div>
+  <h2>Double Exposure</h2>
+  <div class="byline">Capture 2 frames · choose blend mode</div>
   <button class="btn" id="permBtn">Allow Camera</button>
 </div>
-<div class="status" id="status"></div>
-<div class="mode-bar" id="modeBar">
-  <span id="modeLabel">Normal</span>
-  <input type="range" class="slider" id="modeSlider" min="0" max="5" value="0" step="1">
+<div class="act" id="act">
+  <div class="act-btn" id="btnRetake">Retake</div>
+  <div class="act-btn" id="btnSave">Save</div>
 </div>
-<div class="panel" id="panel" style="display:none">
-  <button class="primary" id="btnCapture">● 捕获</button>
-  <button id="btnSave" style="display:none">保存</button>
+<div class="bottom-bar" id="bBar">
+  <div class="group-l">
+    <div class="mode-cur" id="exitBtn">← EXIT</div>
+  </div>
+  <div class="cap-wrap" id="capWrap">
+    <div class="cap-btn" id="capBtn"></div>
+  </div>
+  <div class="group-r" id="aux">
+    <div class="aux-btn" id="switchBtn" title="Flip Camera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></div>
+  </div>
+</div>
+<div class="slider-bar" id="sBar">
+  <input type="range" class="slider" id="modeSlider" min="0" max="5" value="0" step="1">
 </div>
 
 <script type="importmap">
@@ -53,20 +76,20 @@ const MODES = ['Normal', 'Screen', 'Multiply', 'Overlay', 'Lighten', 'Darken'];
 const MODE_LABELS_CN = ['正常', '双重曝光', '正片叠底', '叠加', '变亮', '变暗'];
 
 const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas, preserveDrawingBuffer: true, antialias: true, alpha: false, depth: false, stencil: false });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ canvas: canvas, preserveDrawingBuffer: true, antialias: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 3));
 renderer.setSize(innerWidth, innerHeight);
-const cam3D = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-const scene = new THREE.Scene();
-const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
-scene.add(quad);
 
-const layers = []; // max 2: [{texture}, {texture}]
-let video, stream;
+const scene = new THREE.Scene();
+const camera3D = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+let video, stream, facingMode = 'environment', videoTexture;
+let composing = false;
+let layers = [];
+let selMode = 0;
+
 const vidCanvas = document.createElement('canvas');
 const vidCtx = vidCanvas.getContext('2d');
-let vidTex = null;
-let composing = false; // true after 2nd capture
 
 function getMode() {
   return parseInt(document.getElementById('modeSlider').value);
@@ -75,19 +98,71 @@ function getMode() {
 async function startCam() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      video: { facingMode: facingMode, width: { ideal: 4096 }, height: { ideal: 2160 } }
     });
     video = document.createElement('video');
     video.srcObject = stream; video.playsInline = true;
     await video.play();
     document.getElementById('perm').style.display = 'none';
-    document.getElementById('panel').style.display = 'flex';
-  } catch (err) { console.error(err); }
+    document.getElementById('bBar').style.display = 'flex';
+    document.getElementById('sBar').style.display = 'block';
+    document.getElementById('modeLabel').textContent = 'EXPO';
+
+    if (!videoTexture) {
+      videoTexture = new THREE.VideoTexture(video);
+      videoTexture.colorSpace = THREE.NoColorSpace;
+      videoTexture.minFilter = THREE.LinearFilter; videoTexture.magFilter = THREE.LinearFilter;
+    }
+  } catch (err) {
+    console.error('Camera:', err);
+  }
 }
 document.getElementById('permBtn').addEventListener('click', startCam);
 
-// Capture
-document.getElementById('btnCapture').addEventListener('click', () => {
+// ── Composite shader ──
+const compositeVert = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`;
+const compositeFrag = `precision highp float; varying vec2 vUv;
+uniform sampler2D uTexA, uTexB; uniform int uMode;
+void main(){
+  vec4 a = texture2D(uTexA, vUv);
+  vec4 b = texture2D(uTexB, vUv);
+  vec4 outColor;
+  if(uMode == 0) outColor = b;          // Normal (just show B)
+  if(uMode == 1) outColor = vec4(1.) - (vec4(1.)-a)*(vec4(1.)-b); // Screen
+  if(uMode == 2) outColor = a * b;       // Multiply
+  if(uMode == 3) {                       // Overlay
+    vec4 lo = 2.*a*b;
+    vec4 hi = vec4(1.) - 2.*(vec4(1.)-a)*(vec4(1.)-b);
+    outColor = mix(lo, hi, step(0.5, b));
+  }
+  if(uMode == 4) outColor = max(a, b);  // Lighten
+  if(uMode == 5) outColor = min(a, b);  // Darken
+  gl_FragColor = outColor;
+}`;
+const compositeMat = new THREE.ShaderMaterial({
+  vertexShader: compositeVert, fragmentShader: compositeFrag,
+  uniforms: {
+    uTexA: { value: null }, uTexB: { value: null }, uMode: { value: 0 }
+  }
+});
+
+// ── Camera display shader ──
+const displayVert = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`;
+const displayFrag = `precision highp float; varying vec2 vUv;
+uniform sampler2D uCamera;
+void main(){
+  gl_FragColor = texture2D(uCamera, vUv);
+}`;
+const displayMat = new THREE.ShaderMaterial({
+  vertexShader: displayVert, fragmentShader: displayFrag,
+  uniforms: { uCamera: { value: null } }
+});
+
+const fullQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), displayMat);
+scene.add(fullQuad);
+
+// ── Capture ──
+document.getElementById('capBtn').addEventListener('click', () => {
   if (!video || !video.videoWidth || layers.length >= 2) return;
   const w = video.videoWidth, h = video.videoHeight;
   const cap = document.createElement('canvas');
@@ -95,108 +170,103 @@ document.getElementById('btnCapture').addEventListener('click', () => {
   cap.getContext('2d').drawImage(video, 0, 0, w, h);
   const tex = new THREE.CanvasTexture(cap);
   tex.colorSpace = THREE.NoColorSpace;
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  layers.push({ texture: tex });
+  tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+  layers.push({ texture: tex, canvas: cap });
 
   if (layers.length === 1) {
-    document.getElementById('status').textContent = '第一张已捕获 • 再拍一张';
+    document.getElementById('modeLabel').textContent = 'EXPO 1/2';
     window.parent.postMessage({type:'expoStatus', text:'EXPO 1/2'}, '*');
   }
 
   if (layers.length === 2) {
     composing = true;
-    document.getElementById('btnCapture').style.display = 'none';
-    document.getElementById('btnSave').style.display = 'flex';
-    document.getElementById('modeBar').style.display = 'flex';
-    document.getElementById('status').textContent = '选择融合模式';
+    document.getElementById('modeLabel').textContent = 'EXPO ' + MODE_LABELS_CN[getMode()];
+    window.parent.postMessage({type:'expoStatus', text:'EXPO ' + MODE_LABELS_CN[getMode()]}, '*');
+    document.getElementById('sBar').style.display = 'block';
+    document.getElementById('act').classList.add('show');
   }
 });
 
-// Blend shader
-const compositeMat = new THREE.ShaderMaterial({
-  vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
-  fragmentShader: `precision highp float;varying vec2 vUv;
-uniform sampler2D uTexA,uTexB;uniform int uMode;
-void main(){
-  vec4 a=texture2D(uTexA,vUv);
-  vec4 b=texture2D(uTexB,vUv);
-  vec3 col;
-  if(uMode==0)col=mix(a.rgb,b.rgb,.5);           // Normal 50/50
-  else if(uMode==1)col=1.-(1.-a.rgb)*(1.-b.rgb);  // Screen
-  else if(uMode==2)col=a.rgb*b.rgb;               // Multiply
-  else if(uMode==3)col=mix(a.rgb*b.rgb*2.,1.-(1.-a.rgb)*(1.-b.rgb)*2.,step(.5,b.rgb)); // Overlay
-  else if(uMode==4)col=max(a.rgb,b.rgb);           // Lighten
-  else col=min(a.rgb,b.rgb);                       // Darken
-  gl_FragColor=vec4(col,1.);
-}`,
-  uniforms: { uTexA: { value: null }, uTexB: { value: null }, uMode: { value: 0 } },
-  depthTest: false, depthWrite: false,
+// ── Mode slider ──
+document.getElementById('modeSlider').addEventListener('input', () => {
+  selMode = getMode();
+  compositeMat.uniforms.uMode.value = selMode;
+  document.getElementById('modeLabel').textContent = 'EXPO ' + MODE_LABELS_CN[selMode];
+  if (window.self !== window.top) {
+    window.parent.postMessage({type:'expoMode', text: MODE_LABELS_CN[selMode]}, '*');
+  }
 });
 
-// Simple camera shader
-const cameraMat = new THREE.ShaderMaterial({
-  vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
-  fragmentShader: `precision highp float;varying vec2 vUv;uniform sampler2D uTex;
-void main(){gl_FragColor=texture2D(uTex,vUv);}`,
-  uniforms: { uTex: { value: null } },
-  depthTest: false, depthWrite: false,
+// ── Retake ──
+document.getElementById('btnRetake').addEventListener('click', () => {
+  layers.forEach(l => l.texture.dispose());
+  layers = [];
+  composing = false;
+  document.getElementById('act').classList.remove('show');
+  document.getElementById('modeLabel').textContent = 'EXPO';
+  document.getElementById('sBar').style.display = 'none';
 });
 
+// ── Save (Web Share API) ──
+document.getElementById('btnSave').addEventListener('click', async () => {
+  renderer.render(scene, camera3D);
+  const blob = await new Promise(r => renderer.domElement.toBlob(r, 'image/png'));
+  if (navigator.share) {
+    try {
+      await navigator.share({ files: [new File([blob], 'expo.png', { type: 'image/png' })] });
+    } catch(e) {
+      const link = document.createElement('a');
+      link.download = 'expo-' + Date.now() + '.png';
+      link.href = URL.createObjectURL(blob);
+      link.click();
+    }
+  } else {
+    const link = document.createElement('a');
+    link.download = 'expo-' + Date.now() + '.png';
+    link.href = URL.createObjectURL(blob);
+    link.click();
+  }
+});
+
+// ── EXIT ──
+document.getElementById('exitBtn').addEventListener('click', () => {
+  if (window.self !== window.top) {
+    window.parent.postMessage({type:'exit'}, '*');
+  }
+});
+
+// ── Switch Camera ──
+document.getElementById('switchBtn').addEventListener('click', () => {
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    startCam();
+  }
+});
+
+// ── Render loop ──
 function render(now) {
   requestAnimationFrame(render);
   if (!video || !video.videoWidth) return;
 
   if (composing && layers.length === 2) {
-    // Show composite of 2 layers
     compositeMat.uniforms.uTexA.value = layers[0].texture;
     compositeMat.uniforms.uTexB.value = layers[1].texture;
-    compositeMat.uniforms.uMode.value = getMode();
-    quad.material = compositeMat;
-    renderer.setRenderTarget(null);
-    renderer.render(scene, cam3D);
+    compositeMat.uniforms.uMode.value = selMode;
+    fullQuad.material = compositeMat;
   } else {
-    // Live camera
-    vidCanvas.width = video.videoWidth;
-    vidCanvas.height = video.videoHeight;
-    vidCtx.drawImage(video, 0, 0);
-    if (!vidTex) { vidTex = new THREE.CanvasTexture(vidCanvas); vidTex.colorSpace = THREE.NoColorSpace; }
-    else { vidTex.needsUpdate = true; }
-
-    cameraMat.uniforms.uTex.value = vidTex;
-    quad.material = cameraMat;
-    renderer.setRenderTarget(null);
-    renderer.render(scene, cam3D);
+    displayMat.uniforms.uCamera.value = videoTexture;
+    fullQuad.material = displayMat;
   }
+
+  renderer.render(scene, camera3D);
 }
 
-// Mode slider
-document.getElementById('modeSlider').addEventListener('input', () => {
-  document.getElementById('modeLabel').textContent = MODE_LABELS_CN[getMode()];
-  if (window.self !== window.top) {
-    window.parent.postMessage({type:'expoMode', text: MODE_LABELS_CN[getMode()]}, '*');
-  }
-});
-
-// Save
-document.getElementById('btnSave').addEventListener('click', () => {
-  compositeMat.uniforms.uTexA.value = layers[0].texture;
-  compositeMat.uniforms.uTexB.value = layers[1].texture;
-  compositeMat.uniforms.uMode.value = getMode();
-  quad.material = compositeMat;
-  renderer.setRenderTarget(null);
-  renderer.render(scene, cam3D);
-
-  const link = document.createElement('a');
-  link.download = 'double-exposure-' + Date.now() + '.png';
-  link.href = renderer.domElement.toDataURL('image/png');
-  link.click();
-});
-
-addEventListener('resize', () => renderer.setSize(innerWidth, innerHeight));
-requestAnimationFrame(render);
 // Auto-start camera when embedded in painting-eye
 if (window.self !== window.top) startCam();
+requestAnimationFrame(render);
+
+addEventListener('resize', () => renderer.setSize(innerWidth, innerHeight));
 </script>
 <script>
 // Handle postMessage from painting-eye iframe integration
@@ -209,7 +279,7 @@ window.addEventListener('message', function(e) {
     }
   }
   if (e.data.type === 'capture') {
-    var btn = document.getElementById('btnCapture');
+    var btn = document.getElementById('capBtn');
     if (btn) btn.click();
   }
   if (e.data.type === 'license') {
@@ -220,7 +290,7 @@ window.addEventListener('message', function(e) {
 // Embedded in painting-eye: hide own UI
 if (window.self !== window.top) {
   document.addEventListener('DOMContentLoaded', function(){
-    ['perm','status','modeBar','panel'].forEach(function(id){
+    ['perm','modeLabel','sBar','act','bBar'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
