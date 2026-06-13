@@ -205,22 +205,21 @@ window.addEventListener('message', function(e) {
       slider.dispatchEvent(new Event('input'));
     }
   }
+  if (e.data.type === 'capture') {
+    var btn = document.getElementById('btnCapture');
+    if (btn) btn.click();
+  }
   if (e.data.type === 'license') {
     try { localStorage.setItem('pe_license', e.data.key); } catch(_) {}
   }
 });
 
-// Embedded in painting-eye: hide own UI, use canvas tap to capture
+// Embedded in painting-eye: hide own UI
 if (window.self !== window.top) {
   document.addEventListener('DOMContentLoaded', function(){
     ['perm','status','modeBar','panel'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.style.display = 'none';
-    });
-    // Canvas tap to capture (replaces hidden capture button)
-    document.getElementById('c').addEventListener('click', function(){
-      var btn = document.getElementById('btnCapture');
-      if (btn) btn.click();
     });
   });
 }

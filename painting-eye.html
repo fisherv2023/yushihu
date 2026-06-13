@@ -566,6 +566,17 @@ document.addEventListener('keydown', function(e){
     };
     exitBtn.onclick = exitMode;
 
+    // Intercept capture button for EXPO mode
+    var capBtn = document.getElementById('capBtn');
+    if (capBtn) {
+      capBtn.addEventListener('pointerdown', function(e){
+        if (activeMode === 'EXPO' && expoIframe.contentWindow) {
+          e.stopPropagation();
+          expoIframe.contentWindow.postMessage({type:'capture'}, '*');
+        }
+      }, true); // capture phase to beat painting-eye's handler
+    }
+
     // Click any other mode to exit
     document.querySelectorAll('.mode-opt[data-m]:not([data-m="14"]):not([data-m="15"])').forEach(function(o){
       o.addEventListener('click', exitMode);
