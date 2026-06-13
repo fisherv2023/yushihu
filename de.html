@@ -164,6 +164,11 @@ scene.add(fullQuad);
 // ── Capture ──
 document.getElementById('capBtn').addEventListener('click', () => {
   if (!video || !video.videoWidth || layers.length >= 2) return;
+  // Ensure video is active after retake cycles
+  if (video.paused || video.readyState < 2) { 
+    video.play().catch(() => {});
+    return;
+  }
   const w = video.videoWidth, h = video.videoHeight;
   const cap = document.createElement('canvas');
   cap.width = w; cap.height = h;
@@ -199,12 +204,17 @@ document.getElementById('modeSlider').addEventListener('input', () => {
 
 // ── Retake ──
 document.getElementById('btnRetake').addEventListener('click', () => {
-  layers.forEach(l => l.texture.dispose());
+  layers.forEach(l => { l.texture.dispose(); });
   layers = [];
   composing = false;
+  selMode = 0;
+  compositeMat.uniforms.uMode.value = 0;
+  document.getElementById('modeSlider').value = 0;
   document.getElementById('act').classList.remove('show');
   document.getElementById('modeLabel').textContent = 'EXPO';
   document.getElementById('sBar').style.display = 'none';
+  fullQuad.material = displayMat;
+  renderer.render(scene, camera3D);
 });
 
 // ── Save (Web Share API) ──
