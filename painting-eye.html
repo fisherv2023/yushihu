@@ -556,6 +556,7 @@ document.addEventListener('keydown', function(e){
     }
 
     function exitMode() {
+      if (!activeMode) return; // not in FLOW/EXPO, don't interfere with normal mode switching
       activeMode = null;
       flowIframe.style.display = 'none';
       expoIframe.style.display = 'none';
