@@ -96,11 +96,15 @@ function getMode() {
   return parseInt(document.getElementById('modeSlider').value);
 }
 
-async function startCam() {
+async function startCam(sharedStream) {
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: facingMode, width: { ideal: 4096 }, height: { ideal: 2160 } }
-    });
+    if (sharedStream) {
+      stream = sharedStream;
+    } else {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facingMode, width: { ideal: 4096 }, height: { ideal: 2160 } }
+      });
+    }
     video = document.createElement('video');
     video.srcObject = stream; video.playsInline = true;
     await video.play();
@@ -329,7 +333,16 @@ function render(now) {
 }
 
 // Auto-start camera when embedded in painting-eye
-if (window.self !== window.top) startCam();
+if (window.self !== window.top) {
+  // Wait for parent to provide shared camera stream
+  (function tryShared(){
+    if (window.parent.__peSharedStream) {
+      startCam(window.parent.__peSharedStream);
+    } else {
+      setTimeout(tryShared, 100);
+    }
+  })();
+}
 requestAnimationFrame(render);
 
 addEventListener('resize', () => renderer.setSize(innerWidth, innerHeight));
