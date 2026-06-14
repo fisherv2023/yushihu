@@ -527,8 +527,8 @@ document.addEventListener('keydown', function(e){
     function enterMode(name, iframe) {
       activeMode = name;
       canvas.style.display = 'none';
-      if (name === 'FLOW') { expoIframe.style.display = 'none'; flowIframe.style.display = 'block'; flowIframe.src = flowIframe.src || 'ink-flow.html?embed=1'; }
-      else { flowIframe.style.display = 'none'; expoIframe.style.display = 'block'; expoIframe.src = expoIframe.src || 'de.html?embed=1'; }
+      if (name === 'FLOW') { expoIframe.style.display = 'none'; if (!flowIframe.src) flowIframe.src = 'ink-flow.html?embed=1'; flowIframe.style.display = 'block'; }
+      else { flowIframe.style.display = 'none'; if (!expoIframe.src) expoIframe.src = 'de.html?embed=1'; expoIframe.style.display = 'block'; }
       // Push activation code to iframe after it loads
       var lic = localStorage.getItem('pe_license');
       if (lic) setTimeout(function(){
@@ -629,9 +629,15 @@ document.addEventListener('keydown', function(e){
       if (e.key === 'Escape' && activeMode) exitMode();
     });
 
-    // License: pass activation to both iframes on load
+    // License: pass activation to both iframes on load; also sync licMode if Worker verify failed
     var licKey = localStorage.getItem('pe_license');
     if (licKey) {
+      // Force-sync licMode in case Worker /verify was unreachable
+      if (typeof licMode !== 'undefined' && licMode !== 'pro') {
+        licMode = 'pro';
+        var lo = document.getElementById('licOverlay');
+        if (lo) lo.classList.add('hidden');
+      }
       [flowIframe, expoIframe].forEach(function(fr){
         fr.addEventListener('load', function(){
           if (fr.contentWindow && fr.contentWindow.postMessage) {

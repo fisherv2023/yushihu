@@ -358,7 +358,7 @@ if (window.self !== window.top) {
   // Auto-activate from localStorage (set by painting-eye)
   var lic = localStorage.getItem('pe_license');
   if (lic) window.parent.postMessage({type:'license', key:lic}, '*');
-  document.addEventListener('DOMContentLoaded', function(){
+  function hideOwnUI(){
     ['perm','modeLabel','sBar','act','bBar'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.style.display = 'none';
@@ -367,7 +367,12 @@ if (window.self !== window.top) {
     document.querySelectorAll('body > *:not(canvas)').forEach(function(el){
       el.style.display = 'none';
     });
-  });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hideOwnUI);
+  } else {
+    hideOwnUI();
+  }
 }
 </script>
 </body>
