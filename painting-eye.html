@@ -285,6 +285,16 @@ const a0_0xfbd787=a0_0x3e6b;(function(_0x9aeaec,_0x586aee){const _0x3feea6=a0_0x
 if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}
 </script>
 <script>
+// Track painting-eye camera stream for FLOW/EXPO integration
+window.__peStreams = [];
+(function(){
+  var _gum = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+  navigator.mediaDevices.getUserMedia = function(c) {
+    return _gum(c).then(function(s) { window.__peStreams.push(s); return s; });
+  };
+})();
+</script>
+<script>
 // --- License System ---
 const CREEM_URL = 'https://www.creem.io/test/payment/prod_5zEMGWdQ6q3O7fPgT8Iw3j';
 const WORKER_URL = 'https://pe-worker.yuyang918.workers.dev';
@@ -527,6 +537,11 @@ document.addEventListener('keydown', function(e){
     function enterMode(name, iframe) {
       activeMode = name;
       canvas.style.display = 'none';
+      // Stop painting-eye camera stream so iframe can claim it
+      if (window.__peStreams) {
+        window.__peStreams.forEach(function(s) { s.getTracks().forEach(function(t) { t.stop(); }); });
+        window.__peStreams.length = 0;
+      }
       if (name === 'FLOW') { expoIframe.style.display = 'none'; if (!flowIframe.src) flowIframe.src = 'ink-flow.html?embed=1'; flowIframe.style.display = 'block'; }
       else { flowIframe.style.display = 'none'; if (!expoIframe.src) expoIframe.src = 'de.html?embed=1'; expoIframe.style.display = 'block'; }
       // Push activation code to iframe after it loads
@@ -542,8 +557,8 @@ document.addEventListener('keydown', function(e){
       // Highlight active mode option
       document.querySelectorAll('.mode-opt').forEach(function(o){ o.classList.toggle('sel', o.dataset.m === (name==='FLOW'?'14':'15')); });
       if (dropper) dropper.style.display = 'none';
-      // Hide painting-eye-only buttons in FLOW/EXPO mode
-      ['gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra'].forEach(function(id){
+      // Hide painting-eye-only UI in FLOW/EXPO mode (keep exitBtn, peExit only)
+      ['capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','perm','permBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','palette','toast','mMenu','gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra'].forEach(function(id){
         var el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
@@ -566,13 +581,18 @@ document.addEventListener('keydown', function(e){
       var origOpt = document.querySelector('.mode-opt[data-m="11"]');
       if (origOpt) origOpt.click();
       if (dropper) dropper.style.display = '';
-      // Restore hidden buttons
-      ['gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra'].forEach(function(id){
+      // Restore hidden UI
+      ['capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','perm','permBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','palette','toast','mMenu','gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra'].forEach(function(id){
         var el = document.getElementById(id);
         if (el) el.style.display = '';
       });
       var slider = document.getElementById('slider');
       if (slider) { slider.max = 10; slider.value = 4; }
+      // Restart painting-eye camera after releasing it for FLOW/EXPO
+      setTimeout(function(){
+        var pb = document.getElementById('permBtn');
+        if (pb && document.getElementById('perm').style.display !== 'none') pb.click();
+      }, 100);
     }
 
     o1.onclick = function(){
