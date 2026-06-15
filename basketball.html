@@ -6,7 +6,7 @@
 <title>Basketball Shooter</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#1a1a2e;overflow:hidden;font-family:-apple-system,sans-serif;touch-action:none}
+body{background:#1a1a2e;overflow:hidden;font-family:-apple-system,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 canvas{display:block}
 #hud{position:fixed;top:12px;left:0;right:0;display:flex;justify-content:center;gap:24px;z-index:10;pointer-events:none}
 #hud span{color:#fff;font-size:18px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.5)}
@@ -35,8 +35,8 @@ scene.background = new THREE.Color(0x87CEEB);
 scene.fog = new THREE.Fog(0x87CEEB, 15, 40);
 
 const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 50);
-camera.position.set(0, 3.5, 10);
-camera.lookAt(0, 2.5, 0);
+camera.position.set(0, 2.2, 3.5);
+camera.lookAt(0, 2.55, -3.0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
@@ -151,6 +151,7 @@ scene.add(pole);
 const GRAVITY = 9.8;
 let gameMode = '2pt'; // '2pt' or '3pt'
 let score = 0, totalShots = 0;
+let scoredThisShot = false;
 let ballPos = new THREE.Vector3();
 let ballVel = new THREE.Vector3();
 let isFlying = false;
@@ -172,6 +173,7 @@ function resetBall(mode) {
   ballVel.set(0, 0, 0);
   isFlying = false;
   isAiming = false;
+  scoredThisShot = false;
   arrowGroup.visible = true;
   updateArrow(start);
 }
@@ -187,6 +189,7 @@ function updateArrow(pos) {
 const canvas = renderer.domElement;
 
 canvas.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
   if (isFlying) return;
   isAiming = true;
   aimStart.set(e.clientX, e.clientY);
@@ -228,37 +231,54 @@ function shoot() {
 // ── Physics + Scoring ──
 function update(dt) {
   if (!isFlying) return;
-  dt = Math.min(dt, 0.05); // cap for stability
+  dt = Math.min(dt, 0.05);
 
   // Euler integration
   ballVel.y -= GRAVITY * dt;
   ballPos.add(ballVel.clone().multiplyScalar(dt));
   ball.position.copy(ballPos);
 
-  // Hoop collision detection: check if ball passes through the ring plane
+  // Backboard collision (box at 0, 3.3, -3.5, size 1.8×1.2×0.08)
+  const bbX = 0, bbY = 3.3, bbZ = -3.5;
+  const bbHW = 0.9, bbHH = 0.6, bbHD = 0.04; // half-sizes
+  const bbFront = bbZ - bbHD; // front face z = -3.54
+  if (ballPos.z - ballRadius < bbFront &&
+      ballPos.z + ballRadius > bbFront &&
+      Math.abs(ballPos.x - bbX) < bbHW + ballRadius &&
+      Math.abs(ballPos.y - bbY) < bbHH + ballRadius) {
+    // Bounce off backboard
+    ballPos.z = bbFront + ballRadius;
+    ballVel.z = Math.abs(ballVel.z) * 0.6; // reflect + energy loss
+    ballVel.x *= 0.8;
+    ballVel.y *= 0.9;
+    ball.position.copy(ballPos);
+  }
+
+  // Hoop collision detection
   const dist = ballPos.distanceTo(hoopCenter);
   const isAtHoopHeight = Math.abs(ballPos.y - hoopY) < 0.15;
   const isNearHoop = dist < hoopRadius * 2;
   const prevDist = ballPos.clone().sub(ballVel.clone().multiplyScalar(dt)).distanceTo(hoopCenter);
 
   if (isAtHoopHeight && isNearHoop && prevDist > hoopRadius * 2 && ballVel.y < 0) {
-    // Ball passed through the hoop going downward
     score += gameMode === '3pt' ? 3 : 2;
+    scoredThisShot = true;
     document.getElementById('score').textContent = score;
     showMsg(gameMode === '3pt' ? '+3!' : '+2!');
     playSwish();
-    // Continue falling
   }
 
   // Ball hits ground → reset
   if (ballPos.y < ballRadius) {
     ballPos.y = ballRadius;
     ball.position.copy(ballPos);
+    if (!scoredThisShot) playBrick();
     setTimeout(() => resetBall(gameMode), 800);
   }
 
   // Ball went too far → reset
   if (ballPos.z < -8 || Math.abs(ballPos.x) > 6) {
+    if (!scoredThisShot) playBrick();
     setTimeout(() => resetBall(gameMode), 600);
   }
 }
@@ -283,6 +303,22 @@ function playSwish() {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.3);
+  } catch(e) {}
+}
+
+function playBrick() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(150, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.4);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
   } catch(e) {}
 }
 
@@ -325,6 +361,10 @@ window.addEventListener('resize', () => {
 });
 
 console.log('Basketball Shooter ready');
+
+// Prevent long-press context menu on mobile
+document.addEventListener('contextmenu', e => e.preventDefault());
+
 </script>
 </body>
 </html>
