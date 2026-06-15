@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Basketball Shooter</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;overflow:hidden;font-family:-apple-system,sans-serif;touch-action:none}
+canvas{display:block}
+#hud{position:fixed;top:12px;left:0;right:0;display:flex;justify-content:center;gap:24px;z-index:10;pointer-events:none}
+#hud span{color:#fff;font-size:18px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+#powerBar{position:fixed;right:16px;top:50%;transform:translateY(-50%);width:8px;height:40vh;background:rgba(255,255,255,.12);border-radius:4px;z-index:10;pointer-events:none}
+#powerFill{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,#ff4444,#ffaa00,#44ff44);border-radius:4px;transition:height .05s}
+#msg{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:32px;font-weight:700;z-index:10;pointer-events:none;text-shadow:0 2px 8px rgba(0,0,0,.6);opacity:0;transition:opacity .2s}
+#modeSwitch{position:fixed;top:12px;right:12px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);padding:8px 16px;border-radius:16px;font-size:12px;cursor:pointer;z-index:10}
+</style>
+</head>
+<body>
+<div id="hud"><span>🏀 <span id="score">0</span></span><span>Shots: <span id="shots">0</span></span></div>
+<div id="powerBar"><div id="powerFill" style="height:0%"></div></div>
+<div id="msg"></div>
+<button id="modeSwitch">2pt Mode</button>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ── Scene ──
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+scene.fog = new THREE.Fog(0x87CEEB, 15, 40);
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 50);
+camera.position.set(0, 3.5, 10);
+camera.lookAt(0, 2.5, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+// ── Lights ──
+scene.add(new THREE.AmbientLight(0x8899bb, 1.2));
+const sun = new THREE.DirectionalLight(0xfff8e7, 2.5);
+sun.position.set(5, 10, 3);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 30;
+sun.shadow.camera.left = -8; sun.shadow.camera.right = 8;
+sun.shadow.camera.top = 8; sun.shadow.camera.bottom = -2;
+sun.shadow.bias = -0.0005;
+scene.add(sun);
+
+// ── Court ──
+const court = new THREE.Mesh(
+  new THREE.PlaneGeometry(12, 20),
+  new THREE.MeshStandardMaterial({ color: 0xc8874b, roughness: 0.7 })
+);
+court.rotation.x = -Math.PI/2;
+court.receiveShadow = true;
+scene.add(court);
+
+// Court lines
+const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const ftLine = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.05), lineMat);
+ftLine.rotation.x = -Math.PI/2; ftLine.position.set(0, 0.005, -3); scene.add(ftLine);
+const tpLine = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.05), lineMat);
+tpLine.rotation.x = -Math.PI/2; tpLine.position.set(0, 0.005, -6); scene.add(tpLine);
+
+// ── Backboard ──
+const backboard = new THREE.Mesh(
+  new THREE.BoxGeometry(1.8, 1.2, 0.08),
+  new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 })
+);
+backboard.position.set(0, 3.3, -3.5);
+backboard.castShadow = true; backboard.receiveShadow = true;
+scene.add(backboard);
+
+// Backboard border
+const border = new THREE.Mesh(
+  new THREE.BoxGeometry(1.9, 1.3, 0.04),
+  new THREE.MeshStandardMaterial({ color: 0x333333 })
+);
+border.position.copy(backboard.position);
+scene.add(border);
+
+// ── Hoop (ring) ──
+const hoopY = 2.55;
+const hoopZ = -3.05;
+const ringGeo = new THREE.TorusGeometry(0.22, 0.02, 8, 24);
+const ring = new THREE.Mesh(ringGeo, new THREE.MeshStandardMaterial({ color: 0xff4444, metalness: 0.8, roughness: 0.2 }));
+ring.position.set(0, hoopY, hoopZ);
+ring.rotation.x = Math.PI/2;
+ring.castShadow = true;
+scene.add(ring);
+
+// Net
+const netGeo = new THREE.CylinderGeometry(0.05, 0.15, 0.4, 12, 1, true);
+const net = new THREE.Mesh(netGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, side: THREE.DoubleSide, transparent: true, opacity: 0.6 }));
+net.position.set(0, hoopY - 0.2, hoopZ);
+net.castShadow = true;
+scene.add(net);
+
+// ── Ball ──
+const ballRadius = 0.12;
+const ballGeo = new THREE.SphereGeometry(ballRadius, 24, 16);
+const ballMat = new THREE.MeshStandardMaterial({ color: 0xe8741a, roughness: 0.4, metalness: 0.1 });
+const ball = new THREE.Mesh(ballGeo, ballMat);
+ball.castShadow = true;
+scene.add(ball);
+
+// Ball lines (black seams)
+const seamGeo = new THREE.TorusGeometry(ballRadius * 0.98, 0.01, 8, 32);
+const seam1 = new THREE.Mesh(seamGeo, new THREE.MeshBasicMaterial({ color: 0x222222 }));
+const seam2 = new THREE.Mesh(seamGeo, new THREE.MeshBasicMaterial({ color: 0x222222 }));
+seam2.rotation.x = Math.PI/2;
+ball.add(seam1); ball.add(seam2);
+
+// ── Aim arrow ──
+const arrowGroup = new THREE.Group();
+const arrowBody = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.02, 0.02, 0.6, 8),
+  new THREE.MeshBasicMaterial({ color: 0xffff00 })
+);
+arrowBody.position.y = 0.3;
+arrowGroup.add(arrowBody);
+const arrowHead = new THREE.Mesh(
+  new THREE.ConeGeometry(0.04, 0.1, 8),
+  new THREE.MeshBasicMaterial({ color: 0xffff00 })
+);
+arrowHead.position.y = 0.65;
+arrowGroup.add(arrowHead);
+scene.add(arrowGroup);
+
+// Stanchion
+const pole = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.05, 0.05, 2.8, 8),
+  new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6 })
+);
+pole.position.set(0.9, 1.4, -3.5);
+pole.castShadow = true;
+scene.add(pole);
+
+// ── Game State ──
+const GRAVITY = 9.8;
+let gameMode = '2pt'; // '2pt' or '3pt'
+let score = 0, totalShots = 0;
+let ballPos = new THREE.Vector3();
+let ballVel = new THREE.Vector3();
+let isFlying = false;
+let isAiming = false;
+let aimStart = new THREE.Vector2();
+let aimPower = 0;
+let aimAngleH = 0; // horizontal angle
+let aimAngleV = 0.6; // vertical angle (default ~35°)
+
+const startPos2 = new THREE.Vector3(0, 1.0, 2.0);  // 2pt start
+const startPos3 = new THREE.Vector3(0, 1.0, 4.5);  // 3pt start (farther)
+const hoopCenter = new THREE.Vector3(0, hoopY, hoopZ);
+const hoopRadius = 0.22;
+
+function resetBall(mode) {
+  const start = mode === '3pt' ? startPos3.clone() : startPos2.clone();
+  ball.position.copy(start);
+  ballPos.copy(start);
+  ballVel.set(0, 0, 0);
+  isFlying = false;
+  isAiming = false;
+  arrowGroup.visible = true;
+  updateArrow(start);
+}
+
+function updateArrow(pos) {
+  arrowGroup.position.copy(pos);
+  arrowGroup.rotation.set(0, 0, 0);
+  arrowGroup.rotateY(aimAngleH);
+  arrowGroup.rotateX(-aimAngleV);
+}
+
+// ── Input ──
+const canvas = renderer.domElement;
+
+canvas.addEventListener('pointerdown', (e) => {
+  if (isFlying) return;
+  isAiming = true;
+  aimStart.set(e.clientX, e.clientY);
+  document.getElementById('powerFill').style.height = '0%';
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  if (!isAiming || isFlying) return;
+  const dx = e.clientX - aimStart.x;
+  const dy = e.clientY - aimStart.y;
+  aimAngleH = Math.max(-0.6, Math.min(0.6, dx * 0.003));
+  aimAngleV = Math.max(0.2, Math.min(1.2, 0.6 + dy * 0.003));
+  aimPower = Math.min(100, Math.sqrt(dx*dx + dy*dy) * 0.3);
+  document.getElementById('powerFill').style.height = aimPower + '%';
+  updateArrow(ball.position);
+});
+
+canvas.addEventListener('pointerup', () => {
+  if (!isAiming || isFlying) return;
+  isAiming = false;
+  shoot();
+});
+
+function shoot() {
+  const power = 3 + aimPower * 0.08;
+  const dir = new THREE.Vector3(
+    Math.sin(aimAngleH),
+    Math.sin(aimAngleV),
+    -Math.cos(aimAngleV) * Math.cos(aimAngleH)
+  ).normalize();
+  ballVel.copy(dir).multiplyScalar(power);
+  isFlying = true;
+  totalShots++;
+  document.getElementById('shots').textContent = totalShots;
+  arrowGroup.visible = false;
+  document.getElementById('powerFill').style.height = '0%';
+}
+
+// ── Physics + Scoring ──
+function update(dt) {
+  if (!isFlying) return;
+  dt = Math.min(dt, 0.05); // cap for stability
+
+  // Euler integration
+  ballVel.y -= GRAVITY * dt;
+  ballPos.add(ballVel.clone().multiplyScalar(dt));
+  ball.position.copy(ballPos);
+
+  // Hoop collision detection: check if ball passes through the ring plane
+  const dist = ballPos.distanceTo(hoopCenter);
+  const isAtHoopHeight = Math.abs(ballPos.y - hoopY) < 0.15;
+  const isNearHoop = dist < hoopRadius * 2;
+  const prevDist = ballPos.clone().sub(ballVel.clone().multiplyScalar(dt)).distanceTo(hoopCenter);
+
+  if (isAtHoopHeight && isNearHoop && prevDist > hoopRadius * 2 && ballVel.y < 0) {
+    // Ball passed through the hoop going downward
+    score += gameMode === '3pt' ? 3 : 2;
+    document.getElementById('score').textContent = score;
+    showMsg(gameMode === '3pt' ? '+3!' : '+2!');
+    playSwish();
+    // Continue falling
+  }
+
+  // Ball hits ground → reset
+  if (ballPos.y < ballRadius) {
+    ballPos.y = ballRadius;
+    ball.position.copy(ballPos);
+    setTimeout(() => resetBall(gameMode), 800);
+  }
+
+  // Ball went too far → reset
+  if (ballPos.z < -8 || Math.abs(ballPos.x) > 6) {
+    setTimeout(() => resetBall(gameMode), 600);
+  }
+}
+
+function showMsg(text) {
+  const el = document.getElementById('msg');
+  el.textContent = text;
+  el.style.opacity = '1';
+  setTimeout(() => el.style.opacity = '0', 800);
+}
+
+function playSwish() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.3);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch(e) {}
+}
+
+// ── Mode Switch ──
+document.getElementById('modeSwitch').addEventListener('click', () => {
+  if (isFlying) return;
+  gameMode = gameMode === '2pt' ? '3pt' : '2pt';
+  document.getElementById('modeSwitch').textContent = gameMode === '3pt' ? '3pt Mode' : '2pt Mode';
+  score = 0; totalShots = 0;
+  document.getElementById('score').textContent = '0';
+  document.getElementById('shots').textContent = '0';
+  resetBall(gameMode);
+});
+
+// ── Game Loop ──
+let lastTime = performance.now();
+function animate(time) {
+  requestAnimationFrame(animate);
+  const dt = (time - lastTime) / 1000;
+  lastTime = time;
+  update(dt);
+
+  // Slow ball rotation while flying
+  if (isFlying) {
+    ball.rotateX(0.05);
+    ball.rotateZ(0.03);
+  }
+
+  renderer.render(scene, camera);
+}
+
+// ── Start ──
+resetBall('2pt');
+requestAnimationFrame(animate);
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+console.log('Basketball Shooter ready');
+</script>
+</body>
+</html>
