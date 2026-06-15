@@ -236,9 +236,12 @@ B.chest.add(B.rUpArm);
 
 function resetPose() {
   for (const k in B) B[k].rotation.set(0, 0, 0);
-  // Leg roots point DOWN (+Y mesh rotated 180° around X)
+  // Legs point DOWN
   B.lUpLeg.rotation.set(Math.PI, 0, 0);
   B.rUpLeg.rotation.set(Math.PI, 0, 0);
+  // Arms point DOWN (hang at sides)
+  B.lUpArm.rotation.set(Math.PI, 0, 0);
+  B.rUpArm.rotation.set(Math.PI, 0, 0);
   // Feet point forward
   B.lFoot.rotation.set(Math.PI/2, 0, 0);
   B.rFoot.rotation.set(Math.PI/2, 0, 0);
@@ -246,35 +249,36 @@ function resetPose() {
 
 function setApose() {
   resetPose();
-  // Arms hang down at slight angle
-  B.lUpArm.rotation.set(0.15, 0, -0.15);
-  B.rUpArm.rotation.set(0.15, 0, 0.15);
-  B.lLoArm.rotation.set(-0.1, 0, 0);
-  B.rLoArm.rotation.set(-0.1, 0, 0);
+  // Arms: base down + slight outward tilt
+  B.lUpArm.rotation.z = -0.2;
+  B.rUpArm.rotation.z = 0.2;
+  B.lLoArm.rotation.set(0, 0, 0);
+  B.rLoArm.rotation.set(0, 0, 0);
 }
 
 function setTpose() {
   resetPose();
-  B.lUpArm.rotation.set(0, 0, -Math.PI/2);
-  B.rUpArm.rotation.set(0, 0, Math.PI/2);
-  B.lLoArm.rotation.set(0, 0, -Math.PI/2);
-  B.rLoArm.rotation.set(0, 0, Math.PI/2);
+  // Arms swing out to horizontal: base π around X + π/2 around Z
+  B.lUpArm.rotation.set(Math.PI, 0, -Math.PI/2);
+  B.rUpArm.rotation.set(Math.PI, 0, Math.PI/2);
+  B.lLoArm.rotation.set(0, 0, 0);
+  B.rLoArm.rotation.set(0, 0, 0);
 }
 
 function setWalk() {
   resetPose();
   // Arm swing
-  B.lUpArm.rotation.set(-0.5, 0, -0.15);
-  B.lLoArm.rotation.set(0.3, 0, 0);
-  B.rUpArm.rotation.set(0.35, 0, 0.15);
-  B.rLoArm.rotation.set(-0.3, 0, 0);
-  // Leg stride — base π + offset (legs already point down from resetPose)
-  B.lUpLeg.rotation.x = Math.PI + 0.35;
-  B.lLoLeg.rotation.x = 0 - 0.55;   // bend knee
-  B.rUpLeg.rotation.x = Math.PI - 0.3;
-  B.rLoLeg.rotation.x = 0 + 0.15;
-  B.chest.rotation.set(0.08, 0, 0);
-  B.abdomen.rotation.set(0.05, 0, 0);
+  B.lUpArm.rotation.set(Math.PI + 0.5, 0, -0.2);
+  B.lLoArm.rotation.set(-0.3, 0, 0);
+  B.rUpArm.rotation.set(Math.PI - 0.3, 0, 0.2);
+  B.rLoArm.rotation.set(0.2, 0, 0);
+  // Leg stride
+  B.lUpLeg.rotation.x = Math.PI + 0.3;
+  B.lLoLeg.rotation.x = -0.4;
+  B.rUpLeg.rotation.x = Math.PI - 0.25;
+  B.rLoLeg.rotation.x = 0.15;
+  B.chest.rotation.set(0.05, 0, 0);
+  B.abdomen.rotation.set(0.03, 0, 0);
 }
 
 // ── MediaPipe ──
