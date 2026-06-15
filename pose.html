@@ -8,25 +8,24 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#1a1a2e;overflow:hidden;font-family:-apple-system,sans-serif}
 canvas{display:block}
-#ui{position:fixed;bottom:20px;left:0;right:0;display:flex;justify-content:center;gap:12px;z-index:10}
-#ui button{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);
-  padding:10px 20px;border-radius:24px;font-size:14px;cursor:pointer;
+#ui{position:fixed;bottom:24px;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:10;flex-wrap:wrap;padding:0 12px}
+#ui button{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.18);
+  padding:10px 18px;border-radius:22px;font-size:13px;cursor:pointer;
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:all .2s}
-#ui button:active,#ui button.on{background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.4)}
+#ui button:active{background:rgba(255,255,255,.28)}
 #ui button.accent{background:#e94560;border-color:#e94560}
-#status{position:fixed;top:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.6);
-  font-size:12px;z-index:10;pointer-events:none}
+#status{position:fixed;top:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.55);
+  font-size:11px;z-index:10;pointer-events:none;text-align:center}
 #fileInput{display:none}
 </style>
 </head>
 <body>
-<div id="status">🖐 drag to rotate · pinch to zoom</div>
+<div id="status">drag to rotate · pinch to zoom</div>
 <div id="ui">
-  <button id="btnTPose">T-Pose</button>
-  <button id="btnAPose">A-Pose</button>
+  <button id="btnA">A-Pose</button>
+  <button id="btnT">T-Pose</button>
   <button id="btnWalk">Walk</button>
-  <button id="btnRandom">Random</button>
-  <button id="btnPhoto" class="accent">📷 Detect Pose</button>
+  <button id="btnPhoto" class="accent">Detect Pose</button>
 </div>
 <input type="file" id="fileInput" accept="image/*">
 
@@ -43,13 +42,13 @@ canvas{display:block}
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-// ── Scene setup ──
+// ── Scene ──
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a2e);
-scene.fog = new THREE.Fog(0x1a1a2e, 2, 8);
+scene.fog = new THREE.Fog(0x1a1a2e, 3, 10);
 
 const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 20);
-camera.position.set(0, 1.6, 3.5);
+camera.position.set(0, 1.5, 4);
 camera.lookAt(0, 1, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -58,431 +57,333 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.1;
 document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 1, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.minDistance = 1;
-controls.maxDistance = 7;
-controls.maxPolarAngle = Math.PI * 0.75;
+controls.minDistance = 1.2;
+controls.maxDistance = 8;
+controls.maxPolarAngle = Math.PI * 0.7;
 controls.update();
 
-// ── Lighting ──
-const ambient = new THREE.AmbientLight(0x8899bb, 1.5);
-scene.add(ambient);
+// ── Lights ──
+scene.add(new THREE.AmbientLight(0x8899bb, 1.8));
+const sun = new THREE.DirectionalLight(0xffffff, 3.5);
+sun.position.set(3, 5, 4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 20;
+sun.shadow.camera.left = -4; sun.shadow.camera.right = 4;
+sun.shadow.camera.top = 4; sun.shadow.camera.bottom = -2;
+sun.shadow.bias = -0.0002;
+scene.add(sun);
+scene.add(new THREE.DirectionalLight(0x4466aa, 1.2).translateX(-2).translateY(3).translateZ(-2));
+scene.add(new THREE.DirectionalLight(0x6688bb, 0.8).translateZ(-4));
 
-const key = new THREE.DirectionalLight(0xffffff, 3);
-key.position.set(3, 5, 4);
-key.castShadow = true;
-key.shadow.mapSize.set(1024, 1024);
-key.shadow.camera.near = 0.5;
-key.shadow.camera.far = 20;
-key.shadow.camera.left = -4;
-key.shadow.camera.right = 4;
-key.shadow.camera.top = 4;
-key.shadow.camera.bottom = -2;
-key.shadow.bias = -0.0001;
-scene.add(key);
+// Ground
+const gnd = new THREE.Mesh(
+  new THREE.PlaneGeometry(10, 10),
+  new THREE.MeshStandardMaterial({ color: 0x2a2a3e, roughness: 0.9 })
+);
+gnd.rotation.x = -Math.PI/2; gnd.position.y = -0.01; gnd.receiveShadow = true;
+scene.add(gnd);
 
-const rim = new THREE.DirectionalLight(0x4466aa, 1.5);
-rim.position.set(-2, 3, -2);
-scene.add(rim);
+// ── Materials ──
+const skin = new THREE.MeshStandardMaterial({ color: 0xe8d5c4, roughness: 0.4, metalness: 0.02 });
+const joint = new THREE.MeshStandardMaterial({ color: 0xc9a08c, roughness: 0.3, metalness: 0.1 });
+const dark = new THREE.MeshStandardMaterial({ color: 0x5c4a3a, roughness: 0.5 });
 
-const fill = new THREE.DirectionalLight(0x6688bb, 1);
-fill.position.set(0, 1, -3);
-scene.add(fill);
+// ── Build Mannequin (flat hierarchy, all children of root) ──
+const root = new THREE.Group();
+scene.add(root);
+const bones = {}; // name → Group
 
-// ── Ground ──
-const groundGeo = new THREE.PlaneGeometry(10, 10);
-const groundMat = new THREE.MeshStandardMaterial({ color: 0x2a2a3e, roughness: 0.9 });
-const ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI/2;
-ground.position.y = -0.01;
-ground.receiveShadow = true;
-scene.add(ground);
-
-// ── Material ──
-const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe8d5c4, roughness: 0.35, metalness: 0.05 });
-const jointMat = new THREE.MeshStandardMaterial({ color: 0xc9a98c, roughness: 0.3, metalness: 0.1 });
-const darkMat = new THREE.MeshStandardMaterial({ color: 0x5c4a3a, roughness: 0.5 });
-
-// ── Helper: create body segment ──
-function createSegment(w, h, d, mat) {
-  const geo = new THREE.CapsuleGeometry(w, h - w*2, 4, 8);
-  const mesh = new THREE.Mesh(geo, mat || bodyMat);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  return mesh;
+function box(w, h, d, mat) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat || skin);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+function cyl(r, h, mat) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 16), mat || skin);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+function sphere(r, mat) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), mat || joint);
+  m.castShadow = true;
+  return m;
 }
 
-function createJoint(r, mat) {
-  const geo = new THREE.SphereGeometry(r, 16, 12);
-  const mesh = new THREE.Mesh(geo, mat || jointMat);
-  mesh.castShadow = true;
-  return mesh;
-}
-
-// ── Build mannequin ──
-const parts = {}; // name → THREE.Group (pivot at bottom center)
-const mannequin = new THREE.Group();
-scene.add(mannequin);
-
-// Helper: create a bone segment as a Group (pivot at bottom, length extends up)
-function boneSegment(length, radius, mat) {
+function makeBone(name) {
   const g = new THREE.Group();
-  const mesh = createSegment(radius, length, radius*2, mat);
-  mesh.position.y = length / 2;
-  g.add(mesh);
-  // Add joint at top and bottom
-  const jTop = createJoint(radius * 1.15, jointMat);
-  jTop.position.y = length;
-  g.add(jTop);
-  const jBot = createJoint(radius * 1.05, jointMat);
-  jBot.position.y = 0;
-  g.add(jBot);
-  g.userData = { length, radius };
+  bones[name] = g;
+  root.add(g);
   return g;
 }
 
-// Head  
-const headG = new THREE.Group();
-const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 24, 18), bodyMat);
-head.position.y = 0.12;
-head.castShadow = true;
-headG.add(head);
-headG.position.set(0, 1.52, 0);
-mannequin.add(headG);
-parts.head = headG;
+// Head: box + neck cylinder
+bones.head = makeBone('head');
+bones.head.add(box(0.16, 0.18, 0.18, skin).translateY(0.09));
 
 // Neck
-const neck = boneSegment(0.08, 0.04, bodyMat);
-neck.position.set(0, 1.38, 0);
-mannequin.add(neck);
-parts.neck = neck;
+bones.neck = makeBone('neck');
+bones.neck.add(cyl(0.04, 0.08, skin).translateY(0.04));
 
-// Torso (upper + lower)
-const torsoUpper = boneSegment(0.25, 0.07, bodyMat);
-torsoUpper.position.set(0, 1.13, 0);
-mannequin.add(torsoUpper);
-parts.spine = torsoUpper;
+// Torso upper (chest)
+bones.chest = makeBone('chest');
+bones.chest.add(box(0.28, 0.3, 0.16, skin).translateY(0.15));
 
-const torsoLower = boneSegment(0.2, 0.08, bodyMat);
-torsoLower.position.set(0, 0.93, 0);
-mannequin.add(torsoLower);
-parts.hips = torsoLower;
+// Torso lower (abdomen)
+bones.abdomen = makeBone('abdomen');
+bones.abdomen.add(box(0.26, 0.22, 0.15, skin).translateY(0.11));
 
-// Left arm (upper + lower)
-const lUpperArm = boneSegment(0.28, 0.04, bodyMat);
-lUpperArm.position.set(-0.22, 1.38, 0);
-lUpperArm.rotation.z = -0.15;
-mannequin.add(lUpperArm);
-parts.lShoulder = lUpperArm;
-
-const lForearm = boneSegment(0.24, 0.035, bodyMat);
-lForearm.position.set(0, 0.28, 0);
-lUpperArm.add(lForearm);
-parts.lElbow = lForearm;
-
-const lHand = new THREE.Group();
-const lHandMesh = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 8), jointMat);
-lHandMesh.position.y = 0.24;
-lHand.add(lHandMesh);
-lForearm.add(lHand);
-parts.lWrist = lHand;
+// Left upper arm (pivot at shoulder)
+bones.lUpArm = makeBone('lUpArm');
+bones.lUpArm.add(sphere(0.05, joint).translateY(0));
+bones.lUpArm.add(cyl(0.04, 0.28, skin).translateY(0.14));
+bones.lUpArm.add(sphere(0.04, joint).translateY(0.28));
+// Left forearm (pivot at elbow)
+bones.lLoArm = makeBone('lLoArm');
+bones.lLoArm.add(cyl(0.035, 0.24, skin).translateY(0.12));
+bones.lLoArm.add(sphere(0.035, joint).translateY(0.24));
+// Left hand
+bones.lHand = makeBone('lHand');
+bones.lHand.add(sphere(0.04, joint));
 
 // Right arm
-const rUpperArm = boneSegment(0.28, 0.04, bodyMat);
-rUpperArm.position.set(0.22, 1.38, 0);
-rUpperArm.rotation.z = 0.15;
-mannequin.add(rUpperArm);
-parts.rShoulder = rUpperArm;
+bones.rUpArm = makeBone('rUpArm');
+bones.rUpArm.add(sphere(0.05, joint));
+bones.rUpArm.add(cyl(0.04, 0.28, skin).translateY(0.14));
+bones.rUpArm.add(sphere(0.04, joint).translateY(0.28));
+bones.rLoArm = makeBone('rLoArm');
+bones.rLoArm.add(cyl(0.035, 0.24, skin).translateY(0.12));
+bones.rLoArm.add(sphere(0.035, joint).translateY(0.24));
+bones.rHand = makeBone('rHand');
+bones.rHand.add(sphere(0.04, joint));
 
-const rForearm = boneSegment(0.24, 0.035, bodyMat);
-rForearm.position.set(0, 0.28, 0);
-rUpperArm.add(rForearm);
-parts.rElbow = rForearm;
-
-const rHand = new THREE.Group();
-const rHandMesh = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 8), jointMat);
-rHandMesh.position.y = 0.24;
-rHand.add(rHandMesh);
-rForearm.add(rHand);
-parts.rWrist = rHand;
-
-// Left leg
-const lUpperLeg = boneSegment(0.4, 0.06, bodyMat);
-lUpperLeg.position.set(-0.1, 0.93, 0);
-lUpperLeg.rotation.x = -0.05;
-mannequin.add(lUpperLeg);
-parts.lHip = lUpperLeg;
-
-const lLowerLeg = boneSegment(0.38, 0.05, bodyMat);
-lLowerLeg.position.set(0, 0.4, 0);
-lUpperLeg.add(lLowerLeg);
-parts.lKnee = lLowerLeg;
-
-const lFoot = new THREE.Group();
-const lFootMesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.04, 0.14), darkMat);
-lFootMesh.position.set(0, 0.02, 0.04);
-lFootMesh.castShadow = true;
-lFoot.add(lFootMesh);
-lFoot.position.set(0, 0.38, 0);
-lLowerLeg.add(lFoot);
-parts.lAnkle = lFoot;
+// Left upper leg (pivot at hip)
+bones.lUpLeg = makeBone('lUpLeg');
+bones.lUpLeg.add(sphere(0.06, joint));
+bones.lUpLeg.add(cyl(0.06, 0.4, skin).translateY(0.2));
+bones.lUpLeg.add(sphere(0.05, joint).translateY(0.4));
+// Left lower leg (pivot at knee)
+bones.lLoLeg = makeBone('lLoLeg');
+bones.lLoLeg.add(cyl(0.05, 0.38, skin).translateY(0.19));
+bones.lLoLeg.add(sphere(0.04, joint).translateY(0.38));
+// Left foot
+bones.lFoot = makeBone('lFoot');
+bones.lFoot.add(box(0.07, 0.04, 0.13, dark).translateZ(0.04).translateY(0.02));
 
 // Right leg
-const rUpperLeg = boneSegment(0.4, 0.06, bodyMat);
-rUpperLeg.position.set(0.1, 0.93, 0);
-rUpperLeg.rotation.x = -0.05;
-mannequin.add(rUpperLeg);
-parts.rHip = rUpperLeg;
+bones.rUpLeg = makeBone('rUpLeg');
+bones.rUpLeg.add(sphere(0.06, joint));
+bones.rUpLeg.add(cyl(0.06, 0.4, skin).translateY(0.2));
+bones.rUpLeg.add(sphere(0.05, joint).translateY(0.4));
+bones.rLoLeg = makeBone('rLoLeg');
+bones.rLoLeg.add(cyl(0.05, 0.38, skin).translateY(0.19));
+bones.rLoLeg.add(sphere(0.04, joint).translateY(0.38));
+bones.rFoot = makeBone('rFoot');
+bones.rFoot.add(box(0.07, 0.04, 0.13, dark).translateZ(0.04).translateY(0.02));
 
-const rLowerLeg = boneSegment(0.38, 0.05, bodyMat);
-rLowerLeg.position.set(0, 0.4, 0);
-rUpperLeg.add(rLowerLeg);
-parts.rKnee = rLowerLeg;
-
-const rFoot = new THREE.Group();
-const rFootMesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.04, 0.14), darkMat);
-rFootMesh.position.set(0, 0.02, 0.04);
-rFootMesh.castShadow = true;
-rFoot.add(rFootMesh);
-rFoot.position.set(0, 0.38, 0);
-rLowerLeg.add(rFoot);
-parts.rAnkle = rFoot;
-
-// ── Pose functions ──
-function resetAll() {
-  mannequin.position.set(0, 0, 0);
-  headG.position.set(0, 1.52, 0);
-  headG.rotation.set(0, 0, 0);
-  neck.rotation.set(0, 0, 0);
-  neck.position.set(0, 1.38, 0);
-  torsoUpper.rotation.set(0, 0, 0);
-  torsoUpper.position.set(0, 1.13, 0);
-  torsoLower.rotation.set(0, 0, 0);
-  torsoLower.position.set(0, 0.93, 0);
-  lUpperArm.rotation.set(0, 0, -0.15);
-  lUpperArm.position.set(-0.22, 1.38, 0);
-  lForearm.rotation.set(0, 0, 0);
-  lHand.rotation.set(0, 0, 0);
-  rUpperArm.rotation.set(0, 0, 0.15);
-  rUpperArm.position.set(0.22, 1.38, 0);
-  rForearm.rotation.set(0, 0, 0);
-  rHand.rotation.set(0, 0, 0);
-  lUpperLeg.rotation.set(-0.05, 0, 0);
-  lUpperLeg.position.set(-0.1, 0.93, 0);
-  lLowerLeg.rotation.set(0, 0, 0);
-  lFoot.rotation.set(0, 0, 0);
-  rUpperLeg.rotation.set(-0.05, 0, 0);
-  rUpperLeg.position.set(0.1, 0.93, 0);
-  rLowerLeg.rotation.set(0, 0, 0);
-  rFoot.rotation.set(0, 0, 0);
+// ── Default A-Pose ──
+function place(name, x, y, z, rx, ry, rz) {
+  const b = bones[name];
+  b.position.set(x, y, z);
+  b.rotation.set(rx || 0, ry || 0, rz || 0);
 }
 
-function tPose() {
-  resetAll();
-  lUpperArm.rotation.set(0, 0, -Math.PI/2);
-  rUpperArm.rotation.set(0, 0, Math.PI/2);
-  lForearm.rotation.set(0, 0, 0);
-  rForearm.rotation.set(0, 0, 0);
+function setApose() {
+  // Head + neck
+  place('head', 0, 1.5, 0, 0, 0, 0);
+  place('neck', 0, 1.38, 0, 0, 0, 0);
+  // Torso
+  place('chest', 0, 1.12, 0, 0, 0, 0);
+  place('abdomen', 0, 0.84, 0, 0, 0, 0);
+  // Left arm: hanging down at slight angle
+  place('lUpArm', -0.16, 1.36, 0, 0.15, 0, -0.35);
+  place('lLoArm', -0.16, 1.36 - 0.28, 0, -0.1, 0, 0);
+  place('lHand', -0.16, 1.36 - 0.28 - 0.24, 0);
+  // Right arm
+  place('rUpArm', 0.16, 1.36, 0, 0.15, 0, 0.35);
+  place('rLoArm', 0.16, 1.36 - 0.28, 0, -0.1, 0, 0);
+  place('rHand', 0.16, 1.36 - 0.28 - 0.24, 0);
+  // Left leg
+  place('lUpLeg', -0.1, 0.84, 0, 0, 0, 0);
+  place('lLoLeg', -0.1, 0.84 - 0.4, 0, 0, 0, 0);
+  place('lFoot', -0.1, 0.84 - 0.4 - 0.38, 0, 1.57, 0, 0);
+  // Right leg
+  place('rUpLeg', 0.1, 0.84, 0, 0, 0, 0);
+  place('rLoLeg', 0.1, 0.84 - 0.4, 0, 0, 0, 0);
+  place('rFoot', 0.1, 0.84 - 0.4 - 0.38, 0, 1.57, 0, 0);
 }
 
-function aPose() {
-  resetAll();
-  lUpperArm.rotation.set(0.3, 0, -0.6);
-  rUpperArm.rotation.set(0.3, 0, 0.6);
-  lForearm.rotation.set(-0.2, 0, 0);
-  rForearm.rotation.set(-0.2, 0, 0);
-  lUpperLeg.rotation.set(-0.05, -0.05, -0.05);
-  rUpperLeg.rotation.set(-0.05, 0.05, 0.05);
-  lLowerLeg.rotation.set(0.1, 0, 0);
-  rLowerLeg.rotation.set(0.1, 0, 0);
+function setTpose() {
+  setApose();
+  place('lUpArm', -0.16, 1.36, 0, 0, 0, -Math.PI/2);
+  place('lLoArm', -0.16 - 0.28, 1.36, 0, 0, 0, -Math.PI/2);
+  place('lHand', -0.16 - 0.28 - 0.24, 1.36, 0);
+  place('rUpArm', 0.16, 1.36, 0, 0, 0, Math.PI/2);
+  place('rLoArm', 0.16 + 0.28, 1.36, 0, 0, 0, Math.PI/2);
+  place('rHand', 0.16 + 0.28 + 0.24, 1.36, 0);
 }
 
-function walkPose() {
-  resetAll();
-  // Torso lean forward slightly
-  torsoUpper.rotation.x = 0.1;
-  // Arms swing
-  lUpperArm.rotation.set(-0.6, 0, -0.3);
-  rUpperArm.rotation.set(0.4, 0, 0.3);
-  lForearm.rotation.set(0.3, 0, 0);
-  rForearm.rotation.set(-0.4, 0, 0);
-  // Legs stride
-  lUpperLeg.rotation.set(0.3, 0, 0);
-  lLowerLeg.rotation.set(-0.5, 0, 0);
-  rUpperLeg.rotation.set(-0.3, 0, 0);
-  rLowerLeg.rotation.set(0.1, 0, 0);
+function setWalk() {
+  setApose();
+  place('lUpArm', -0.16, 1.36, 0, -0.5, 0, -0.3);
+  place('lLoArm', -0.16, 1.08, 0, 0.4, 0, 0);
+  place('rUpArm', 0.16, 1.36, 0, 0.35, 0, 0.3);
+  place('rLoArm', 0.16, 1.08, 0, -0.35, 0, 0);
+  place('lUpLeg', -0.1, 0.84, 0, 0.3, 0, 0);
+  place('lLoLeg', -0.1, 0.84 - 0.4, 0, -0.45, 0, 0);
+  place('rUpLeg', 0.1, 0.84, 0, -0.25, 0, 0);
+  place('rLoLeg', 0.1, 0.84 - 0.4, 0, 0.1, 0, 0);
 }
 
-function randomPose() {
-  resetAll();
-  const rng = () => (Math.random() - 0.5) * 2;
-  lUpperArm.rotation.set(rng()*1.2, rng()*0.8, rng()*1.2 - 0.3);
-  rUpperArm.rotation.set(rng()*1.2, rng()*0.8, rng()*1.2 + 0.3);
-  lForearm.rotation.set(rng()*1.5, 0, 0);
-  rForearm.rotation.set(rng()*1.5, 0, 0);
-  lUpperLeg.rotation.set(rng()*1, rng()*0.3, rng()*0.3);
-  rUpperLeg.rotation.set(rng()*1, rng()*0.3, rng()*0.3);
-  lLowerLeg.rotation.set(Math.max(0, rng() * 1.2), 0, 0);
-  rLowerLeg.rotation.set(Math.max(0, rng() * 1.2), 0, 0);
-  torsoUpper.rotation.set(rng()*0.3, rng()*0.2, 0);
-  headG.rotation.set(rng()*0.3, rng()*0.4, 0);
-}
+// ── MediaPipe ──
+let poseLandmarker = null;
 
-// ── MediaPipe Pose Detection ──
 async function loadMediaPipe() {
-  const { PoseLandmarker, FilesetResolver, DrawingUtils } = await import(
+  if (poseLandmarker) return poseLandmarker;
+  const status = document.getElementById('status');
+  status.textContent = 'loading vision model...';
+  const { PoseLandmarker, FilesetResolver } = await import(
     'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/+esm'
   );
   const vision = await FilesetResolver.forVisionTasks(
     'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/wasm'
   );
-  let delegate = 'GPU';
-  let poseLandmarker;
   try {
     poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetPath: './pose_landmarker_lite.task', delegate },
+      baseOptions: { modelAssetPath: './pose_landmarker_lite.task', delegate: 'GPU' },
       runningMode: 'IMAGE', numPoses: 1
     });
   } catch(e) {
-    console.warn('GPU delegate failed, trying CPU:', e);
-    delegate = 'CPU';
+    console.warn('GPU fail, CPU:', e.message);
     poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetPath: './pose_landmarker_lite.task', delegate },
+      baseOptions: { modelAssetPath: './pose_landmarker_lite.task', delegate: 'CPU' },
       runningMode: 'IMAGE', numPoses: 1
     });
   }
   return poseLandmarker;
 }
 
-async function detectPoseFromImage(imageElement) {
+async function detectAndPose(img) {
   const status = document.getElementById('status');
-  status.textContent = '📥 loading model...';
   try {
-    const poseLandmarker = await loadMediaPipe();
-    status.textContent = '🔍 detecting pose...';
-    const results = poseLandmarker.detect(imageElement);
-    console.log('Pose results:', results);
-    if (results.landmarks && results.landmarks.length > 0) {
-      const landmarks = results.landmarks[0];
-      console.log('Landmarks:', landmarks.length, 'points, first:', landmarks[0], 'last:', landmarks[32]);
-      applyMediaPipePose(landmarks);
-      status.textContent = '✅ pose applied · drag to rotate';
-    } else {
-      console.log('No landmarks found');
-      status.textContent = '⚠️ no person detected — try a clearer photo';
+    const lm = await loadMediaPipe();
+    status.textContent = 'detecting...';
+    const results = lm.detect(img);
+    if (!results.landmarks || !results.landmarks.length) {
+      status.textContent = 'no person found — try clearer photo';
+      return;
     }
-  } catch (err) {
-    console.error('Pose detection error:', err);
-    status.textContent = '❌ ' + (err.message || 'detection failed').substring(0, 40);
+    const pts = results.landmarks[0];
+    console.log('detected', pts.length, 'landmarks');
+    applyLandmarks(pts);
+    status.textContent = 'pose applied — drag to rotate';
+  } catch(e) {
+    console.error(e);
+    status.textContent = 'error: ' + (e.message || 'failed').slice(0, 40);
   }
 }
 
-function applyMediaPipePose(landmarks) {
-  resetAll();
-
-  const get = (i) => landmarks[i] || { x: 0.5, y: 0.5, z: 0 };
-
-  function toVec(i) {
-    const lm = get(i);
+function applyLandmarks(lm) {
+  const get = i => lm[i] || { x: 0.5, y: 0.5, z: 0 };
+  const v = i => {
+    const p = get(i);
+    // Normalized → meters (rough), centered
     return new THREE.Vector3(
-      (lm.x - 0.5) * 2.5,
-      (1 - lm.y) * 3.5 + 0.3,
-      (lm.z) * 2
+      (p.x - 0.5) * 3,
+      (1 - p.y) * 4.2 + 0.2,
+      p.z * 2.5
     );
-  }
+  };
 
-  // Head
-  const nose = toVec(0), lEar = toVec(7), rEar = toVec(8);
-  const headMid = nose.clone().add(lEar).add(rEar).multiplyScalar(1/3);
-  headMid.y += 0.05;
+  // MediaPipe indices:
+  // 0=nose, 7=L-ear, 8=R-ear, 11=L-shoulder, 12=R-shoulder
+  // 13=L-elbow, 14=R-elbow, 15=L-wrist, 16=R-wrist
+  // 23=L-hip, 24=R-hip, 25=L-knee, 26=R-knee, 27=L-ankle, 28=R-ankle
 
-  // Shoulders & hips
-  const lSh = toVec(11), rSh = toVec(12);
-  const lHip = toVec(23), rHip = toVec(24);
+  const nose = v(0), lEar = v(7), rEar = v(8);
+  const headPos = nose.clone().add(lEar).add(rEar).multiplyScalar(1/3).add(new THREE.Vector3(0, 0.06, 0));
+
+  const lSh = v(11), rSh = v(12);
+  const lEl = v(13), rEl = v(14);
+  const lWr = v(15), rWr = v(16);
+  const lHi = v(23), rHi = v(24);
+  const lKn = v(25), rKn = v(26);
+  const lAn = v(27), rAn = v(28);
+
   const shMid = lSh.clone().add(rSh).multiplyScalar(0.5);
-  const hipMid = lHip.clone().add(rHip).multiplyScalar(0.5);
+  const hiMid = lHi.clone().add(rHi).multiplyScalar(0.5);
 
-  // Elbows, wrists, knees, ankles
-  const lElb = toVec(13), rElb = toVec(14);
-  const lWr = toVec(15), rWr = toVec(16);
-  const lKn = toVec(25), rKn = toVec(26);
-  const lAnk = toVec(27), rAnk = toVec(28);
-
-  // Head
-  placeInWorld(headG, headMid, new THREE.Quaternion());
+  // Place head
+  setWorld('head', headPos, 0, 0, 0);
+  setWorld('neck', shMid.clone().add(new THREE.Vector3(0, 0.02, 0)), 0, 0, 0);
 
   // Torso
-  const torsoVec = shMid.clone().sub(hipMid);
-  const torsoQ = torsoVec.length() > 0.01
-    ? new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0), torsoVec.normalize())
-    : new THREE.Quaternion();
-  placeInWorld(torsoUpper, hipMid, torsoQ);
-  placeInWorld(torsoLower, hipMid, torsoQ);
+  const tDir = shMid.clone().sub(hiMid);
+  const tLen = tDir.length();
+  const tMid = hiMid.clone().add(tDir.clone().multiplyScalar(0.6));
+  const tLow = hiMid.clone().add(tDir.clone().multiplyScalar(0.25));
+  setWorldLook('chest', tMid, tDir);
+  setWorldLook('abdomen', tLow, tDir);
 
   // Arms
-  orientBone(lUpperArm, lSh, lElb, 0.28);
-  orientBone(lForearm, lElb, lWr, 0.24);
-  orientBone(rUpperArm, rSh, rElb, 0.28);
-  orientBone(rForearm, rElb, rWr, 0.24);
+  setWorldLook('lUpArm', lSh, lEl.clone().sub(lSh));
+  setWorldLook('lLoArm', lEl, lWr.clone().sub(lEl));
+  setWorld('lHand', lWr, 0, 0, 0);
+  setWorldLook('rUpArm', rSh, rEl.clone().sub(rSh));
+  setWorldLook('rLoArm', rEl, rWr.clone().sub(rEl));
+  setWorld('rHand', rWr, 0, 0, 0);
 
   // Legs
-  orientBone(lUpperLeg, lHip, lKn, 0.4);
-  orientBone(lLowerLeg, lKn, lAnk, 0.38);
-  orientBone(rUpperLeg, rHip, rKn, 0.4);
-  orientBone(rLowerLeg, rKn, rAnk, 0.38);
+  setWorldLook('lUpLeg', lHi, lKn.clone().sub(lHi));
+  setWorldLook('lLoLeg', lKn, lAn.clone().sub(lKn));
+  setWorld('lFoot', lAn, Math.PI/2, 0, 0);
+  setWorldLook('rUpLeg', rHi, rKn.clone().sub(rHi));
+  setWorldLook('rLoLeg', rKn, rAn.clone().sub(rKn));
+  setWorld('rFoot', rAn, Math.PI/2, 0, 0);
 }
 
-// Place a bone in world space (detach → set → reattach)
-function placeInWorld(bone, worldPos, worldQuat) {
-  const parent = bone.parent;
-  if (parent) parent.remove(bone);
-  bone.position.copy(worldPos);
-  bone.quaternion.copy(worldQuat);
-  if (parent) parent.add(bone);
+function setWorld(name, pos, rx, ry, rz) {
+  const b = bones[name];
+  root.remove(b);
+  b.position.copy(pos);
+  b.rotation.set(rx, ry, rz);
+  root.add(b);
 }
 
-function orientBone(bone, from, to, expectedLen) {
-  const dir = to.clone().sub(from);
-  const len = dir.length();
-  if (len < 0.01) return;
-  const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize());
-  placeInWorld(bone, from, quat);
-  const s = len / expectedLen;
-  bone.scale.set(1, Math.max(0.3, s), 1);
+function setWorldLook(name, pos, dir) {
+  const b = bones[name];
+  root.remove(b);
+  b.position.copy(pos);
+  if (dir.length() > 0.005) {
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    b.quaternion.copy(q);
+  } else {
+    b.rotation.set(0, 0, 0);
+  }
+  root.add(b);
 }
 
-// ── Photo upload ──
-document.getElementById('btnPhoto').addEventListener('click', () => {
-  document.getElementById('fileInput').click();
-});
-
-document.getElementById('fileInput').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+// ── Photo ──
+document.getElementById('btnPhoto').onclick = () => document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
   const img = new Image();
-  img.onload = () => detectPoseFromImage(img);
-  img.src = URL.createObjectURL(file);
-});
+  img.onload = () => detectAndPose(img);
+  img.src = URL.createObjectURL(f);
+};
 
 // ── Buttons ──
-document.getElementById('btnTPose').addEventListener('click', tPose);
-document.getElementById('btnAPose').addEventListener('click', aPose);
-document.getElementById('btnWalk').addEventListener('click', walkPose);
-document.getElementById('btnRandom').addEventListener('click', randomPose);
-
-// Mark active button
-document.querySelectorAll('#ui button').forEach(b => {
-  b.addEventListener('click', () => {
-    document.querySelectorAll('#ui button').forEach(x => x.classList.remove('on'));
-    b.classList.add('on');
-  });
-});
+document.getElementById('btnA').onclick = () => { setApose(); document.getElementById('status').textContent = 'A-Pose'; };
+document.getElementById('btnT').onclick = () => { setTpose(); document.getElementById('status').textContent = 'T-Pose'; };
+document.getElementById('btnWalk').onclick = () => { setWalk(); document.getElementById('status').textContent = 'Walk'; };
 
 // ── Render ──
 function animate() {
@@ -492,16 +393,18 @@ function animate() {
 }
 animate();
 
-// ── Resize ──
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
 
-// Start in A-pose
-aPose();
-document.getElementById('btnAPose').classList.add('on');
+// Start
+setApose();
+// Debug: expose for console inspection
+window.__root = root;
+window.__bones = bones;
+console.log('Mannequin ready, bones:', Object.keys(bones).join(', '));
 </script>
 </body>
 </html>
