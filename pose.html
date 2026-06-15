@@ -342,33 +342,44 @@ async function loadMediaPipe() {
   const vision = await FilesetResolver.forVisionTasks(
     'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/wasm'
   );
-  const poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath: './pose_landmarker_lite.task',
-      delegate: 'GPU'
-    },
-    runningMode: 'IMAGE',
-    numPoses: 1
-  });
+  let delegate = 'GPU';
+  let poseLandmarker;
+  try {
+    poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: './pose_landmarker_lite.task', delegate },
+      runningMode: 'IMAGE', numPoses: 1
+    });
+  } catch(e) {
+    console.warn('GPU delegate failed, trying CPU:', e);
+    delegate = 'CPU';
+    poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: './pose_landmarker_lite.task', delegate },
+      runningMode: 'IMAGE', numPoses: 1
+    });
+  }
   return poseLandmarker;
 }
 
 async function detectPoseFromImage(imageElement) {
   const status = document.getElementById('status');
-  status.textContent = '🔍 detecting pose...';
+  status.textContent = '📥 loading model...';
   try {
     const poseLandmarker = await loadMediaPipe();
+    status.textContent = '🔍 detecting pose...';
     const results = poseLandmarker.detect(imageElement);
+    console.log('Pose results:', results);
     if (results.landmarks && results.landmarks.length > 0) {
       const landmarks = results.landmarks[0];
+      console.log('Landmarks:', landmarks.length, 'points, first:', landmarks[0], 'last:', landmarks[32]);
       applyMediaPipePose(landmarks);
       status.textContent = '✅ pose applied · drag to rotate';
     } else {
-      status.textContent = '⚠️ no person detected';
+      console.log('No landmarks found');
+      status.textContent = '⚠️ no person detected — try a clearer photo';
     }
   } catch (err) {
     console.error('Pose detection error:', err);
-    status.textContent = '❌ detection failed';
+    status.textContent = '❌ ' + (err.message || 'detection failed').substring(0, 40);
   }
 }
 
