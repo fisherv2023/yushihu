@@ -28,7 +28,7 @@ canvas{display:block}
   <button id="btnRandom">Random</button>
   <button id="btnPhoto" class="accent">📷 Detect Pose</button>
 </div>
-<input type="file" id="fileInput" accept="image/*" capture="environment">
+<input type="file" id="fileInput" accept="image/*">
 
 <script type="importmap">
 {
@@ -344,7 +344,7 @@ async function loadMediaPipe() {
   );
   const poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
     baseOptions: {
-      modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task',
+      modelAssetPath: './pose_landmarker_lite.task',
       delegate: 'GPU'
     },
     runningMode: 'IMAGE',
