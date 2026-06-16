@@ -537,12 +537,23 @@ document.addEventListener('keydown', function(e){
     function enterMode(name, iframe) {
       activeMode = name;
       canvas.style.display = 'none';
-      // Stop painting-eye camera stream so iframe can claim the hardware
+      // Get the last camera stream from painting-eye (don't stop it!)
+      var sharedStream = null;
       if (window.__peStreams) {
-        window.__peStreams.forEach(function(s) { s.getTracks().forEach(function(t) { t.stop(); }); });
-        window.__peStreams.length = 0;
+        for (var i = window.__peStreams.length - 1; i >= 0; i--) {
+          var tracks = window.__peStreams[i].getVideoTracks();
+          if (tracks.length > 0 && tracks[0].readyState === 'live') {
+            sharedStream = window.__peStreams[i];
+            break;
+          }
+        }
       }
-      window.__peSharedStream = null; // iframe will getUserMedia itself (already authorized on this domain)
+      // Detach stream from painting-eye's video element so Safari releases the hardware
+      var peVid = document.querySelector('video');
+      if (peVid && peVid.srcObject) {
+        peVid.srcObject = null;
+      }
+      window.__peSharedStream = sharedStream; // iframe uses this instead of getUserMedia
       if (name === 'FLOW') { expoIframe.style.display = 'none'; if (!flowIframe.src) flowIframe.src = 'ink-flow.html?embed=1'; flowIframe.style.display = 'block'; }
       else { flowIframe.style.display = 'none'; if (!expoIframe.src) expoIframe.src = 'de.html?embed=1'; expoIframe.style.display = 'block'; }
       // Push activation code to iframe after it loads
@@ -589,11 +600,21 @@ document.addEventListener('keydown', function(e){
       });
       var slider = document.getElementById('slider');
       if (slider) { slider.max = 10; slider.value = 4; }
-      // Restart painting-eye camera after releasing it for FLOW/EXPO
-      setTimeout(function(){
-        var pb = document.getElementById('permBtn');
-        if (pb && document.getElementById('perm').style.display !== 'none') pb.click();
-      }, 100);
+      // Restart painting-eye camera by re-attaching the shared stream
+      if (window.__peSharedStream) {
+        var peVid = document.querySelector('video');
+        if (peVid) {
+          peVid.srcObject = window.__peSharedStream;
+          peVid.play().catch(function(){});
+        }
+        window.__peSharedStream = null;
+      } else {
+        // No saved stream — click permit button as fallback
+        setTimeout(function(){
+          var pb = document.getElementById('permBtn');
+          if (pb && document.getElementById('perm').style.display !== 'none') pb.click();
+        }, 100);
+      }
     }
 
     o1.onclick = function(){
