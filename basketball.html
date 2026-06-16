@@ -8,22 +8,22 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#1a1a2e;overflow:hidden;font-family:-apple-system,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 canvas{display:block}
-#hud{position:fixed;top:12px;left:0;right:0;display:flex;justify-content:center;gap:24px;z-index:10;pointer-events:none}
-#hud span{color:#fff;font-size:18px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.5)}
-#powerBar{position:fixed;right:16px;top:50%;transform:translateY(-50%);width:8px;height:40vh;background:rgba(255,255,255,.12);border-radius:4px;z-index:10;pointer-events:none}
-#powerFill{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,#ff4444,#ffaa00,#44ff44);border-radius:4px;transition:height .05s}
-#msg{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:32px;font-weight:700;z-index:10;pointer-events:none;text-shadow:0 2px 8px rgba(0,0,0,.6);opacity:0;transition:opacity .2s}
-#modeSwitch{position:fixed;top:12px;right:12px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);padding:8px 16px;border-radius:16px;font-size:12px;cursor:pointer;z-index:10}
+#hud{position:fixed;top:16px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;z-index:10;pointer-events:none}
+#hud span{color:#fff;font-size:16px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+#powerRing{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);width:80px;height:80px;border-radius:50%;border:3px solid rgba(255,255,255,.2);z-index:10;pointer-events:none}
+#powerCircle{position:absolute;top:5px;left:5px;right:5px;bottom:5px;border-radius:50%;background:rgba(255,200,0,.3);transform:scale(0);transition:transform .05s linear}
+#msg{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:32px;font-weight:700;z-index:10;pointer-events:none;text-shadow:0 2px 8px rgba(0,0,0,.6);opacity:0;transition:opacity .15s}
+#modeBtn{position:fixed;top:12px;right:16px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);padding:6px 14px;border-radius:16px;font-size:12px;cursor:pointer;z-index:10}
 </style>
 </head>
 <body>
-<div id="hud"><span>🏀 <span id="score">0</span></span><span>Shots: <span id="shots">0</span></span></div>
-<div id="powerBar"><div id="powerFill" style="height:0%"></div></div>
+<div id="hud"><span>🏀 <span id="score">0</span></span><span><span id="shots">0</span> shots</span></div>
+<div id="powerRing"><div id="powerCircle"></div></div>
 <div id="msg"></div>
-<button id="modeSwitch">2pt Mode</button>
+<button id="modeBtn">2pt</button>
 
 <script type="importmap">
-{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}
 </script>
 
 <script type="module">
@@ -31,11 +31,11 @@ import * as THREE from 'three';
 
 // ── Scene ──
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87CEEB);
-scene.fog = new THREE.Fog(0x87CEEB, 15, 40);
+scene.background = new THREE.Color(0x4a6fa5);
+scene.fog = new THREE.Fog(0x4a6fa5, 12, 35);
 
-const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 50);
-camera.position.set(0, 2.2, 3.5);
+const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 50);
+camera.position.set(0, 1.4, 3.2);
 camera.lookAt(0, 2.55, -3.0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -46,325 +46,270 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 // ── Lights ──
-scene.add(new THREE.AmbientLight(0x8899bb, 1.2));
-const sun = new THREE.DirectionalLight(0xfff8e7, 2.5);
-sun.position.set(5, 10, 3);
-sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
-sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 30;
-sun.shadow.camera.left = -8; sun.shadow.camera.right = 8;
-sun.shadow.camera.top = 8; sun.shadow.camera.bottom = -2;
-sun.shadow.bias = -0.0005;
+scene.add(new THREE.AmbientLight(0x8899bb, 1.0));
+const sun = new THREE.DirectionalLight(0xfff0d0, 2.8);
+sun.position.set(4, 8, 2); sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024); sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 30;
+sun.shadow.camera.left = -6; sun.shadow.camera.right = 6;
+sun.shadow.camera.top = 6; sun.shadow.camera.bottom = -1; sun.shadow.bias = -0.0004;
 scene.add(sun);
 
 // ── Court ──
 const court = new THREE.Mesh(
-  new THREE.PlaneGeometry(12, 20),
-  new THREE.MeshStandardMaterial({ color: 0xc8874b, roughness: 0.7 })
+  new THREE.PlaneGeometry(10, 18),
+  new THREE.MeshStandardMaterial({ color: 0xc8904b, roughness: 0.7 })
 );
-court.rotation.x = -Math.PI/2;
-court.receiveShadow = true;
+court.rotation.x = -Math.PI/2; court.receiveShadow = true;
 scene.add(court);
 
-// Court lines
-const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-const ftLine = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.05), lineMat);
-ftLine.rotation.x = -Math.PI/2; ftLine.position.set(0, 0.005, -3); scene.add(ftLine);
-const tpLine = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.05), lineMat);
-tpLine.rotation.x = -Math.PI/2; tpLine.position.set(0, 0.005, -6); scene.add(tpLine);
-
-// ── Backboard ──
-const backboard = new THREE.Mesh(
-  new THREE.BoxGeometry(1.8, 1.2, 0.08),
-  new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 })
-);
-backboard.position.set(0, 3.3, -3.5);
-backboard.castShadow = true; backboard.receiveShadow = true;
-scene.add(backboard);
-
-// Backboard border
-const border = new THREE.Mesh(
-  new THREE.BoxGeometry(1.9, 1.3, 0.04),
-  new THREE.MeshStandardMaterial({ color: 0x333333 })
-);
-border.position.copy(backboard.position);
-scene.add(border);
-
-// ── Hoop (ring) ──
-const hoopY = 2.55;
-const hoopZ = -3.05;
-const ringGeo = new THREE.TorusGeometry(0.22, 0.02, 8, 24);
-const ring = new THREE.Mesh(ringGeo, new THREE.MeshStandardMaterial({ color: 0xff4444, metalness: 0.8, roughness: 0.2 }));
-ring.position.set(0, hoopY, hoopZ);
-ring.rotation.x = Math.PI/2;
-ring.castShadow = true;
-scene.add(ring);
-
-// Net
-const netGeo = new THREE.CylinderGeometry(0.05, 0.15, 0.4, 12, 1, true);
-const net = new THREE.Mesh(netGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, side: THREE.DoubleSide, transparent: true, opacity: 0.6 }));
-net.position.set(0, hoopY - 0.2, hoopZ);
-net.castShadow = true;
-scene.add(net);
-
-// ── Ball ──
-const ballRadius = 0.12;
-const ballGeo = new THREE.SphereGeometry(ballRadius, 24, 16);
-const ballMat = new THREE.MeshStandardMaterial({ color: 0xe8741a, roughness: 0.4, metalness: 0.1 });
-const ball = new THREE.Mesh(ballGeo, ballMat);
-ball.castShadow = true;
-scene.add(ball);
-
-// Ball lines (black seams)
-const seamGeo = new THREE.TorusGeometry(ballRadius * 0.98, 0.01, 8, 32);
-const seam1 = new THREE.Mesh(seamGeo, new THREE.MeshBasicMaterial({ color: 0x222222 }));
-const seam2 = new THREE.Mesh(seamGeo, new THREE.MeshBasicMaterial({ color: 0x222222 }));
-seam2.rotation.x = Math.PI/2;
-ball.add(seam1); ball.add(seam2);
-
-// ── Aim arrow ──
-const arrowGroup = new THREE.Group();
-const arrowBody = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.02, 0.02, 0.6, 8),
-  new THREE.MeshBasicMaterial({ color: 0xffff00 })
-);
-arrowBody.position.y = 0.3;
-arrowGroup.add(arrowBody);
-const arrowHead = new THREE.Mesh(
-  new THREE.ConeGeometry(0.04, 0.1, 8),
-  new THREE.MeshBasicMaterial({ color: 0xffff00 })
-);
-arrowHead.position.y = 0.65;
-arrowGroup.add(arrowHead);
-scene.add(arrowGroup);
-
-// Stanchion
-const pole = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.05, 0.05, 2.8, 8),
-  new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6 })
-);
-pole.position.set(0.9, 1.4, -3.5);
-pole.castShadow = true;
-scene.add(pole);
-
-// ── Game State ──
-const GRAVITY = 9.8;
-let gameMode = '2pt'; // '2pt' or '3pt'
-let score = 0, totalShots = 0;
-let scoredThisShot = false;
-let ballPos = new THREE.Vector3();
-let ballVel = new THREE.Vector3();
-let isFlying = false;
-let isAiming = false;
-let aimStart = new THREE.Vector2();
-let aimPower = 0;
-let aimAngleH = 0; // horizontal angle
-let aimAngleV = 0.6; // vertical angle (default ~35°)
-
-const startPos2 = new THREE.Vector3(0, 1.0, 2.0);  // 2pt start
-const startPos3 = new THREE.Vector3(0, 1.0, 4.5);  // 3pt start (farther)
-const hoopCenter = new THREE.Vector3(0, hoopY, hoopZ);
-const hoopRadius = 0.22;
-
-function resetBall(mode) {
-  const start = mode === '3pt' ? startPos3.clone() : startPos2.clone();
-  ball.position.copy(start);
-  ballPos.copy(start);
-  ballVel.set(0, 0, 0);
-  isFlying = false;
-  isAiming = false;
-  scoredThisShot = false;
-  arrowGroup.visible = true;
-  updateArrow(start);
-}
-
-function updateArrow(pos) {
-  arrowGroup.position.copy(pos);
-  arrowGroup.rotation.set(0, 0, 0);
-  arrowGroup.rotateY(aimAngleH);
-  arrowGroup.rotateX(-aimAngleV);
-}
-
-// ── Input ──
-const canvas = renderer.domElement;
-
-canvas.addEventListener('pointerdown', (e) => {
-  e.preventDefault();
-  if (isFlying) return;
-  isAiming = true;
-  aimStart.set(e.clientX, e.clientY);
-  document.getElementById('powerFill').style.height = '0%';
+// Lines
+const lm = new THREE.MeshBasicMaterial({ color: 0xffffff });
+[{z:-2.8,w:3},{z:-5.5,w:5}].forEach(l => {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(l.w, 0.04), lm);
+  m.rotation.x = -Math.PI/2; m.position.set(0,0.005,l.z); scene.add(m);
 });
 
-canvas.addEventListener('pointermove', (e) => {
-  if (!isAiming || isFlying) return;
-  const dx = e.clientX - aimStart.x;
-  const dy = e.clientY - aimStart.y;
-  aimAngleH = Math.max(-0.6, Math.min(0.6, dx * 0.003));
-  aimAngleV = Math.max(0.2, Math.min(1.2, 0.6 + dy * 0.003));
-  aimPower = Math.min(100, Math.sqrt(dx*dx + dy*dy) * 0.3);
-  document.getElementById('powerFill').style.height = aimPower + '%';
-  updateArrow(ball.position);
+// ── Backboard + Hoop ──
+const bb = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, 0.06),
+  new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }));
+bb.position.set(0, 3.3, -3.5); bb.castShadow = true; bb.receiveShadow = true;
+scene.add(bb);
+const bbBorder = new THREE.Mesh(new THREE.BoxGeometry(1.85, 1.25, 0.03),
+  new THREE.MeshStandardMaterial({ color: 0x333333 }));
+bbBorder.position.copy(bb.position); scene.add(bbBorder);
+
+const hoopY = 2.55, hoopZ = -3.05;
+const ring = new THREE.Mesh(
+  new THREE.TorusGeometry(0.22, 0.025, 8, 32),
+  new THREE.MeshStandardMaterial({ color: 0xff4444, metalness: 0.8, roughness: 0.2 })
+);
+ring.position.set(0, hoopY, hoopZ); ring.rotation.x = Math.PI/2;
+ring.castShadow = true; scene.add(ring);
+
+const net = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.05, 0.16, 0.45, 12, 1, true),
+  new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, side: THREE.DoubleSide, transparent: true, opacity: 0.5 })
+);
+net.position.set(0, hoopY-0.22, hoopZ); net.castShadow = true; scene.add(net);
+
+// Pole
+const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.8, 8),
+  new THREE.MeshStandardMaterial({ color: 0x777777, metalness: 0.5 }));
+pole.position.set(0.9, 1.4, -3.5); pole.castShadow = true; scene.add(pole);
+
+// ── Ball ──
+const BR = 0.12;
+const ball = new THREE.Mesh(new THREE.SphereGeometry(BR, 24, 16),
+  new THREE.MeshStandardMaterial({ color: 0xe8741a, roughness: 0.35, metalness: 0.05 }));
+ball.castShadow = true; scene.add(ball);
+
+const s1 = new THREE.Mesh(new THREE.TorusGeometry(BR*0.97, 0.008, 8, 32),
+  new THREE.MeshBasicMaterial({ color: 0x222222 }));
+const s2 = new THREE.Mesh(new THREE.TorusGeometry(BR*0.97, 0.008, 8, 32),
+  new THREE.MeshBasicMaterial({ color: 0x222222 }));
+s2.rotation.x = Math.PI/2; ball.add(s1); ball.add(s2);
+
+// ── Game State ──
+const G = 9.8;
+let mode = '2pt';
+let score = 0, shots = 0;
+let pos = new THREE.Vector3(), vel = new THREE.Vector3();
+let flying = false, holding = false, scored = false;
+let holdStart = 0, power = 0;
+const MAX_POWER = 1.0;
+const SHOOT_ANGLE = 0.65; // fixed ~37° launch angle
+const start2 = new THREE.Vector3(0, 1.0, 2.0);
+const start3 = new THREE.Vector3(0, 1.0, 4.5);
+const rimPos = new THREE.Vector3(0, hoopY, hoopZ);
+const rimR = 0.22;
+
+function reset(m) {
+  const s = m === '3pt' ? start3.clone() : start2.clone();
+  ball.position.copy(s); pos.copy(s); vel.set(0,0,0);
+  flying = false; holding = false; scored = false;
+  power = 0;
+  document.getElementById('powerCircle').style.transform = 'scale(0)';
+}
+
+// ── Hold-to-charge input ──
+const canvas = renderer.domElement;
+
+canvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (flying) return;
+  holding = true;
+  holdStart = performance.now();
+});
+
+canvas.addEventListener('pointermove', e => {
+  if (!holding || flying) return;
+  const elapsed = (performance.now() - holdStart) / 1000;
+  power = Math.min(MAX_POWER, elapsed * 1.5); // full power in ~0.67s
+  document.getElementById('powerCircle').style.transform = `scale(${power})`;
 });
 
 canvas.addEventListener('pointerup', () => {
-  if (!isAiming || isFlying) return;
-  isAiming = false;
+  if (!holding || flying) return;
+  holding = false;
   shoot();
 });
 
-function shoot() {
-  const power = 3 + aimPower * 0.08;
-  const dir = new THREE.Vector3(
-    Math.sin(aimAngleH),
-    Math.sin(aimAngleV),
-    -Math.cos(aimAngleV) * Math.cos(aimAngleH)
-  ).normalize();
-  ballVel.copy(dir).multiplyScalar(power);
-  isFlying = true;
-  totalShots++;
-  document.getElementById('shots').textContent = totalShots;
-  arrowGroup.visible = false;
-  document.getElementById('powerFill').style.height = '0%';
-}
-
-// ── Physics + Scoring ──
-function update(dt) {
-  if (!isFlying) return;
-  dt = Math.min(dt, 0.05);
-
-  // Euler integration
-  ballVel.y -= GRAVITY * dt;
-  ballPos.add(ballVel.clone().multiplyScalar(dt));
-  ball.position.copy(ballPos);
-
-  // Backboard collision (box at 0, 3.3, -3.5, size 1.8×1.2×0.08)
-  const bbX = 0, bbY = 3.3, bbZ = -3.5;
-  const bbHW = 0.9, bbHH = 0.6, bbHD = 0.04; // half-sizes
-  const bbFront = bbZ - bbHD; // front face z = -3.54
-  if (ballPos.z - ballRadius < bbFront &&
-      ballPos.z + ballRadius > bbFront &&
-      Math.abs(ballPos.x - bbX) < bbHW + ballRadius &&
-      Math.abs(ballPos.y - bbY) < bbHH + ballRadius) {
-    // Bounce off backboard
-    ballPos.z = bbFront + ballRadius;
-    ballVel.z = Math.abs(ballVel.z) * 0.6; // reflect + energy loss
-    ballVel.x *= 0.8;
-    ballVel.y *= 0.9;
-    ball.position.copy(ballPos);
-  }
-
-  // Hoop collision detection
-  const dist = ballPos.distanceTo(hoopCenter);
-  const isAtHoopHeight = Math.abs(ballPos.y - hoopY) < 0.15;
-  const isNearHoop = dist < hoopRadius * 2;
-  const prevDist = ballPos.clone().sub(ballVel.clone().multiplyScalar(dt)).distanceTo(hoopCenter);
-
-  if (isAtHoopHeight && isNearHoop && prevDist > hoopRadius * 2 && ballVel.y < 0) {
-    score += gameMode === '3pt' ? 3 : 2;
-    scoredThisShot = true;
-    document.getElementById('score').textContent = score;
-    showMsg(gameMode === '3pt' ? '+3!' : '+2!');
-    playSwish();
-  }
-
-  // Ball hits ground → reset
-  if (ballPos.y < ballRadius) {
-    ballPos.y = ballRadius;
-    ball.position.copy(ballPos);
-    if (!scoredThisShot) playBrick();
-    setTimeout(() => resetBall(gameMode), 800);
-  }
-
-  // Ball went too far → reset
-  if (ballPos.z < -8 || Math.abs(ballPos.x) > 6) {
-    if (!scoredThisShot) playBrick();
-    setTimeout(() => resetBall(gameMode), 600);
-  }
-}
-
-function showMsg(text) {
-  const el = document.getElementById('msg');
-  el.textContent = text;
-  el.style.opacity = '1';
-  setTimeout(() => el.style.opacity = '0', 800);
-}
-
-function playSwish() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(800, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.3);
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.3);
-  } catch(e) {}
-}
-
-function playBrick() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(150, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.4);
-    gain.gain.setValueAtTime(0.08, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.4);
-  } catch(e) {}
-}
-
-// ── Mode Switch ──
-document.getElementById('modeSwitch').addEventListener('click', () => {
-  if (isFlying) return;
-  gameMode = gameMode === '2pt' ? '3pt' : '2pt';
-  document.getElementById('modeSwitch').textContent = gameMode === '3pt' ? '3pt Mode' : '2pt Mode';
-  score = 0; totalShots = 0;
-  document.getElementById('score').textContent = '0';
-  document.getElementById('shots').textContent = '0';
-  resetBall(gameMode);
+canvas.addEventListener('pointerleave', () => {
+  if (holding && !flying) { holding = false; shoot(); }
 });
 
-// ── Game Loop ──
-let lastTime = performance.now();
-function animate(time) {
-  requestAnimationFrame(animate);
-  const dt = (time - lastTime) / 1000;
-  lastTime = time;
-  update(dt);
+function shoot() {
+  if (power < 0.1) { power = 0; reset(mode); return; } // too short = cancel
+  const speed = 4 + power * 5; // 4-9 m/s
+  vel.set(0, Math.sin(SHOOT_ANGLE) * speed, -Math.cos(SHOOT_ANGLE) * speed);
+  flying = true; scored = false; shots++;
+  document.getElementById('shots').textContent = shots;
+  document.getElementById('powerCircle').style.transform = 'scale(0)';
+  power = 0;
+}
 
-  // Slow ball rotation while flying
-  if (isFlying) {
-    ball.rotateX(0.05);
-    ball.rotateZ(0.03);
+// ── Physics ──
+let bounceCount = 0;
+
+function update(dt) {
+  if (!flying) return;
+  dt = Math.min(dt, 0.04);
+
+  vel.y -= G * dt;
+  pos.add(vel.clone().multiplyScalar(dt));
+  ball.position.copy(pos);
+
+  // ── Backboard (box collision) ──
+  const bX=0, bY=3.3, bZ=-3.5, bHW=0.9, bHH=0.6, bHD=0.03;
+  if (pos.z - BR < bZ - bHD && pos.z + BR > bZ - bHD &&
+      Math.abs(pos.x-bX) < bHW+BR && Math.abs(pos.y-bY) < bHH+BR) {
+    pos.z = bZ - bHD + BR;
+    vel.z = Math.abs(vel.z) * 0.55;
+    vel.x *= 0.7; vel.y *= 0.85;
+    ball.position.copy(pos);
   }
 
+  // ── Rim (torus approximated as circle in XZ at y=hoopY) ──
+  if (vel.y < 0 && Math.abs(pos.y - hoopY) < BR + 0.025) {
+    const dx = pos.x - rimPos.x, dz = pos.z - rimPos.z;
+    const hDist = Math.sqrt(dx*dx + dz*dz);
+    // Hit front or back side of rim
+    if (hDist > rimR - BR*0.5 && hDist < rimR + BR + 0.05) {
+      // Push ball out and bounce
+      const nx = dx / hDist, nz = dz / hDist;
+      const overlap = (rimR + BR) - hDist;
+      if (overlap > 0 && overlap < BR * 1.5) {
+        pos.x -= nx * overlap * 0.5;
+        pos.z -= nz * overlap * 0.5;
+        vel.x = vel.x * 0.4 - nx * 1.5;
+        vel.z = vel.z * 0.4 - nz * 1.5;
+        vel.y *= 0.5;
+      }
+      ball.position.copy(pos);
+    }
+    // Check if ball passed through center (score)
+    if (hDist < rimR - BR*0.6 && pos.y < hoopY + 0.1 && pos.y > hoopY - 0.3) {
+      if (!scored) {
+        score += mode === '3pt' ? 3 : 2; scored = true;
+        document.getElementById('score').textContent = score;
+        showMsg(mode === '3pt' ? '+3!' : '+2!');
+        playSwish();
+      }
+    }
+  }
+
+  // ── Ground bounce ──
+  if (pos.y < BR) {
+    pos.y = BR;
+    if (Math.abs(vel.y) > 0.8 && bounceCount < 3) {
+      vel.y = Math.abs(vel.y) * 0.45;
+      vel.x *= 0.7; vel.z *= 0.7;
+      bounceCount++;
+    } else {
+      vel.set(0,0,0);
+    }
+    ball.position.copy(pos);
+  }
+
+  // Out of bounds → reset
+  if (pos.z < -8 || Math.abs(pos.x) > 5 || pos.y < -2) {
+    if (!scored) playBrick();
+    setTimeout(() => { bounceCount = 0; reset(mode); }, 600);
+  }
+
+  // Ball stopped on ground → reset
+  if (pos.y <= BR + 0.01 && vel.length() < 0.3 && flying) {
+    if (!scored) playBrick();
+    setTimeout(() => { bounceCount = 0; reset(mode); }, 800);
+  }
+}
+
+// ── Audio ──
+function playSwish() {
+  try {
+    const c = new (window.AudioContext||window.webkitAudioContext)();
+    const o = c.createOscillator(), g = c.createGain();
+    o.connect(g); g.connect(c.destination);
+    o.type='triangle';
+    o.frequency.setValueAtTime(900,c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(250,c.currentTime+0.25);
+    g.gain.setValueAtTime(0.12,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.25);
+    o.start(); o.stop(c.currentTime+0.25);
+  } catch(e){}
+}
+function playBrick() {
+  try {
+    const c = new (window.AudioContext||window.webkitAudioContext)();
+    const o = c.createOscillator(), g = c.createGain();
+    o.connect(g); g.connect(c.destination);
+    o.type='sawtooth';
+    o.frequency.setValueAtTime(140,c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(55,c.currentTime+0.35);
+    g.gain.setValueAtTime(0.06,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.35);
+    o.start(); o.stop(c.currentTime+0.35);
+  } catch(e){}
+}
+
+function showMsg(t) {
+  const e = document.getElementById('msg');
+  e.textContent = t; e.style.opacity = '1';
+  setTimeout(() => e.style.opacity='0', 700);
+}
+
+// ── Mode ──
+document.getElementById('modeBtn').addEventListener('click', () => {
+  if (flying) return;
+  mode = mode === '2pt' ? '3pt' : '2pt';
+  document.getElementById('modeBtn').textContent = mode === '3pt' ? '3pt' : '2pt';
+  score = 0; shots = 0;
+  document.getElementById('score').textContent = '0';
+  document.getElementById('shots').textContent = '0';
+  reset(mode);
+});
+
+// ── Loop ──
+let last = performance.now();
+function loop(t) {
+  requestAnimationFrame(loop);
+  const dt = (t - last) / 1000; last = t;
+  update(dt);
+  if (flying) { ball.rotateX(0.06); ball.rotateZ(0.04); }
   renderer.render(scene, camera);
 }
 
 // ── Start ──
-resetBall('2pt');
-requestAnimationFrame(animate);
+reset('2pt');
+requestAnimationFrame(loop);
 
 window.addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
+  camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
-
-console.log('Basketball Shooter ready');
-
-// Prevent long-press context menu on mobile
 document.addEventListener('contextmenu', e => e.preventDefault());
-
+console.log('Basketball ready — hold to charge, release to shoot');
 </script>
 </body>
 </html>
