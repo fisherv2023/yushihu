@@ -589,10 +589,14 @@ requestAnimationFrame(frame);
 // Auto-start camera when embedded in painting-eye — use parent's shared stream to avoid re-auth
 if (window.self !== window.top) {
   (function tryShared(){
-    if (window.parent.__peSharedStream) {
+    if (window.parent.__peSharedStream && window.parent.__peSharedStream.getVideoTracks().length > 0) {
       startCam(window.parent.__peSharedStream);
+    } else if (window.parent.__peRetryStream) {
+      // Stream not ready yet — painting-eye camera may not have started
+      setTimeout(tryShared, 300);
     } else {
-      setTimeout(tryShared, 100);
+      // No retry flag either — painting-eye has no camera yet
+      setTimeout(tryShared, 500);
     }
   })();
 }

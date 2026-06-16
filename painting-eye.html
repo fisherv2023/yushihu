@@ -551,6 +551,12 @@ document.addEventListener('keydown', function(e){
         peVid.srcObject = null;
       }
       window.__peSharedStream = sharedStream; // iframe uses this instead of getUserMedia
+      // If no stream yet (camera not started), set a retry flag for iframe
+      if (!sharedStream) {
+        window.__peRetryStream = true;
+      } else {
+        window.__peRetryStream = false;
+      }
       if (name === 'FLOW') { expoIframe.style.display = 'none'; if (!flowIframe.src) flowIframe.src = 'ink-flow.html?embed=1'; flowIframe.style.display = 'block'; }
       else { flowIframe.style.display = 'none'; if (!expoIframe.src) expoIframe.src = 'de.html?embed=1'; expoIframe.style.display = 'block'; }
       // Push activation code to iframe after it loads
