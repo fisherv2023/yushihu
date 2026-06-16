@@ -537,19 +537,12 @@ document.addEventListener('keydown', function(e){
     function enterMode(name, iframe) {
       activeMode = name;
       canvas.style.display = 'none';
-      // Clone painting-eye's video track for iframe to share (avoids re-auth)
-      var sharedStream = null;
-      var streams = window.__peStreams;
-      for (var i = streams.length - 1; i >= 0; i--) {
-        var tracks = streams[i].getVideoTracks();
-        if (tracks.length > 0) { sharedStream = new MediaStream([tracks[0].clone()]); break; }
-      }
-      window.__peSharedStream = sharedStream;
-      // Stop painting-eye camera stream so iframe can claim it
+      // Stop painting-eye camera stream so iframe can claim the hardware
       if (window.__peStreams) {
         window.__peStreams.forEach(function(s) { s.getTracks().forEach(function(t) { t.stop(); }); });
         window.__peStreams.length = 0;
       }
+      window.__peSharedStream = null; // iframe will getUserMedia itself (already authorized on this domain)
       if (name === 'FLOW') { expoIframe.style.display = 'none'; if (!flowIframe.src) flowIframe.src = 'ink-flow.html?embed=1'; flowIframe.style.display = 'block'; }
       else { flowIframe.style.display = 'none'; if (!expoIframe.src) expoIframe.src = 'de.html?embed=1'; expoIframe.style.display = 'block'; }
       // Push activation code to iframe after it loads

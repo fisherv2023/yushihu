@@ -586,14 +586,13 @@ addEventListener('resize', () => {
 });
 
 requestAnimationFrame(frame);
-// Auto-start camera when embedded in painting-eye
+// Auto-start camera when embedded in painting-eye — use own getUserMedia (domain already trusted)
 if (window.self !== window.top) {
-  // Wait for parent to provide shared camera stream
-  (function tryShared(){
-    if (window.parent.__peSharedStream) {
-      startCam(window.parent.__peSharedStream);
+  (function tryStart(){
+    if (typeof startCam === 'function') {
+      startCam();
     } else {
-      setTimeout(tryShared, 100);
+      setTimeout(tryStart, 100);
     }
   })();
 }
