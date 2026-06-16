@@ -537,20 +537,17 @@ document.addEventListener('keydown', function(e){
     function enterMode(name, iframe) {
       activeMode = name;
       canvas.style.display = 'none';
-      // Get the last camera stream from painting-eye (don't stop it!)
+      // Get the camera stream from painting-eye's video element directly
       var sharedStream = null;
-      if (window.__peStreams) {
-        for (var i = window.__peStreams.length - 1; i >= 0; i--) {
-          var tracks = window.__peStreams[i].getVideoTracks();
-          if (tracks.length > 0 && tracks[0].readyState === 'live') {
-            sharedStream = window.__peStreams[i];
-            break;
-          }
+      var peVid = document.querySelector('video');
+      if (peVid && peVid.srcObject) {
+        var tracks = peVid.srcObject.getVideoTracks();
+        if (tracks.length > 0 && tracks[0].readyState === 'live') {
+          sharedStream = peVid.srcObject;
         }
       }
       // Detach stream from painting-eye's video element so Safari releases the hardware
-      var peVid = document.querySelector('video');
-      if (peVid && peVid.srcObject) {
+      if (peVid) {
         peVid.srcObject = null;
       }
       window.__peSharedStream = sharedStream; // iframe uses this instead of getUserMedia
