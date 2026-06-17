@@ -567,8 +567,8 @@ document.addEventListener('keydown', function(e){
 <script>
 // Show launcher when loading animation finishes (guaranteed)
 (function showLauncherGuaranteed(){
-  var check = function(){
-    if (window.__pe_loaded) {
+  var check = function(force){
+    if (window.__pe_loaded || force) {
       var launcher = document.getElementById('launcher');
       var loadEl = document.getElementById('load');
       if (loadEl && !loadEl.classList.contains('done')) loadEl.classList.add('done');
@@ -576,10 +576,12 @@ document.addEventListener('keydown', function(e){
       var permEl = document.getElementById('perm');
       if (permEl) permEl.style.display = 'none';
     } else {
-      setTimeout(check, 100);
+      setTimeout(function(){ check(false); }, 100);
     }
   };
-  setTimeout(check, 3000);
+  // Start checking early, force at 3.5s
+  check(false);
+  setTimeout(function(){ check(true); }, 3500);
 })();
 </script>
 <script>
