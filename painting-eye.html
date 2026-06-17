@@ -312,8 +312,8 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
 </script>
 <script>setTimeout(function(){document.getElementById('load').classList.add('done')},3500);</script>
+<script>window.__pe_loaded=1;</script>
 <script type="module">
-window.__pe_loaded=1;
 import * as THREE from 'three';
 // Math.cbrt polyfill for old Safari
 if(!Math.cbrt)Math.cbrt=function(x){return Math.pow(x,1/3);};
