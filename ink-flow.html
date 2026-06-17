@@ -392,7 +392,10 @@ function sampleCameraColor(uv) {
   return new THREE.Color(d[0]/255, d[1]/255, d[2]/255);
 }
 
+window.__peFlowReady = false; // set true after 90-frame warmup
+
 canvas.addEventListener('pointerdown', e => {
+  if (!window.__peFlowReady) return;
   const p = toUV(e);
   ptr.down = true; ptr.moved = false;
   ptr.x = ptr.px = p.x; ptr.y = ptr.py = p.y;
@@ -401,6 +404,7 @@ canvas.addEventListener('pointerdown', e => {
   splatVelocity(p.x, p.y, (Math.random()-.5)*160, (Math.random()-.5)*160, 2.5);
 });
 canvas.addEventListener('pointermove', e => {
+  if (!window.__peFlowReady) return;
   const p = toUV(e);
   ptr.px = ptr.x; ptr.py = ptr.y;
   ptr.x = p.x; ptr.y = p.y;
@@ -505,12 +509,34 @@ function step(dt) {
 // ── Main loop ──
 let lastT = performance.now();
 let frozen = false;
+let warmupFrames = 90; // ~1.5s at 60fps — show loading animation
 function frame(now) {
   requestAnimationFrame(frame);
   let dt = (now - lastT) / 1000;
   lastT = now;
   dt = Math.min(dt, 1 / 30);
   if (dt <= 0) return;
+
+  // ── Warmup countdown (embedded mode) ──
+  if (warmupFrames > 0) {
+    warmupFrames--;
+    if (warmupFrames <= 0) {
+      window.__peFlowReady = true;
+      if (window.self !== window.top) {
+        window.parent.postMessage({type:'flowReady'}, '*');
+        // Trigger label sync
+        setTimeout(function(){
+          var ml = document.getElementById('modeLabel');
+          if (ml && window.__inkCFG) {
+            var intensity = Math.round((Math.min(window.__inkCFG.EDGE_DYE, 0.07) - 0.01) / 0.05 * 4) + 1;
+            if (intensity < 1) intensity = 1; if (intensity > 5) intensity = 5;
+            ml.textContent = 'FLOW ' + intensity;
+            window.parent.postMessage({type:'status', text:'FLOW ' + intensity}, '*');
+          }
+        }, 100);
+      }
+    }
+  }
 
   if (!frozen) {
     applyPointer();
@@ -632,6 +658,10 @@ if (window.self !== window.top) {
       ml.style.display = 'block';
       
       function syncLabel(){
+        if (!window.__peFlowReady) {
+          ml.textContent = 'FLOW ···';
+          return;
+        }
         var cfg = window.__inkCFG;
         if (cfg) {
           var intensity = Math.round((Math.min(cfg.EDGE_DYE, 0.07) - 0.01) / 0.05 * 4) + 1;
