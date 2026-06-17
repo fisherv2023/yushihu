@@ -395,6 +395,7 @@ function buyLicense(){
 function useFree(){
   licMode='free';
   document.getElementById('licOverlay').classList.add('hidden');
+  window.__peFreeAccepted = true; // mark that user chose free — don't re-prompt
 }
 
 function showLicInput(){
@@ -585,12 +586,11 @@ document.addEventListener('keydown', function(e){
       btn.addEventListener('click', function(){
         var target = this.dataset.target;
         if (target === 'shader') {
-          // Check license first — free users can also enter (3 free modes)
-          if (licMode === 'free') {
-            // Show unlock prompt but don't prevent entry — user can "Try Free"
+          // Check license — free users can also enter (3 free modes)
+          // Only show unlock prompt if user hasn't already chosen "Try Free"
+          if (licMode === 'free' && !window.__peFreeAccepted) {
             var lo = document.getElementById('licOverlay');
             if (lo) lo.classList.remove('hidden');
-            // User will click "Try Free", "Unlock", or "Enter Key" on the overlay
           }
           // Always allow entry (free=3 modes, pro=all)
           if (launcher) launcher.classList.add('hide');
@@ -708,7 +708,17 @@ document.addEventListener('keydown', function(e){
       }
     }
 
-    exitBtn.onclick = exitMode;
+    exitBtn.onclick = function(){
+      if (!activeMode) return;
+      // From iframe mode: hide iframe, show launcher
+      flowIframe.style.display = 'none';
+      expoIframe.style.display = 'none';
+      exitBtn.style.display = 'none';
+      activeMode = null;
+      if (mL) mL.textContent = 'ORIGINAL 4';
+      var l = document.getElementById('launcher');
+      if (l) l.classList.remove('hide');
+    };
 
     // Return to launcher from shader mode
     function goToLauncher() {
