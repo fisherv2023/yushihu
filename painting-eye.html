@@ -143,6 +143,9 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .launcher .ent img{width:44px;height:44px;pointer-events:none}
 .launcher .ent .lbl{position:absolute;bottom:-24px;font-size:10px;letter-spacing:.06em;opacity:.5;white-space:nowrap;pointer-events:none}
 .launcher .ent:hover{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.08)}
+/* Logo breathing in launcher */
+.launcher .logo{position:absolute;top:calc(50% - 130px);left:50%;transform:translateX(-50%);font-size:13px;font-weight:500;letter-spacing:.18em;opacity:.5;white-space:nowrap;animation:tighten 1s ease-out forwards,breathe-logo 3s ease-in-out infinite}
+@keyframes breathe-logo{0%,100%{opacity:.35}50%{opacity:.7}}
 /* Fade-in animation for launcher buttons */
 .launcher .ent{animation:fadeIn .5s ease-out both}
 .launcher .e1{animation-delay:.2s}
@@ -175,6 +178,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 
 <!-- Launcher: post-load entry screen with 3 orbit buttons -->
 <div class="launcher" id="launcher">
+  <div class="logo">PAINTING EYE</div>
   <div class="orbit o1"></div>
   <div class="orbit o2"></div>
   <div class="orbit o3"></div>
@@ -594,19 +598,21 @@ document.addEventListener('keydown', function(e){
           if (permEl) permEl.style.display = '';
         } else if (target === 'flow') {
           if (launcher) launcher.classList.add('hide');
-          enterMode('FLOW', flowIframe);
+          // Direct iframe mode — let it getUserMedia itself
+          enterIframeMode('FLOW', flowIframe);
         } else if (target === 'expo') {
           if (launcher) launcher.classList.add('hide');
-          enterMode('EXPO', expoIframe);
+          enterIframeMode('EXPO', expoIframe);
         }
       });
     });
     
     var menu = document.querySelector('.mode-menu');
     if (!menu) return;
-    var o1 = document.createElement('div'); o1.className='mode-opt'; o1.dataset.m='14'; o1.textContent='FLOW';
-    var o2 = document.createElement('div'); o2.className='mode-opt'; o2.dataset.m='15'; o2.textContent='EXPO';
-    menu.appendChild(o1); menu.appendChild(o2);
+    // Add EXIT option at the end of shader mode list (returns to launcher)
+    var exitOpt = document.createElement('div'); exitOpt.className='mode-opt'; exitOpt.textContent='← EXIT'; exitOpt.style.borderTop='1px solid rgba(255,255,255,.08)'; exitOpt.style.marginTop='4px'; exitOpt.style.paddingTop='10px'; exitOpt.style.color='rgba(255,255,255,.5)';
+    menu.appendChild(exitOpt);
+    exitOpt.addEventListener('click', function(){ goToLauncher(); });
 
     var flowIframe = document.getElementById('peFlow');
     var expoIframe = document.getElementById('peExpo');
@@ -702,15 +708,52 @@ document.addEventListener('keydown', function(e){
       }
     }
 
-    o1.onclick = function(){
-      if (typeof licMode !== 'undefined' && licMode !== 'pro') { if (typeof openLicOverlay === 'function') openLicOverlay(); return; }
-      enterMode('FLOW', flowIframe);
-    };
-    o2.onclick = function(){
-      if (typeof licMode !== 'undefined' && licMode !== 'pro') { if (typeof openLicOverlay === 'function') openLicOverlay(); return; }
-      enterMode('EXPO', expoIframe);
-    };
     exitBtn.onclick = exitMode;
+
+    // Return to launcher from shader mode
+    function goToLauncher() {
+      // If in FLOW/EXPO iframe mode, exit first
+      if (activeMode) { exitMode(); return; }
+      // Hide shader-mode UI elements
+      ['top','perm','capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','perm','permBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','palette','toast','mMenu','gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra','dropper','ciCard','ciXh','licOverlay','mL','mCur'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+      canvas.style.display = 'none';
+      // Stop camera stream
+      var peVid = document.querySelector('video');
+      if (peVid && peVid.srcObject) {
+        peVid.srcObject.getTracks().forEach(function(t){ t.stop(); });
+        peVid.srcObject = null;
+      }
+      // Show launcher
+      var launcher = document.getElementById('launcher');
+      if (launcher) launcher.classList.remove('hide');
+    }
+
+    // Enter FLOW/EXPO iframe mode directly (no camera stream exchange needed)
+    function enterIframeMode(name, iframe) {
+      exitBtn.style.display = 'block';
+      if (mL) mL.textContent = name;
+      if (name === 'FLOW') {
+        expoIframe.style.display = 'none';
+        if (!flowIframe.src) flowIframe.src = 'ink-flow.html?embed=1';
+        flowIframe.style.display = 'block';
+      } else {
+        flowIframe.style.display = 'none';
+        if (!expoIframe.src) expoIframe.src = 'de.html?embed=1';
+        expoIframe.style.display = 'block';
+      }
+      // Push activation code to iframe
+      var lic = localStorage.getItem('pe_license');
+      if (lic) {
+        setTimeout(function(){
+          try { iframe.contentWindow.postMessage({type:'license', key:lic}, '*'); } catch(e){}
+        }, 500);
+      }
+      // Listen for exit from iframe
+      activeMode = name;
+    }
 
     // Intercept capture button for EXPO mode
     var capBtn = document.getElementById('capBtn');

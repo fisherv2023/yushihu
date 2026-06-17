@@ -586,17 +586,16 @@ addEventListener('resize', () => {
 });
 
 requestAnimationFrame(frame);
-// Auto-start camera when embedded in painting-eye — use parent's shared stream to avoid re-auth
+// Auto-start camera when embedded in painting-eye — use parent's shared stream if available, otherwise own getUserMedia
 if (window.self !== window.top) {
-  (function tryShared(){
+  (function tryStart(){
     if (window.parent.__peSharedStream && window.parent.__peSharedStream.getVideoTracks().length > 0) {
       startCam(window.parent.__peSharedStream);
-    } else if (window.parent.__peRetryStream) {
-      // Stream not ready yet — painting-eye camera may not have started
-      setTimeout(tryShared, 300);
+    } else if (typeof startCam === 'function') {
+      // No shared stream — do own getUserMedia (domain already trusted)
+      startCam();
     } else {
-      // No retry flag either — painting-eye has no camera yet
-      setTimeout(tryShared, 500);
+      setTimeout(tryStart, 300);
     }
   })();
 }
