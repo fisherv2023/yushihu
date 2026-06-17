@@ -638,7 +638,7 @@ addEventListener('resize',()=>{r.setSize(innerWidth,innerHeight);u.uRes.value.se
 upd();
 </script>
 <!-- License Unlock -->
-<div class="lic-overlay" id="licOverlay">
+<div class="lic-overlay hidden" id="licOverlay">
   <div class="lic-card" id="licMain">
     <h2>Painting Eye</h2>
     <div class="byline">Unlock all 14 artistic filters</div>
@@ -1106,10 +1106,13 @@ document.addEventListener('keydown', function(e){
       // Hide all painting-eye UI
       var topEl = document.querySelector('.top');
       if (topEl) topEl.style.display = 'none';
-      ['capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','perm','permBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','palette','toast','mMenu','gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra','dropper','ciCard','ciXh','licOverlay','mCur'].forEach(function(id){
+      ['capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','perm','permBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','palette','toast','mMenu','gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra','dropper','ciCard','ciXh','mCur'].forEach(function(id){
         var el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
+      // Hide license overlay via CSS class (not inline style — avoids permanent display:none leak)
+      var lo = document.getElementById('licOverlay');
+      if (lo && !lo.classList.contains('hidden')) lo.classList.add('hidden');
       canvas.style.display = 'none';
       exitBtn.style.display = 'block';
       if (mL) mL.textContent = name;
