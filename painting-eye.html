@@ -131,6 +131,27 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 #ciXh::after{left:9px;top:0;bottom:0;width:2px}
 #ciCard{position:fixed;z-index:40;min-width:140px;max-width:180px;padding:10px;border-radius:10px;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);display:none;pointer-events:none;font-size:12px}
 @keyframes ci-flash{0%{opacity:1;transform:translate(-50%,-50%) scale(.7)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}}
+/* === Launcher (post-load entry screen) === */
+.launcher{position:fixed;inset:0;z-index:199;display:flex;align-items:center;justify-content:center;background:#000;transition:opacity .6s}
+.launcher.hide{opacity:0;pointer-events:none}
+.launcher .orbit{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.06)}
+.launcher .o1{width:220px;height:220px}
+.launcher .o2{width:300px;height:300px}
+.launcher .o3{width:380px;height:380px}
+.launcher .ent{position:absolute;width:72px;height:72px;border-radius:50%;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .25s,background .25s,transform .2s}
+.launcher .ent:active{transform:scale(.92)}
+.launcher .ent img{width:44px;height:44px;pointer-events:none}
+.launcher .ent .lbl{position:absolute;bottom:-24px;font-size:10px;letter-spacing:.06em;opacity:.5;white-space:nowrap;pointer-events:none}
+.launcher .ent:hover{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.08)}
+/* Shader button at 120° on o1 (220px orbit) */
+.launcher .e1{top:calc(50% - 110px - 36px);left:50%;margin-left:-36px}
+.launcher .e1 .lbl{left:50%;transform:translateX(-50%)}
+/* Flow button at 200° on o2 (300px orbit) */
+.launcher .e2{top:calc(50% + 48px);left:calc(50% + 106px);margin-left:-36px}
+.launcher .e2 .lbl{left:50%;transform:translateX(-50%)}
+/* Expo button at 320° on o3 (380px orbit) */
+.launcher .e3{top:calc(50% + 110px);left:calc(50% - 130px);margin-left:-36px}
+.launcher .e3 .lbl{left:50%;transform:translateX(-50%)}
 </style>
 </head>
 <body>
@@ -144,6 +165,25 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
   <div class="pulse p5"></div>
   <div class="core"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path fill="#fff" fill-rule="evenodd" d="M0.75 0.75H8v2.5H3.25V8H0.75V0.75Zm11.2497 4c-2.24437 0-3.82649.82591-5.13611 2.10614-.94345.92228-1.78729 2.13485-2.64345 3.36506l-.00001.0001-.00001 0-.00003 0-.00004.0001-.00003 0-.00003.0001-.00001 0c-.24421.3509-.48943.7033-.73824 1.0507L2.96062 12l.52111.7277c.24882.3475.49405.6999.73826 1.0508l.00009.0001.00001.0001.00001 0c.85617 1.2303 1.70003 2.4429 2.64349 3.3651C8.17321 18.4241 9.75533 19.25 11.9997 19.25c2.2443 0 3.8264-.8259 5.1361-2.1062.9434-.9222 1.7873-2.1348 2.6435-3.3651l.0002-.0004c.2442-.3509.4894-.7032.7381-1.0506L21.0387 12l-.5211-.7278c-.2488-.3475-.4941-.6999-.7384-1.0509-.8561-1.23029-1.7-2.44287-2.6434-3.36516C15.8261 5.57591 14.244 4.75 11.9997 4.75Zm-5.62752 7.741-.00067-.001c-.11087-.159-.22473-.3223-.34223-.49.11792-.1683.23217-.3322.34341-.4918.82227-1.1794 1.48001-2.12288 2.2385-2.86435C9.51796 7.75743 10.4932 7.25 11.9997 7.25c1.5064 0 2.4817.50743 3.3885 1.39385.7584.74146 1.4162 1.68495 2.2384 2.86435l.0001 0c.1112.1596.2255.3235.3434.4918-.1179.1683-.2322.3321-.3434.4917-.8223 1.1795-1.48 2.123-2.2385 2.8644-.9068.8865-1.8821 1.3939-3.3885 1.3939-1.5065 0-2.48174-.5074-3.38851-1.3939-.7585-.7414-1.41624-1.6849-2.23853-2.8644l-.00048-.0007ZM14 12c0-1.1046-.8954-2-2-2s-2 .8954-2 2 .8954 2 2 2 2-.8954 2-2ZM3.25 20.75V16H0.75v7.25H8v-2.5H3.25ZM20.75 16v4.75H16v2.5h7.25V16h-2.5ZM16 3.25h4.75V8h2.5V0.75H16v2.5Z" clip-rule="evenodd" stroke-width="1"/></svg></div>
   <span class="name">PAINTING EYE</span>
+</div>
+
+<!-- Launcher: post-load entry screen with 3 orbit buttons -->
+<div class="launcher" id="launcher">
+  <div class="orbit o1"></div>
+  <div class="orbit o2"></div>
+  <div class="orbit o3"></div>
+  <div class="ent e1" data-target="shader">
+    <img src="icons/shader.png" alt="Filters">
+    <span class="lbl">FILTERS</span>
+  </div>
+  <div class="ent e2" data-target="flow">
+    <img src="icons/flow.png" alt="FLOW">
+    <span class="lbl">INK FLOW</span>
+  </div>
+  <div class="ent e3" data-target="expo">
+    <img src="icons/expo.png" alt="EXPO">
+    <span class="lbl">DOUBLE EXPO</span>
+  </div>
 </div>
 
 <div class="top"><span id="mL">ORIGINAL 4</span></div>
@@ -308,10 +348,8 @@ var licMode = 'free'; // 'free' | 'pro'
     // Verify stored key with Worker
     verifyStored(stored);
   }
-  // Show overlay after app loads
-  setTimeout(function(){
-    if (licMode !== 'pro') document.getElementById('licOverlay').classList.remove('hidden');
-  }, 2000);
+  // Show overlay only when user clicks a locked feature (not on startup)
+  // setTimeout removed — license prompt now triggers on enterMode instead
 })();
 
 function verifyStored(key){
@@ -520,6 +558,44 @@ document.addEventListener('keydown', function(e){
   document.head.appendChild(style);
   setTimeout(function(){
     if (!window.__pe_loaded) return;
+
+    // === Launcher: entrance screen with 3 orbit buttons ===
+    var launcher = document.getElementById('launcher');
+    var loadEl = document.getElementById('load');
+    // Hide loading screen, show launcher
+    if (loadEl) loadEl.classList.add('done');
+    if (launcher) launcher.classList.remove('hide');
+    
+    // Hide camera permission UI initially (only show after shader button clicked)
+    var permEl = document.getElementById('perm');
+    if (permEl) permEl.style.display = 'none';
+    
+    // Launcher button handlers
+    document.querySelectorAll('.launcher .ent').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var target = this.dataset.target;
+        if (launcher) launcher.classList.add('hide');
+        if (target === 'shader') {
+          // Check license first
+          if (licMode !== 'pro') {
+            // Show unlock prompt before entering filters
+            var lo = document.getElementById('licOverlay');
+            if (lo) lo.classList.remove('hidden');
+            // When user comes back (pays or activates), continue
+            launcher.classList.remove('hide'); // show launcher again if they cancel
+            document.getElementById('perm').style.display = 'none';
+            return;
+          }
+          // Show camera permission UI and trigger camera start
+          if (permEl) permEl.style.display = '';
+        } else if (target === 'flow') {
+          enterMode('FLOW', flowIframe);
+        } else if (target === 'expo') {
+          enterMode('EXPO', expoIframe);
+        }
+      });
+    });
+    
     var menu = document.querySelector('.mode-menu');
     if (!menu) return;
     var o1 = document.createElement('div'); o1.className='mode-opt'; o1.dataset.m='14'; o1.textContent='FLOW';
