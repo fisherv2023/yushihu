@@ -200,7 +200,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 </div>
 
 <!-- Launcher: 3 orbit entry buttons -->
-<div class="launcher" id="launcher">
+<div class="launcher hide" id="launcher">
   <div class="core"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path fill="#fff" fill-rule="evenodd" d="M0.75 0.75H8v2.5H3.25V8H0.75V0.75Zm11.2497 4c-2.24437 0-3.82649.82591-5.13611 2.10614-.94345.92228-1.78729 2.13485-2.64345 3.36506l-.00001.0001-.00001 0-.00003 0-.00004.0001-.00003 0-.00003.0001-.00001 0c-.24421.3509-.48943.7033-.73824 1.0507L2.96062 12l.52111.7277c.24882.3475.49405.6999.73826 1.0508l.00009.0001.00001.0001.00001 0c.85617 1.2303 1.70003 2.4429 2.64349 3.3651C8.17321 18.4241 9.75533 19.25 11.9997 19.25c2.2443 0 3.8264-.8259 5.1361-2.1062.9434-.9222 1.7873-2.1348 2.6435-3.3651l.0002-.0004c.2442-.3509.4894-.7032.7381-1.0506L21.0387 12l-.5211-.7278c-.2488-.3475-.4941-.6999-.7384-1.0509-.8561-1.23029-1.7-2.44287-2.6434-3.36516C15.8261 5.57591 14.244 4.75 11.9997 4.75Zm-5.62752 7.741-.00067-.001c-.11087-.159-.22473-.3223-.34223-.49.11792-.1683.23217-.3322.34341-.4918.82227-1.1794 1.48001-2.12288 2.2385-2.86435C9.51796 7.75743 10.4932 7.25 11.9997 7.25c1.5064 0 2.4817.50743 3.3885 1.39385.7584.74146 1.4162 1.68495 2.2384 2.86435l.0001 0c.1112.1596.2255.3235.3434.4918-.1179.1683-.2322.3321-.3434.4917-.8223 1.1795-1.48 2.123-2.2385 2.8644-.9068.8865-1.8821 1.3939-3.3885 1.3939-1.5065 0-2.48174-.5074-3.38851-1.3939-.7585-.7414-1.41624-1.6849-2.23853-2.8644l-.00048-.0007ZM14 12c0-1.1046-.8954-2-2-2s-2 .8954-2 2 .8954 2 2 2 2-.8954 2-2ZM3.25 20.75V16H0.75v7.25H8v-2.5H3.25ZM20.75 16v4.75H16v2.5h7.25V16h-2.5ZM16 3.25h4.75V8h2.5V0.75H16v2.5Z" clip-rule="evenodd" stroke-width="1"/></svg></div>
   <div class="logo">PAINTING EYE</div>
   <div class="orbit o1"></div>
@@ -311,8 +311,17 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
 </script>
-<script>setTimeout(function(){document.getElementById('load').classList.add('done')},3500);</script>
 <script>window.__pe_loaded=1;</script>
+<script>
+setTimeout(function(){
+  var loadEl = document.getElementById('load');
+  if (loadEl) loadEl.classList.add('done');
+  var launcher = document.getElementById('launcher');
+  if (launcher) launcher.classList.remove('hide');
+  var permEl = document.getElementById('perm');
+  if (permEl) permEl.style.display = 'none';
+}, 2500);
+</script>
 <script type="module">
 import * as THREE from 'three';
 // Math.cbrt polyfill for old Safari
@@ -698,26 +707,6 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-work
 <div id="peExit" style="display:none;position:fixed;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;padding:6px 14px;border-radius:14px;font-size:12px;font-family:-apple-system,sans-serif;cursor:pointer;border:1px solid rgba(255,255,255,.15)">← EXIT</div>
 <script>
 if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}
-</script>
-<script>
-// Show launcher when loading animation finishes (guaranteed)
-(function showLauncherGuaranteed(){
-  var check = function(force){
-    if (window.__pe_loaded || force) {
-      var launcher = document.getElementById('launcher');
-      var loadEl = document.getElementById('load');
-      if (loadEl && !loadEl.classList.contains('done')) loadEl.classList.add('done');
-      if (launcher) launcher.classList.remove('hide');
-      var permEl = document.getElementById('perm');
-      if (permEl) permEl.style.display = 'none';
-    } else {
-      setTimeout(function(){ check(false); }, 100);
-    }
-  };
-  // Start checking early, force at 3.5s
-  check(false);
-  setTimeout(function(){ check(true); }, 3500);
-})();
 </script>
 <script>
 // --- License System ---
