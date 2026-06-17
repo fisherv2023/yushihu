@@ -143,6 +143,12 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .launcher .ent img{width:44px;height:44px;pointer-events:none}
 .launcher .ent .lbl{position:absolute;bottom:-24px;font-size:10px;letter-spacing:.06em;opacity:.5;white-space:nowrap;pointer-events:none}
 .launcher .ent:hover{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.08)}
+/* Fade-in animation for launcher buttons */
+.launcher .ent{animation:fadeIn .5s ease-out both}
+.launcher .e1{animation-delay:.2s}
+.launcher .e2{animation-delay:.4s}
+.launcher .e3{animation-delay:.6s}
+@keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
 /* Shader button at 120° on o1 (220px orbit) */
 .launcher .e1{top:calc(50% - 110px - 36px);left:50%;margin-left:-36px}
 .launcher .e1 .lbl{left:50%;transform:translateX(-50%)}
@@ -574,23 +580,23 @@ document.addEventListener('keydown', function(e){
     document.querySelectorAll('.launcher .ent').forEach(function(btn){
       btn.addEventListener('click', function(){
         var target = this.dataset.target;
-        if (launcher) launcher.classList.add('hide');
         if (target === 'shader') {
-          // Check license first
-          if (licMode !== 'pro') {
-            // Show unlock prompt before entering filters
+          // Check license first — free users can also enter (3 free modes)
+          if (licMode === 'free') {
+            // Show unlock prompt but don't prevent entry — user can "Try Free"
             var lo = document.getElementById('licOverlay');
             if (lo) lo.classList.remove('hidden');
-            // When user comes back (pays or activates), continue
-            launcher.classList.remove('hide'); // show launcher again if they cancel
-            document.getElementById('perm').style.display = 'none';
-            return;
+            // User will click "Try Free", "Unlock", or "Enter Key" on the overlay
           }
+          // Always allow entry (free=3 modes, pro=all)
+          if (launcher) launcher.classList.add('hide');
           // Show camera permission UI and trigger camera start
           if (permEl) permEl.style.display = '';
         } else if (target === 'flow') {
+          if (launcher) launcher.classList.add('hide');
           enterMode('FLOW', flowIframe);
         } else if (target === 'expo') {
+          if (launcher) launcher.classList.add('hide');
           enterMode('EXPO', expoIframe);
         }
       });
