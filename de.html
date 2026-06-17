@@ -368,25 +368,40 @@ window.addEventListener('message', function(e) {
   }
 });
 
-// Embedded in painting-eye: hide own UI
+// Embedded in painting-eye: hide own UI, keep modeLabel, notify parent
 if (window.self !== window.top) {
-  // Auto-activate from localStorage (set by painting-eye)
   var lic = localStorage.getItem('pe_license');
   if (lic) window.parent.postMessage({type:'license', key:lic}, '*');
-  function hideOwnUI(){
-    ['perm','modeLabel','sBar','act','bBar'].forEach(function(id){
+  
+  function setupEmbed(){
+    // Hide own UI elements that painting-eye manages
+    ['perm','sBar','act','bBar'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
-    // Hide ALL non-canvas elements
-    document.querySelectorAll('body > *:not(canvas)').forEach(function(el){
-      el.style.display = 'none';
-    });
+    
+    // Keep modeLabel visible, let it update via existing postMessage logic
+    var ml = document.getElementById('modeLabel');
+    if (ml) {
+      ml.style.display = 'block';
+      ml.style.top = '12px'; ml.style.left = '16px'; ml.style.fontSize = '14px';
+    }
+    
+    // Hide own exit buttons inside iframe — parent has its own
+    var exitBtn = document.getElementById('exitBtn');
+    if (exitBtn) exitBtn.style.display = 'none';
+    
+    // Notify parent of initial status
+    setTimeout(function(){
+      var label = document.getElementById('modeLabel');
+      if (label) window.parent.postMessage({type:'expoStatus', text:label.textContent}, '*');
+    }, 500);
   }
+  
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', hideOwnUI);
+    document.addEventListener('DOMContentLoaded', setupEmbed);
   } else {
-    hideOwnUI();
+    setupEmbed();
   }
 }
 </script>
