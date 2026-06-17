@@ -170,16 +170,6 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .lic-ok{color:#4cff8f;font-size:12px;margin-bottom:8px;display:none}
 .lic-back{font-size:12px;opacity:.4;cursor:pointer;margin-top:8px}
 .lic-key{color:#4cff8f;font-size:13px;font-family:monospace;margin-top:8px;display:none}
-/* Drawing tools */
-#drawCanvas{display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:5;touch-action:none;cursor:crosshair}
-.draw-tools{position:fixed;bottom:0;left:0;right:0;z-index:50;display:none;padding:12px 8px 16px;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
-.draw-tools.show{display:flex}
-.draw-color{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;flex-shrink:0;transition:transform .15s}
-.draw-color.sel{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,.4);transform:scale(1.15)}
-.draw-size{-webkit-appearance:none;width:80px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;outline:none}
-.draw-size::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;cursor:pointer}
-.draw-btn{height:30px;padding:0 14px;border-radius:15px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:12px;cursor:pointer;white-space:nowrap}
-.draw-btn.active{background:#fff;color:#000;border-color:#fff}
 </style>
 <link rel="preload" as="image" href="icons/shader.png">
 <link rel="preload" as="image" href="icons/flow.png">
@@ -704,6 +694,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-work
 
 <iframe id="peFlow" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
 <iframe id="peExpo" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
+<iframe id="peDraw" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
 <div id="peExit" style="display:none;position:fixed;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;padding:6px 14px;border-radius:14px;font-size:12px;font-family:-apple-system,sans-serif;cursor:pointer;border:1px solid rgba(255,255,255,.15)">← EXIT</div>
 <script>
 if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}
@@ -955,14 +946,15 @@ document.addEventListener('keydown', function(e){
           enterIframeMode('FLOW', flowIframe);
         } else if (target === 'expo') {
           if (launcher) launcher.classList.add('hide');
-          enterIframeMode('EXPO', expoIframe);
-        } else if (target === 'draw') {
-          if (licMode !== 'pro') {
-            var lo = document.getElementById('licOverlay');
-            if (lo) lo.classList.remove('hidden');
-            return;
-          }
-          enterDrawMode();
+          } else if (target === 'draw') {
+            // DRAW is premium — only pro users can enter
+            if (licMode !== 'pro') {
+              var lo = document.getElementById('licOverlay');
+              if (lo) lo.classList.remove('hidden');
+              return;
+            }
+            if (launcher) launcher.classList.add('hide');
+            enterIframeMode('DRAW', drawIframe);
         }
       });
     });
@@ -976,6 +968,7 @@ document.addEventListener('keydown', function(e){
 
     var flowIframe = document.getElementById('peFlow');
     var expoIframe = document.getElementById('peExpo');
+    var drawIframe = document.getElementById('peDraw');
     var exitBtn = document.getElementById('peExit');
     var canvas = document.getElementById('c');
     var mL = document.getElementById('mL');
@@ -1122,13 +1115,17 @@ document.addEventListener('keydown', function(e){
       exitBtn.style.display = 'block';
       if (mL) mL.textContent = name;
       if (name === 'FLOW') {
-        expoIframe.style.display = 'none';
+        expoIframe.style.display = 'none'; drawIframe.style.display = 'none';
         if (!flowIframe.src) flowIframe.src = 'ink-flow.html?embed=1';
         flowIframe.style.display = 'block';
-      } else {
-        flowIframe.style.display = 'none';
+      } else if (name === 'EXPO') {
+        flowIframe.style.display = 'none'; drawIframe.style.display = 'none';
         if (!expoIframe.src) expoIframe.src = 'de.html?embed=1';
         expoIframe.style.display = 'block';
+      } else if (name === 'DRAW') {
+        flowIframe.style.display = 'none'; expoIframe.style.display = 'none';
+        if (!drawIframe.src) drawIframe.src = 'draw.html';
+        drawIframe.style.display = 'block';
       }
       // Push activation code to iframe
       var lic = localStorage.getItem('pe_license');
@@ -1205,171 +1202,5 @@ document.addEventListener('keydown', function(e){
   }, 500);
 })();
 
-</script>
-
-<script>
-// ── Drawing Mode ──
-var drawCanvas = document.getElementById('drawCanvas');
-var drawCtx = drawCanvas.getContext('2d');
-var drawTools = document.getElementById('drawTools');
-var drawColor = '#ffffff';
-var drawSize = 8;
-var drawEraser = false;
-var drawActive = false;
-var drawSnapshots = [];
-var drawSnapshotIdx = -1;
-var drawPts = [];
-
-function enterDrawMode(){
-  // Hide launcher
-  if (launcher) launcher.classList.add('hide');
-  // Hide FILTERS UI elements  
-  ['top','capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','perm','permBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','toast','mMenu','gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra','dropper','ciCard','ciXh','mCur'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-  });
-  if (document.querySelector('.top')) document.querySelector('.top').style.display = 'none';
-  if (document.querySelector('.mode-menu')) document.querySelector('.mode-menu').classList.remove('show');
-  drawCanvas.width = innerWidth; drawCanvas.height = innerHeight;
-  drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
-  drawCanvas.style.display = 'block';
-  drawTools.classList.add('show');
-  saveSnapshot();
-  drawActive = true;
-}
-
-function exitDrawMode(){
-  drawActive = false;
-  drawCanvas.style.display = 'none';
-  drawTools.classList.remove('show');
-  drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-  drawSnapshots = []; drawSnapshotIdx = -1;
-  // Restore FILTERS UI
-  ['top','capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','toast','mMenu','gridBtn','frameBtn','palBtn','dropper','mCur'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.style.display = '';
-  });
-  if (launcher) launcher.classList.remove('hide');
-}
-
-function saveSnapshot(){
-  drawSnapshots = drawSnapshots.slice(0, drawSnapshotIdx + 1);
-  drawSnapshots.push(drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height));
-  if (drawSnapshots.length > 50) drawSnapshots.shift();
-  else drawSnapshotIdx++;
-}
-
-function undo(){
-  if (drawSnapshotIdx <= 0) return;
-  drawSnapshotIdx--;
-  drawCtx.putImageData(drawSnapshots[drawSnapshotIdx], 0, 0);
-}
-
-function clearCanvas(){
-  drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-  saveSnapshot();
-}
-
-var d3 = function(e){ var r = drawCanvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
-
-drawCanvas.addEventListener('pointerdown', function(e){
-  if (!drawActive) return;
-  var p = d3(e);
-  drawPts = [p];
-  if (drawEraser) { drawCtx.globalCompositeOperation = 'destination-out'; drawCtx.lineWidth = drawSize * 3; }
-  else { drawCtx.globalCompositeOperation = 'source-over'; drawCtx.lineWidth = drawSize; }
-  if (e.pressure > 0) drawCtx.lineWidth *= Math.max(0.3, e.pressure);
-  drawCtx.strokeStyle = drawColor;
-  drawCtx.beginPath(); drawCtx.moveTo(p.x, p.y);
-});
-
-drawCanvas.addEventListener('pointermove', function(e){
-  if (!drawActive || drawPts.length === 0) return;
-  var p = d3(e); drawPts.push(p);
-  var pw = drawSize;
-  if (drawEraser) pw *= 3;
-  if (e.pressure > 0) pw *= Math.max(0.3, e.pressure);
-  drawCtx.lineWidth = pw;
-  drawCtx.strokeStyle = drawColor;
-  drawCtx.lineTo(p.x, p.y); drawCtx.stroke(); drawCtx.beginPath(); drawCtx.moveTo(p.x, p.y);
-});
-
-drawCanvas.addEventListener('pointerup', function(){ if (drawActive && drawPts.length > 0) { saveSnapshot(); drawPts = []; } });
-drawCanvas.addEventListener('pointerleave', function(){ if (drawActive && drawPts.length > 0) { saveSnapshot(); drawPts = []; } });
-
-document.querySelectorAll('.draw-color').forEach(function(el){
-  el.addEventListener('click', function(){
-    document.querySelectorAll('.draw-color').forEach(function(c){ c.classList.remove('sel'); });
-    el.classList.add('sel');
-    drawColor = el.dataset.color;
-    drawEraser = false;
-    document.getElementById('drawEraser').classList.remove('active');
-  });
-});
-
-document.getElementById('drawSize').addEventListener('input', function(e){
-  drawSize = parseInt(e.target.value);
-  document.getElementById('drawEraser').classList.remove('active');
-  drawEraser = false;
-});
-
-document.getElementById('drawEraser').addEventListener('click', function(){
-  drawEraser = !drawEraser;
-  this.classList.toggle('active');
-  if (drawEraser) document.querySelectorAll('.draw-color').forEach(function(c){ c.classList.remove('sel'); });
-});
-
-document.getElementById('drawUndo').addEventListener('click', undo);
-
-document.getElementById('drawClear').addEventListener('click', function(){
-  if (confirm('Clear all drawings?')) clearCanvas();
-});
-
-document.getElementById('drawSave').addEventListener('click', function(){
-  var webglCanvas = document.getElementById('c');
-  if (!webglCanvas) return;
-  var merged = document.createElement('canvas');
-  merged.width = innerWidth; merged.height = innerHeight;
-  var mc = merged.getContext('2d');
-  mc.drawImage(webglCanvas, 0, 0, merged.width, merged.height);
-  mc.drawImage(drawCanvas, 0, 0);
-  merged.toBlob(function(blob){
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'painting-eye-draw.png';
-    a.click();
-    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
-  }, 'image/png');
-});
-
-document.getElementById('drawExit').addEventListener('click', exitDrawMode);
-
-addEventListener('resize', function(){
-  if (!drawActive) return;
-  var img = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
-  drawCanvas.width = innerWidth; drawCanvas.height = innerHeight;
-  drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
-  drawCtx.putImageData(img, 0, 0);
-});
-</script>
-
-<!-- Drawing canvas overlay -->
-<canvas id="drawCanvas"></canvas>
-<div class="draw-tools" id="drawTools">
-  <div class="draw-color sel" style="background:#fff" data-color="#ffffff"></div>
-  <div class="draw-color" style="background:#ff3b30" data-color="#ff3b30"></div>
-  <div class="draw-color" style="background:#ff9500" data-color="#ff9500"></div>
-  <div class="draw-color" style="background:#ffcc00" data-color="#ffcc00"></div>
-  <div class="draw-color" style="background:#34c759" data-color="#34c759"></div>
-  <div class="draw-color" style="background:#007aff" data-color="#007aff"></div>
-  <div class="draw-color" style="background:#af52de" data-color="#af52de"></div>
-  <div class="draw-color" style="background:#000" data-color="#000000"></div>
-  <input type="range" class="draw-size" id="drawSize" min="1" max="40" value="8">
-  <button class="draw-btn" id="drawEraser">Eraser</button>
-  <button class="draw-btn" id="drawUndo">Undo</button>
-  <button class="draw-btn" id="drawClear">Clear</button>
-  <button class="draw-btn" id="drawSave">Save</button>
-  <button class="draw-btn" id="drawExit">← Exit</button>
-</div>
 </body>
 </html>

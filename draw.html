@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Painting Eye — Draw</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;touch-action:manipulation}
+canvas{display:block;position:fixed;top:0;left:0;width:100%;height:100%}
+#camCanvas{z-index:1}
+#drawCanvas{z-index:5;touch-action:none;cursor:crosshair}
+.draw-tools{position:fixed;bottom:0;left:0;right:0;z-index:50;display:flex;padding:12px 8px 16px;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
+.draw-color{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;flex-shrink:0;transition:transform .15s}
+.draw-color.sel{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,.4);transform:scale(1.15)}
+.draw-size{-webkit-appearance:none;width:80px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;outline:none}
+.draw-size::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;cursor:pointer}
+.draw-btn{height:30px;padding:0 14px;border-radius:15px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:12px;cursor:pointer;white-space:nowrap}
+.draw-btn.active{background:#fff;color:#000;border-color:#fff}
+#perm{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.94)}
+#perm h2{font-size:18px;font-weight:600;margin-bottom:8px;color:#fff}
+#perm p{font-size:13px;opacity:.5;margin-bottom:24px;color:#fff}
+#permBtn{padding:14px 36px;border-radius:16px;border:none;background:#fff;color:#000;font-size:16px;font-weight:600;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="camCanvas"></canvas>
+<canvas id="drawCanvas" style="display:none"></canvas>
+<div class="draw-tools" id="drawTools" style="display:none">
+  <div class="draw-color sel" style="background:#fff" data-color="#ffffff"></div>
+  <div class="draw-color" style="background:#ff3b30" data-color="#ff3b30"></div>
+  <div class="draw-color" style="background:#ff9500" data-color="#ff9500"></div>
+  <div class="draw-color" style="background:#ffcc00" data-color="#ffcc00"></div>
+  <div class="draw-color" style="background:#34c759" data-color="#34c759"></div>
+  <div class="draw-color" style="background:#007aff" data-color="#007aff"></div>
+  <div class="draw-color" style="background:#af52de" data-color="#af52de"></div>
+  <div class="draw-color" style="background:#000" data-color="#000000"></div>
+  <input type="range" class="draw-size" id="drawSize" min="1" max="40" value="8">
+  <button class="draw-btn" id="drawEraser">Eraser</button>
+  <button class="draw-btn" id="drawUndo">Undo</button>
+  <button class="draw-btn" id="drawClear">Clear</button>
+  <button class="draw-btn" id="drawSave">Save</button>
+</div>
+<div id="perm">
+  <h2>Camera Access</h2>
+  <p>Drawing mode needs your camera as the canvas background</p>
+  <button id="permBtn">Allow Camera</button>
+</div>
+
+<script>
+// ── Camera setup ──
+var camCanvas = document.getElementById('camCanvas');
+var camCtx = camCanvas.getContext('2d');
+var video = null;
+var stream = null;
+var facingMode = 'environment';
+
+async function startCam(sharedStream){
+  try {
+    if (sharedStream) {
+      stream = sharedStream;
+    } else {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }
+      });
+    }
+    video = document.createElement('video');
+    video.srcObject = stream;
+    video.playsInline = true;
+    await video.play();
+    camCanvas.width = innerWidth; camCanvas.height = innerHeight;
+    document.getElementById('perm').style.display = 'none';
+    initDrawing();
+    renderLoop();
+  } catch(e) {
+    console.error('Camera:', e);
+  }
+}
+document.getElementById('permBtn').addEventListener('click', function(){ startCam(); });
+
+// Auto-start if stream passed from parent
+if (window.parent && window.parent.__peSharedStream) {
+  startCam(window.parent.__peSharedStream);
+} else if (window.self !== window.top) {
+  // Embedded in painting-eye — try to get camera
+  setTimeout(function(){ startCam(); }, 300);
+}
+
+// ── Render camera to canvas ──
+function renderLoop(){
+  if (!video) { requestAnimationFrame(renderLoop); return; }
+  camCtx.drawImage(video, 0, 0, camCanvas.width, camCanvas.height);
+  requestAnimationFrame(renderLoop);
+}
+
+// ── Drawing engine ──
+var drawCanvas = document.getElementById('drawCanvas');
+var drawCtx = drawCanvas.getContext('2d');
+var drawTools = document.getElementById('drawTools');
+var drawColor = '#ffffff';
+var drawSize = 8;
+var drawEraser = false;
+var drawActive = false;
+var drawSnapshots = [];
+var drawSnapshotIdx = -1;
+var drawPts = [];
+
+function initDrawing(){
+  drawCanvas.width = innerWidth; drawCanvas.height = innerHeight;
+  drawCanvas.style.display = 'block';
+  drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
+  drawTools.style.display = 'flex';
+  saveSnapshot();
+  drawActive = true;
+}
+
+function saveSnapshot(){
+  drawSnapshots = drawSnapshots.slice(0, drawSnapshotIdx + 1);
+  drawSnapshots.push(drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height));
+  if (drawSnapshots.length > 50) drawSnapshots.shift();
+  else drawSnapshotIdx++;
+}
+
+function undo(){
+  if (drawSnapshotIdx <= 0) return;
+  drawSnapshotIdx--;
+  drawCtx.putImageData(drawSnapshots[drawSnapshotIdx], 0, 0);
+}
+
+var toPos = function(e){ var r = drawCanvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+
+drawCanvas.addEventListener('pointerdown', function(e){
+  if (!drawActive) return;
+  var p = toPos(e);
+  drawPts = [p];
+  drawCtx.globalCompositeOperation = drawEraser ? 'destination-out' : 'source-over';
+  drawCtx.lineWidth = drawSize * (drawEraser ? 3 : 1);
+  if (e.pressure > 0) drawCtx.lineWidth *= Math.max(0.3, e.pressure);
+  drawCtx.strokeStyle = drawColor;
+  drawCtx.beginPath(); drawCtx.moveTo(p.x, p.y);
+});
+
+drawCanvas.addEventListener('pointermove', function(e){
+  if (!drawActive || drawPts.length === 0) return;
+  var p = toPos(e); drawPts.push(p);
+  var pw = drawSize * (drawEraser ? 3 : 1);
+  if (e.pressure > 0) pw *= Math.max(0.3, e.pressure);
+  drawCtx.lineWidth = pw; drawCtx.strokeStyle = drawColor;
+  drawCtx.lineTo(p.x, p.y); drawCtx.stroke(); drawCtx.beginPath(); drawCtx.moveTo(p.x, p.y);
+});
+
+drawCanvas.addEventListener('pointerup', function(){ if (drawActive && drawPts.length > 0){ saveSnapshot(); drawPts = []; } });
+drawCanvas.addEventListener('pointerleave', function(){ if (drawActive && drawPts.length > 0){ saveSnapshot(); drawPts = []; } });
+
+document.querySelectorAll('.draw-color').forEach(function(el){
+  el.addEventListener('click', function(){
+    document.querySelectorAll('.draw-color').forEach(function(c){ c.classList.remove('sel'); });
+    el.classList.add('sel');
+    drawColor = el.dataset.color;
+    drawEraser = false;
+    document.getElementById('drawEraser').classList.remove('active');
+  });
+});
+
+document.getElementById('drawSize').addEventListener('input', function(e){
+  drawSize = parseInt(e.target.value);
+  drawEraser = false;
+  document.getElementById('drawEraser').classList.remove('active');
+});
+
+document.getElementById('drawEraser').addEventListener('click', function(){
+  drawEraser = !drawEraser;
+  this.classList.toggle('active');
+  if (drawEraser) document.querySelectorAll('.draw-color').forEach(function(c){ c.classList.remove('sel'); });
+});
+
+document.getElementById('drawUndo').addEventListener('click', undo);
+document.getElementById('drawClear').addEventListener('click', function(){
+  if (confirm('Clear all drawings?')){
+    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    saveSnapshot();
+  }
+});
+
+document.getElementById('drawSave').addEventListener('click', function(){
+  var merged = document.createElement('canvas');
+  merged.width = innerWidth; merged.height = innerHeight;
+  var mc = merged.getContext('2d');
+  mc.drawImage(camCanvas, 0, 0, merged.width, merged.height);
+  mc.drawImage(drawCanvas, 0, 0);
+  merged.toBlob(function(blob){
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'painting-eye-draw.png';
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+  }, 'image/png');
+});
+
+// ── Resize ──
+addEventListener('resize', function(){
+  camCanvas.width = innerWidth; camCanvas.height = innerHeight;
+  if (!drawActive) return;
+  var img = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
+  drawCanvas.width = innerWidth; drawCanvas.height = innerHeight;
+  drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
+  drawCtx.putImageData(img, 0, 0);
+});
+
+// ── PostMessage: receive license key ──
+window.addEventListener('message', function(e){
+  if (e.data.type === 'license') {
+    try { localStorage.setItem('pe_license', e.data.key); } catch(_){}
+  }
+});
+</script>
+</body>
+</html>
