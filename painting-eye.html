@@ -134,19 +134,20 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .launcher .e1{animation-delay:.2s}
 .launcher .e2{animation-delay:.4s}
 .launcher .e3{animation-delay:.6s}
+.launcher .e4{animation:fadeIn .6s ease-out both;animation-delay:.8s}
 @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
-/* Three buttons on o2 (radius=150), equally spaced at 120°, top one above logo */
-/* 90° (top): x=0, y=-150 */
+/* Four buttons on o2 (radius=150), cardinal directions: top/right/bottom/left */
+/* Top: x=0, y=-150 */
 .launcher .e1{top:calc(50% - 150px - 36px);left:calc(50% - 36px)}
 .launcher .e1 .lbl{left:50%;transform:translateX(-50%)}
-/* 210° (lower-left): x=-130, y=-75 */
-.launcher .e2{top:calc(50% - 75px - 36px);left:calc(50% - 130px - 36px)}
+/* Right: x=150, y=0 */
+.launcher .e2{top:calc(50% - 36px);left:calc(50% + 150px - 36px)}
 .launcher .e2 .lbl{left:50%;transform:translateX(-50%)}
-/* 330° (lower-right): x=130, y=-75 */
-.launcher .e3{top:calc(50% - 75px - 36px);left:calc(50% + 130px - 36px)}
+/* Bottom: x=0, y=150 */
+.launcher .e3{top:calc(50% + 150px - 36px);left:calc(50% - 36px)}
 .launcher .e3 .lbl{left:50%;transform:translateX(-50%)}
-/* DRAW: o3 bottom (radius=190), 270° */
-.launcher .e4{top:calc(50% + 154px);left:calc(50% - 36px);animation-delay:.8s}
+/* Left: x=-150, y=0 */
+.launcher .e4{top:calc(50% - 36px);left:calc(50% - 150px - 36px)}
 .launcher .e4 .lbl{left:50%;transform:translateX(-50%)}
 
 /* License overlay */
