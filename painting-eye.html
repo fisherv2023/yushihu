@@ -119,7 +119,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .load .p5{width:300px;height:300px;animation-delay:1.6s;border-color:rgba(50,130,190,.2);box-shadow:0 0 15px rgba(30,110,170,.15),0 0 45px rgba(20,90,150,.05)}
 .load .core{position:relative;z-index:1;width:36px;height:36px;animation:breathe-core 2s ease-in-out infinite}
 .load .core svg{width:100%;height:100%}
-.load .name{position:absolute;top:calc(50% + 75px);left:50%;transform:translateX(-50%);font-size:13px;font-weight:500;letter-spacing:.15em;opacity:.5;white-space:nowrap;animation:tighten .7s ease-out forwards}
+.load .name{position:absolute;top:calc(50% + 25px);left:50%;transform:translateX(-50%);font-size:13px;font-weight:500;letter-spacing:.15em;opacity:.5;white-space:nowrap;animation:tighten .7s ease-out forwards}
 @keyframes breathe{0%,100%{transform:scale(.85);opacity:.3}50%{transform:scale(1.1);opacity:.7}}
 @keyframes breathe-core{0%,100%{opacity:.55;filter:drop-shadow(0 0 5px rgba(255,180,60,.3))}50%{opacity:1;filter:drop-shadow(0 0 16px rgba(255,180,60,.8))}}
 @keyframes tighten{0%{letter-spacing:.6em;opacity:0}50%{opacity:.3}100%{letter-spacing:.15em;opacity:.5}}
@@ -137,7 +137,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 /* Logo: same position as loading screen (flexbox centered) */
 .launcher .core{position:absolute;z-index:1;width:36px;height:36px;animation:breathe-core 2s ease-in-out infinite}
 .launcher .core svg{width:100%;height:100%}
-.launcher .logo{position:absolute;top:calc(50% + 55px);left:50%;transform:translateX(-50%);font-size:13px;font-weight:500;letter-spacing:.15em;opacity:.5;white-space:nowrap}
+.launcher .logo{position:absolute;top:calc(50% + 25px);left:50%;transform:translateX(-50%);font-size:13px;font-weight:500;letter-spacing:.15em;opacity:.5;white-space:nowrap}
 /* Orbits centered on logo */
 .launcher .orbit{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(255,255,255,.06)}
 .launcher .o1{width:220px;height:220px}
@@ -154,14 +154,15 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .launcher .e2{animation-delay:.4s}
 .launcher .e3{animation-delay:.6s}
 @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
-/* Shader: o1 radius=110, angle=120° -> (-55, 95) from center */
-.launcher .e1{top:calc(50% - 95px - 36px);left:calc(50% + 55px - 36px)}
+/* Three buttons on o2 (radius=150), equally spaced at 120°, top one above logo */
+/* 90° (top): x=0, y=-150 */
+.launcher .e1{top:calc(50% - 150px - 36px);left:calc(50% - 36px)}
 .launcher .e1 .lbl{left:50%;transform:translateX(-50%)}
-/* Flow: o2 radius=150, angle=200° -> (51, -141) from center */
-.launcher .e2{top:calc(50% + 141px - 36px);left:calc(50% + 51px - 36px)}
+/* 210° (lower-left): x=-130, y=-75 */
+.launcher .e2{top:calc(50% - 75px - 36px);left:calc(50% - 130px - 36px)}
 .launcher .e2 .lbl{left:50%;transform:translateX(-50%)}
-/* Expo: o3 radius=190, angle=320° -> (-122, -145) from center */
-.launcher .e3{top:calc(50% + 145px - 36px);left:calc(50% - 122px - 36px)}
+/* 330° (lower-right): x=130, y=-75 */
+.launcher .e3{top:calc(50% - 75px - 36px);left:calc(50% + 130px - 36px)}
 .launcher .e3 .lbl{left:50%;transform:translateX(-50%)}
 </style>
 </head>
