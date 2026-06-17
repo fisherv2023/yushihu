@@ -143,9 +143,10 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .launcher .ent img{width:44px;height:44px;pointer-events:none}
 .launcher .ent .lbl{position:absolute;bottom:-24px;font-size:10px;letter-spacing:.06em;opacity:.5;white-space:nowrap;pointer-events:none}
 .launcher .ent:hover{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.08)}
-/* Logo breathing in launcher */
-.launcher .logo{position:absolute;top:calc(50% - 130px);left:50%;transform:translateX(-50%);font-size:13px;font-weight:500;letter-spacing:.18em;opacity:.5;white-space:nowrap;animation:tighten 1s ease-out forwards,breathe-logo 3s ease-in-out infinite}
-@keyframes breathe-logo{0%,100%{opacity:.35}50%{opacity:.7}}
+/* Logo breathing in launcher — same position as loading screen */
+.launcher .core{position:absolute;z-index:1;width:36px;height:36px;top:calc(50% - 90px);left:calc(50% - 18px);animation:breathe-core 2s ease-in-out infinite}
+.launcher .core svg{width:100%;height:100%}
+.launcher .logo{position:absolute;top:calc(50% + 75px);left:50%;transform:translateX(-50%);font-size:13px;font-weight:500;letter-spacing:.15em;opacity:.5;white-space:nowrap;animation:tighten .7s ease-out forwards}
 /* Fade-in animation for launcher buttons */
 .launcher .ent{animation:fadeIn .5s ease-out both}
 .launcher .e1{animation-delay:.2s}
@@ -178,6 +179,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 
 <!-- Launcher: post-load entry screen with 3 orbit buttons -->
 <div class="launcher" id="launcher">
+  <div class="core"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path fill="#fff" fill-rule="evenodd" d="M0.75 0.75H8v2.5H3.25V8H0.75V0.75Zm11.2497 4c-2.24437 0-3.82649.82591-5.13611 2.10614-.94345.92228-1.78729 2.13485-2.64345 3.36506l-.00001.0001-.00001 0-.00003 0-.00004.0001-.00003 0-.00003.0001-.00001 0c-.24421.3509-.48943.7033-.73824 1.0507L2.96062 12l.52111.7277c.24882.3475.49405.6999.73826 1.0508l.00009.0001.00001.0001.00001 0c.85617 1.2303 1.70003 2.4429 2.64349 3.3651C8.17321 18.4241 9.75533 19.25 11.9997 19.25c2.2443 0 3.8264-.8259 5.1361-2.1062.9434-.9222 1.7873-2.1348 2.6435-3.3651l.0002-.0004c.2442-.3509.4894-.7032.7381-1.0506L21.0387 12l-.5211-.7278c-.2488-.3475-.4941-.6999-.7384-1.0509-.8561-1.23029-1.7-2.44287-2.6434-3.36516C15.8261 5.57591 14.244 4.75 11.9997 4.75Zm-5.62752 7.741-.00067-.001c-.11087-.159-.22473-.3223-.34223-.49.11792-.1683.23217-.3322.34341-.4918.82227-1.1794 1.48001-2.12288 2.2385-2.86435C9.51796 7.75743 10.4932 7.25 11.9997 7.25c1.5064 0 2.4817.50743 3.3885 1.39385.7584.74146 1.4162 1.68495 2.2384 2.86435l.0001 0c.1112.1596.2255.3235.3434.4918-.1179.1683-.2322.3321-.3434.4917-.8223 1.1795-1.48 2.123-2.2385 2.8644-.9068.8865-1.8821 1.3939-3.3885 1.3939-1.5065 0-2.48174-.5074-3.38851-1.3939-.7585-.7414-1.41624-1.6849-2.23853-2.8644l-.00048-.0007ZM14 12c0-1.1046-.8954-2-2-2s-2 .8954-2 2 .8954 2 2 2 2-.8954 2-2ZM3.25 20.75V16H0.75v7.25H8v-2.5H3.25ZM20.75 16v4.75H16v2.5h7.25V16h-2.5ZM16 3.25h4.75V8h2.5V0.75H16v2.5Z" clip-rule="evenodd" stroke-width="1"/></svg></div>
   <div class="logo">PAINTING EYE</div>
   <div class="orbit o1"></div>
   <div class="orbit o2"></div>
