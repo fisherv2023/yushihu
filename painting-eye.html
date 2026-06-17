@@ -146,6 +146,26 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .launcher .e3{top:calc(50% - 75px - 36px);left:calc(50% + 130px - 36px)}
 .launcher .e3 .lbl{left:50%;transform:translateX(-50%)}
 
+/* License overlay */
+.lic-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.lic-overlay.hidden{display:none}
+.lic-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:32px 20px;max-width:360px;width:100%;text-align:center}
+.lic-card h2{font-size:19px;font-weight:600;margin-bottom:4px}
+.lic-card .byline{font-size:12px;opacity:.45;margin-bottom:20px}
+.lic-card .price{font-size:32px;font-weight:700;margin-bottom:4px}
+.lic-card .price span{font-size:14px;opacity:.5;font-weight:400}
+.lic-card .features{font-size:12px;opacity:.55;margin-bottom:22px;line-height:1.8}
+.lic-card .features b{color:#fff;opacity:.85}
+.lic-btn{display:block;width:100%;padding:14px 0;border-radius:14px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;transition:opacity .2s}
+.lic-btn.buy{background:#fff;color:#111}
+.lic-btn.enter{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15)}
+.lic-btn.free{background:transparent;color:rgba(255,255,255,.35);font-size:12px;font-weight:400}
+.lic-input{width:100%;padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-size:16px;font-family:monospace;text-align:center;letter-spacing:.05em;margin-bottom:10px;outline:none}
+.lic-input::placeholder{color:rgba(255,255,255,.2)}
+.lic-err{color:#ff5c5c;font-size:12px;margin-bottom:8px;display:none}
+.lic-ok{color:#4cff8f;font-size:12px;margin-bottom:8px;display:none}
+.lic-back{font-size:12px;opacity:.4;cursor:pointer;margin-top:8px}
+.lic-key{color:#4cff8f;font-size:13px;font-family:monospace;margin-top:8px;display:none}
 </style>
 </head>
 <body>
