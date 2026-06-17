@@ -374,8 +374,8 @@ if (window.self !== window.top) {
   if (lic) window.parent.postMessage({type:'license', key:lic}, '*');
   
   function setupEmbed(){
-    // Hide own UI elements that painting-eye manages
-    ['perm','sBar','act','bBar'].forEach(function(id){
+    // Hide own UI elements that painting-eye manages (keep act for save/retake)
+    ['perm','sBar','bBar'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
