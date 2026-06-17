@@ -916,6 +916,10 @@ document.addEventListener('keydown', function(e){
           if (licMode === 'free' && !window.__peFreeAccepted) {
             var lo = document.getElementById('licOverlay');
             if (lo) lo.classList.remove('hidden');
+          } else {
+            // Already confirmed free or pro — ensure overlay stays hidden
+            var lo = document.getElementById('licOverlay');
+            if (lo) lo.classList.add('hidden');
           }
           // Always allow entry (free=3 modes, pro=all)
           if (launcher) launcher.classList.add('hide');
@@ -1058,10 +1062,13 @@ document.addEventListener('keydown', function(e){
       // If in FLOW/EXPO iframe mode, exit first
       if (activeMode) { exitMode(); return; }
       // Hide shader-mode UI elements
-      ['top','perm','capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','perm','permBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','palette','toast','mMenu','gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra','dropper','ciCard','ciXh','licOverlay','mL','mCur'].forEach(function(id){
+      ['top','perm','capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','perm','permBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','palette','toast','mMenu','gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra','dropper','ciCard','ciXh','mL','mCur'].forEach(function(id){
         var el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
+      // Hide license overlay via CSS class (not inline style)
+      var lo = document.getElementById('licOverlay');
+      if (lo) lo.classList.add('hidden');
       canvas.style.display = 'none';
       // Stop camera stream
       var peVid = document.querySelector('video');
