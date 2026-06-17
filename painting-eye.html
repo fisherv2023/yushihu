@@ -1221,7 +1221,15 @@ var drawSnapshotIdx = -1;
 var drawPts = [];
 
 function enterDrawMode(){
+  // Hide launcher
   if (launcher) launcher.classList.add('hide');
+  // Hide FILTERS UI elements  
+  ['top','capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','perm','permBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','toast','mMenu','gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra','dropper','ciCard','ciXh','mCur'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  if (document.querySelector('.top')) document.querySelector('.top').style.display = 'none';
+  if (document.querySelector('.mode-menu')) document.querySelector('.mode-menu').classList.remove('show');
   drawCanvas.width = innerWidth; drawCanvas.height = innerHeight;
   drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
   drawCanvas.style.display = 'block';
@@ -1236,6 +1244,11 @@ function exitDrawMode(){
   drawTools.classList.remove('show');
   drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
   drawSnapshots = []; drawSnapshotIdx = -1;
+  // Restore FILTERS UI
+  ['top','capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','toast','mMenu','gridBtn','frameBtn','palBtn','dropper','mCur'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.display = '';
+  });
   if (launcher) launcher.classList.remove('hide');
 }
 
