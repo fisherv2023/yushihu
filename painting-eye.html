@@ -1114,16 +1114,6 @@ document.addEventListener('keydown', function(e){
       canvas.style.display = 'none';
       exitBtn.style.display = 'block';
       if (mL) mL.textContent = name;
-      // Position EXIT: DRAW = top-left, FLOW/EXPO = bottom center
-      if (name === 'DRAW') {
-        exitBtn.style.top = '12px'; exitBtn.style.bottom = 'auto';
-        exitBtn.style.left = '12px'; exitBtn.style.right = 'auto';
-        exitBtn.style.transform = 'none';
-      } else {
-        exitBtn.style.top = 'auto'; exitBtn.style.bottom = '100px';
-        exitBtn.style.left = '50%'; exitBtn.style.right = 'auto';
-        exitBtn.style.transform = 'translateX(-50%)';
-      }
       if (name === 'FLOW') {
         expoIframe.style.display = 'none'; drawIframe.style.display = 'none';
         if (!flowIframe.src) flowIframe.src = 'ink-flow.html?embed=1';
