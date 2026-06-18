@@ -941,12 +941,24 @@ document.addEventListener('keydown', function(e){
           // Show camera permission UI and trigger camera start
           if (permEl) permEl.style.display = '';
         } else if (target === 'flow') {
+          // FLOW is premium — only pro users can enter
+          if (licMode !== 'pro') {
+            var lo = document.getElementById('licOverlay');
+            if (lo) lo.classList.remove('hidden');
+            return;
+          }
           if (launcher) launcher.classList.add('hide');
-          // Direct iframe mode — let it getUserMedia itself
           enterIframeMode('FLOW', flowIframe);
         } else if (target === 'expo') {
+          // EXPO is premium — only pro users can enter
+          if (licMode !== 'pro') {
+            var lo = document.getElementById('licOverlay');
+            if (lo) lo.classList.remove('hidden');
+            return;
+          }
           if (launcher) launcher.classList.add('hide');
-          } else if (target === 'draw') {
+          enterIframeMode('EXPO', expoIframe);
+        } else if (target === 'draw') {
             // DRAW is premium — only pro users can enter
             if (licMode !== 'pro') {
               var lo = document.getElementById('licOverlay');
