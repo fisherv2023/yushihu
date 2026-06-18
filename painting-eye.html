@@ -1010,8 +1010,8 @@ document.addEventListener('keydown', function(e){
       } else {
         window.__peRetryStream = false;
       }
-      if (name === 'FLOW') { expoIframe.style.display = 'none'; if (!flowIframe.src) flowIframe.src = 'ink-flow.html?embed=1'; flowIframe.style.display = 'block'; }
-      else { flowIframe.style.display = 'none'; if (!expoIframe.src) expoIframe.src = 'de.html?embed=1'; expoIframe.style.display = 'block'; }
+      if (name === 'FLOW') { expoIframe.style.display = 'none'; flowIframe.src = 'ink-flow.html?embed=1'; flowIframe.style.display = 'block'; }
+      else { flowIframe.style.display = 'none'; expoIframe.src = 'de.html?embed=1'; expoIframe.style.display = 'block'; }
       // Push activation code to iframe after it loads
       var lic = localStorage.getItem('pe_license');
       if (lic) setTimeout(function(){
@@ -1075,9 +1075,10 @@ document.addEventListener('keydown', function(e){
 
     exitBtn.onclick = function(){
       if (!activeMode) return;
-      // From iframe mode: hide iframe, show launcher
-      flowIframe.style.display = 'none';
-      expoIframe.style.display = 'none';
+      // From iframe mode: hide iframe, clear src for fresh reload next time
+      flowIframe.style.display = 'none'; flowIframe.src = '';
+      expoIframe.style.display = 'none'; expoIframe.src = '';
+      drawIframe.style.display = 'none'; drawIframe.src = '';
       exitBtn.style.display = 'none';
       activeMode = null;
       if (mL) mL.textContent = 'ORIGINAL 4';
@@ -1134,15 +1135,15 @@ document.addEventListener('keydown', function(e){
       }
       if (name === 'FLOW') {
         expoIframe.style.display = 'none'; drawIframe.style.display = 'none';
-        if (!flowIframe.src) flowIframe.src = 'ink-flow.html?embed=1';
+        flowIframe.src = 'ink-flow.html?embed=1';
         flowIframe.style.display = 'block';
       } else if (name === 'EXPO') {
         flowIframe.style.display = 'none'; drawIframe.style.display = 'none';
-        if (!expoIframe.src) expoIframe.src = 'de.html?embed=1';
+        expoIframe.src = 'de.html?embed=1';
         expoIframe.style.display = 'block';
       } else if (name === 'DRAW') {
         flowIframe.style.display = 'none'; expoIframe.style.display = 'none';
-        if (!drawIframe.src) drawIframe.src = 'draw.html';
+        drawIframe.src = 'draw.html';
         drawIframe.style.display = 'block';
       }
       // Push activation code to iframe
