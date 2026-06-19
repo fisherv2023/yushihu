@@ -448,7 +448,7 @@ const mat=new THREE.ShaderMaterial({uniforms:u,
       else if(uMode==3)col=gray(tDiffuse,sUv,uLevel);
       else if(uMode==4)col=edge(tDiffuse,sUv,uLevel);
       else if(uMode==5)col=tone(tDiffuse,sUv,uLevel);
-      else if(uMode==8)col=kuwahara(tDiffuse,sUv,uLevel);else if(uMode==9)col=dof(tDiffuse,sUv,uLevel);else if(uMode==10)col=stipple(tDiffuse,sUv,uLevel);else if(uMode==12)col=glitchFX(tDiffuse,sUv,uLevel);else if(uMode==13)col=fun(tDiffuse,sUv,uLevel);else if(uMode==14)col=flowFX(tDiffuse,sUv,uLevel);
+      else if(uMode==6)col=duo(tDiffuse,sUv,uLevel);else if(uMode==7)col=kuwahara(tDiffuse,sUv,uLevel);else if(uMode==8)col=dof(tDiffuse,sUv,uLevel);else if(uMode==9)col=stipple(tDiffuse,sUv,uLevel);else if(uMode==12)col=glitchFX(tDiffuse,sUv,uLevel);else if(uMode==13)col=fun(tDiffuse,sUv,uLevel);
       else col=orig(tDiffuse,sUv,uLevel);
       gl_FragColor=col;
     }`
@@ -702,7 +702,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-work
 // --- License System ---
 const CREEM_URL = 'https://www.creem.io/test/payment/prod_5zEMGWdQ6q3O7fPgT8Iw3j';
 const WORKER_URL = 'https://pe-worker.yuyang918.workers.dev';
-const FREE_MODES = [0, 3, 11]; // BLUR, VALUE, ORIGINAL
+const FREE_MODES = [0, 3, 10]; // BLUR, VALUE, ORIGINAL
 const LIC_KEY = 'pe_license';
 var licMode = 'free'; // 'free' | 'pro'
 
