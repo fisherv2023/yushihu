@@ -186,10 +186,16 @@ document.getElementById('drawClear').addEventListener('click', function(){
 
 document.getElementById('drawSave').addEventListener('click', function(){
   var merged = document.createElement('canvas');
-  merged.width = innerWidth; merged.height = innerHeight;
+  // Use camera video native resolution for crisp saves
+  if (video && video.videoWidth) {
+    merged.width = video.videoWidth; merged.height = video.videoHeight;
+  } else {
+    merged.width = innerWidth; merged.height = innerHeight;
+  }
   var mc = merged.getContext('2d');
   mc.drawImage(camCanvas, 0, 0, merged.width, merged.height);
-  mc.drawImage(drawCanvas, 0, 0);
+  // Scale drawing layer to match save resolution
+  mc.drawImage(drawCanvas, 0, 0, merged.width, merged.height);
   merged.toBlob(function(blob){
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
