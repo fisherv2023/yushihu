@@ -1126,9 +1126,13 @@ document.addEventListener('keydown', function(e){
       canvas.style.display = 'none';
       exitBtn.style.display = 'block';
       if (mL) mL.textContent = name;
-      // FLOW/EXPO: EXIT at bottom-left (same row as FILTERS mode selector)
+      // FLOW/EXPO: EXIT at bottom-left; DRAW: keep default top-left
       if (name !== 'DRAW') {
         exitBtn.style.top = 'auto'; exitBtn.style.bottom = '50px';
+        exitBtn.style.left = '12px'; exitBtn.style.right = 'auto';
+        exitBtn.style.transform = 'none';
+      } else {
+        exitBtn.style.top = '12px'; exitBtn.style.bottom = 'auto';
         exitBtn.style.left = '12px'; exitBtn.style.right = 'auto';
         exitBtn.style.transform = 'none';
       }
