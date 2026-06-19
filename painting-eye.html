@@ -259,10 +259,9 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
         <div class="mode-opt" data-m="4">EDGE</div>
         <div class="mode-opt" data-m="5">TONE</div>
         <div class="mode-opt" data-m="6">DUO</div>
-        <div class="mode-opt" data-m="7">SWIRL</div>
-        <div class="mode-opt" data-m="8">OIL</div>
-        <div class="mode-opt" data-m="9">DOF</div>
-        <div class="mode-opt" data-m="10">STIPPLE</div>
+        <div class="mode-opt" data-m="7">OIL</div>
+        <div class="mode-opt" data-m="8">DOF</div>
+        <div class="mode-opt" data-m="9">STIPPLE</div>
         <div class="mode-opt" data-m="12">GLITCH</div>
         <div class="mode-opt" data-m="13">FISHEYE</div>
         <div class="mode-opt sel" data-m="11" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:10px">ORIGINAL</div>
@@ -317,7 +316,7 @@ import * as THREE from 'three';
 // Math.cbrt polyfill for old Safari
 if(!Math.cbrt)Math.cbrt=function(x){return Math.pow(x,1/3);};
 let mode=11,level=4,vt,ct,vid,gMode=0,fMode=0,pOn=false,ciMode=false,ciFroze,ciFrozenTex;
-const N=['BLUR','MOSAIC','FLAT','VALUE','EDGE','TONE','DUO','SWIRL','OIL','DOF','STIPPLE','ORIGINAL','GLITCH','FISHEYE'];
+const N=['BLUR','MOSAIC','FLAT','VALUE','EDGE','TONE','DUO','OIL','DOF','STIPPLE','ORIGINAL','GLITCH','FISHEYE'];
 const canvas=document.getElementById('c');
 const capBtn=document.getElementById('capBtn');
 const act=document.getElementById('act');
