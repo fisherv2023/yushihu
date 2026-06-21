@@ -56,7 +56,34 @@ function i3(){sc=new THREE.Scene();sc.background=new THREE.Color(0x0a0a0f);ca=ne
 
 function an(){requestAnimationFrame(an);if(co)co.update();if(re)re.render(sc,ca)}
 
-async function loadModel(){try{let loader=new GLTFLoader();let gltf=await loader.loadAsync('models/rig-human.glb');md=gltf.scene;bones={};md.traverse(o=>{if(o.isBone)bones[o.name]=o});let box=new THREE.Box3().setFromObject(md);let size=box.getSize(new v3());let center=box.getCenter(new v3());md.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));md.position.y=-center.y*md.scale.y;sc.add(md);console.log('Bones found:',Object.keys(bones).length)}catch(e){console.warn(e);md=null}}
+async function loadModel(){try{
+ let loader=new GLTFLoader();
+ // Load model for visible mesh
+ let meshGltf=await loader.loadAsync('models/model-human.glb');
+ md=meshGltf.scene;
+
+ // Load rig separately for skeleton structure
+ let rig=await loader.loadAsync('models/rig-human.glb');
+ bones={};
+ rig.scene.traverse(o=>{if(o.isBone)bones[o.name]=o});
+
+ // Match rig bones to model nodes by name
+ md.traverse(o=>{
+  if(bones[o.name]){
+   o.userData.rigBone=bones[o.name];
+  }
+ });
+
+ let box=new THREE.Box3().setFromObject(md);
+ let size=box.getSize(new v3());let center=box.getCenter(new v3());
+ md.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));
+ md.position.y=-center.y*md.scale.y;
+ sc.add(md);
+ // Log model structure for debugging
+ console.log('Model children:',md.children.length);
+ md.traverse(o=>console.log('node:',o.type||o.constructor?.name,o.name||''));
+ console.log('Rig bones:',Object.keys(bones).length);
+}catch(e){console.warn(e);md=null}}
 
 function toPos(lm,i,sc=2.5){let p=lm[i];return new v3((p.x-.5)*sc,-(p.y-.5)*sc+.15,(p.z-.5)*sc)}
 
