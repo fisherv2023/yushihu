@@ -58,26 +58,17 @@ function an(){requestAnimationFrame(an);if(co)co.update();if(re)re.render(sc,ca)
 
 async function loadModel(){try{
  let loader=new GLTFLoader();
- let meshGltf=await loader.loadAsync('models/model-human.glb');
- let rig=await loader.loadAsync('models/rig-human.glb');
- md=meshGltf.scene;
- // Show model mesh
+ let gltf=await loader.loadAsync('models/rig-human.glb');
+ md=gltf.scene;
+ bones={};
+ md.traverse(o=>{if(o.isBone)bones[o.name]=o});
  let box=new THREE.Box3().setFromObject(md);
  let size=box.getSize(new v3());let center=box.getCenter(new v3());
  md.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));
  md.position.y=-center.y*md.scale.y;
  sc.add(md);
- // Show rig as helper
- let helper=new THREE.SkeletonHelper(rig.scene);
- sc.add(helper);
- // Also add rig scene
- rig.scene.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));
- rig.scene.position.copy(md.position);
- sc.add(rig.scene);
- // Get bones from rig
- bones={};
- rig.scene.traverse(o=>{if(o.isBone)bones[o.name]=o});
- console.log('Loaded. Model mesh + rig helper + rig bones:',Object.keys(bones).length)
+ console.log('Rig loaded. Bones:',Object.keys(bones).length,'Children:',md.children.length);
+ md.children.forEach((c,i)=>console.log(' child',i,c.type,c.name))
 }catch(e){console.warn(e);md=null}}
 
 function toPos(lm,i,sc=2.5){let p=lm[i];return new v3((p.x-.5)*sc,-(p.y-.5)*sc+.15,(p.z-.5)*sc)}
