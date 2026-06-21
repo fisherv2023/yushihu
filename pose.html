@@ -13,79 +13,82 @@ body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFon
 #vf video{width:100%;height:100%;object-fit:cover}
 #ve{position:fixed;inset:0;z-index:2;display:none}
 #ve canvas{display:block}
-.tb{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))}
-.tb span{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;letter-spacing:.15em}
-.tb button{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;cursor:pointer;background:none;border:none;padding:4px 8px;letter-spacing:.1em}
-.bb{position:fixed;bottom:0;left:0;right:0;z-index:10;display:flex;justify-content:center;align-items:center;gap:20px;padding:20px;padding-bottom:max(20px,env(safe-area-inset-bottom))}
-.cb{width:64px;height:64px;border-radius:50%;border:3px solid rgba(255,255,255,.7);background:rgba(255,255,255,.15);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
-.cb:active{transform:scale(.92);border-color:#fff}
-.cb svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2}
-.ab{color:#fff;font-size:13px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:8px 18px;cursor:pointer;letter-spacing:.1em}
-#rb,#sb{display:none}
+.top-bar{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))}
+.top-bar .label{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;letter-spacing:.15em}
+.top-bar .exit{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;cursor:pointer;background:none;border:none;padding:4px 8px;letter-spacing:.1em}
+.bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 16px;column-gap:6px}
+.group-l{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.group-r{display:flex;align-items:center;gap:8px}
+.cap-btn{position:relative;width:60px;height:60px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;-webkit-user-select:none}
+.cap-btn::after{content:";position:absolute;top:5px;left:5px;width:44px;height:44px;border-radius:50%;background:#fff}
+.aux-btn{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.45;transition:.2s;font-size:13px}
+.aux-btn svg{width:16px;height:16px;fill:#fff}
+.act-btn{padding:6px 18px;border-radius:18px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:13px;cursor:pointer;color:#fff}
+#rb,#sb,#g2{display:none}
 #pr{position:fixed;inset:0;z-index:5;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;flex-direction:column}
-#pr div:first-child{width:28px;height:28px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
-#pr div:last-child{color:#fff;margin-top:14px;font-size:13px;letter-spacing:.1em}
-#ht{position:fixed;bottom:130px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.35);font-size:12px;z-index:10;text-align:center;letter-spacing:.08em}
+#pr .sp{width:28px;height:28px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#pr .txt{color:#fff;margin-top:14px;font-size:13px;letter-spacing:.1em}
+#ht{position:fixed;bottom:140px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.35);font-size:12px;z-index:10;text-align:center;letter-spacing:.08em}
 #fi{display:none}
 </style>
 </head>
 <body>
 <div id=vf><video id=vi playsinline autoplay muted></video></div>
 <div id=ve></div>
-<div id=pr><div></div><div>Processing...</div></div>
-<div class=tb><span>POSE</span><button onclick=history.back()>EXIT</button></div>
-<div class=bb>
-<button class=cb id=ub><svg viewBox='0 0 24 24'><path d='M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4'/><polyline points='17 8 12 3 7 8'/><line x1=12 y1=3 x2=12 y2=15/></svg></button>
-<button class=cb id=cb><svg viewBox='0 0 24 24'><path d='M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z'/><circle cx=12 cy=13 r=4/></svg></button>
-<button class=ab id=rb>retake</button>
-<button class=ab id=sb>save</button>
+<div id=pr><div class=sp></div><div class=txt>Processing...</div></div>
+<div class=top-bar><span class=label>POSE</span><button class=exit onclick=history.back()>EXIT</button></div>
+<div class=bottom-bar>
+<div class=group-l>
+<div class=aux-btn id=ub onclick="document.getElementById('fi').click()"><svg viewBox='0 0 24 24'><path d='M24 19H21V23H19V19H16L20 15L24 19ZM21.0078 3C21.5555 3 21.9999 3.44482 22 3.99316V13H20V5H4V18.999L14 9L17 12V14.8291L14 11.8281L6.82715 19H14V21H2.99219C2.44451 21 2.00013 20.5552 2 20.0068V3.99316C2.00013 3.44463 2.45577 3 2.99219 3H21.0078ZM8 7C9.10457 7 10 7.89543 10 9C10 10.1046 9.10457 11 8 11C6.89543 11 6 10.1046 6 9C6 7.89543 6.89543 7 8 7Z'/></svg></div>
+<button class=act-btn id=rb onclick=retake()>retake</button>
 </div>
-<div id=ht>Tap to capture &middot; Upload &middot; Rotate model</div>
-<input type=file id=fi accept=image/*>
+<div class=cap-btn id=cb onclick=capture()></div>
+<div class=group-r id=g2>
+<button class=act-btn id=sb onclick=save()>save</button>
+</div>
+</div>
+<div id=ht>Tap to capture &middot; Upload photo &middot; Rotate 3D model</div>
+<input type=file id=fi accept=image/* onchange=upload(event)>
 <script type=importmap>
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
 </script>
 <script type=module>
 import * as THREE from'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{GLTFLoader}from'three/addons/loaders/GLTFLoader.js';
-const vf=document.getElementById('vf'),ve=document.getElementById('ve'),vi=document.getElementById('vi'),pr=document.getElementById('pr'),cb=document.getElementById('cb'),ub=document.getElementById('ub'),rb=document.getElementById('rb'),sb=document.getElementById('sb'),fi=document.getElementById('fi'),ht=document.getElementById('ht');
-let sc,ca,re,co,model,skel,pd;
-
+const vf=document.getElementById('vf'),ve=document.getElementById('ve'),vi=document.getElementById('vi'),pr=document.getElementById('pr'),cb=document.getElementById('cb'),rb=document.getElementById('rb'),sb=document.getElementById('sb'),g2=document.getElementById('g2'),ht=document.getElementById('ht'),fi=document.getElementById('fi');
+let sc,ca,re,co,model=null,skel={},pd;
 function i3(){sc=new THREE.Scene();sc.background=new THREE.Color(0x0a0a0f);ca=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,10);ca.position.set(0,.8,2.5);ca.lookAt(0,.3,0);re=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});re.setPixelRatio(Math.min(window.devicePixelRatio,2));re.setSize(innerWidth,innerHeight);ve.appendChild(re.domElement);co=new OrbitControls(ca,re.domElement);co.enableDamping=true;co.dampingFactor=.12;co.target.set(0,.3,0);co.update();sc.add(new THREE.AmbientLight(0x606080,.6));sc.add(new THREE.AmbientLight(0x404040,.4));let d=new THREE.DirectionalLight(0xffffff,1);d.position.set(1,3,2);sc.add(d);let d2=new THREE.DirectionalLight(0xffffff,.4);d2.position.set(-1,1,-1);sc.add(d2);let g=new THREE.GridHelper(3,20,0x222,0x111);g.position.y=-.8;sc.add(g);window.addEventListener('resize',()=>{ca.aspect=innerWidth/innerHeight;ca.updateProjectionMatrix();re.setSize(innerWidth,innerHeight)});an()}
 function an(){requestAnimationFrame(an);if(co)co.update();if(re)re.render(sc,ca)}
-
-const MP_MAP={0:'head',11:'upper_arm.L',12:'upper_arm.R',13:'forearm.L',14:'forearm.R',15:'hand.L',16:'hand.R',23:'thigh.L',24:'thigh.R',25:'shin.L',26:'shin.R',27:'foot.L',28:'foot.R'};
-async function loadModel(){let loader=new GLTFLoader();let gltf=await loader.loadAsync('https://app.mesh2motion.org/models/model-human.glb');model=gltf.scene;skel={};model.traverse(o=>{if(o.isBone)skel[o.name]=o});sc.add(model)}
-
-function applyPose(lm){
-  if(!model||!skel)return;
-  Object.entries(MP_MAP).forEach(([mpIdx,boneName])=>{
-    let bone=skel[boneName];if(!bone)return;
-    let p=lm[parseInt(mpIdx)];
-    let pos=new THREE.Vector3((p.x-.5)*2.5,-(p.y-.5)*2.5,(p.z-.5)*2);
-    bone.position.copy(pos);
-  });
-  if(skel['spine']&&skel['hips']){
-    let shL=lm[11],shR=lm[12],hipL=lm[23],hipR=lm[24];
-    let spinePos=new THREE.Vector3(((shL.x+shR.x)/2-.5)*2.5,-((shL.y+shR.y)/2-.5)*2.5+.2,((shL.z+shR.z)/2-.5)*2);
-    let hipPos=new THREE.Vector3(((hipL.x+hipR.x)/2-.5)*2.5,-((hipL.y+hipR.y)/2-.5)*2.5+.2,((hipL.z+hipR.z)/2-.5)*2);
-    skel['spine'].position.copy(spinePos);skel['hips'].position.copy(hipPos);
-  }
-  if(skel['head']){
-    let n=lm[0];skel['head'].position.set((n.x-.5)*2.5,-(n.y-.5)*2.5+.15,(n.z-.5)*2);
-  }
+async function loadModel(){try{let loader=new GLTFLoader();let gltf=await loader.loadAsync('https://app.mesh2motion.org/models/model-human.glb');model=gltf.scene;model.traverse(o=>{if(o.isBone){skel[o.name]=o}});sc.add(model);console.log('Model loaded, bones:',Object.keys(skel).length)}catch(e){console.warn('Model load failed:',e);model=null}}
+const BN=[[11,12],[12,14],[14,16],[11,13],[13,15],[12,24],[11,23],[23,24],[24,26],[26,28],[23,25],[25,27]];
+let sg=null;
+function buildStick(lm){if(sg)sc.remove(sg);sg=new THREE.Group();lm.forEach((p,i)=>{let g=new THREE.SphereGeometry(.025,8,8);let m=new THREE.MeshStandardMaterial({color:0xff6b6b,emissive:0xff3333,emissiveIntensity:.5});let s=new THREE.Mesh(g,m);s.position.set((p.x-.5)*2.5,-(p.y-.5)*2.5,-(p.z-.5)*2);sg.add(s)});BN.forEach(([a,b])=>{let sa=lm[a],sb=lm[b];let dv=new THREE.Vector3((sb.x-sa.x)*2.5,-(sb.y-sa.y)*2.5,-(sb.z-sa.z)*2);let mid=new THREE.Vector3((sa.x-.5)*2.5,-(sa.y-.5)*2.5,-(sa.z-.5)*2);let ln=dv.length();if(ln<.01)return;let g=new THREE.CylinderGeometry(.01,.01,ln,6);let m=new THREE.MeshStandardMaterial({color:0x4ecdc4,emissive:0x1a8a7a,emissiveIntensity:.5});let me=new THREE.Mesh(g,m);me.position.copy(mid).add(dv.clone().multiplyScalar(.5));me.setRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),dv.normalize()));sg.add(me)});let n=lm[0];let hg=new THREE.SphereGeometry(.12,16,16);let hm=new THREE.MeshStandardMaterial({color:0x4ecdc4,emissive:0x1a8a7a,emissiveIntensity:.3,transparent:true,opacity:.5});let h=new THREE.Mesh(hg,hm);h.position.set((n.x-.5)*2.5,-(n.y-.5)*2.5+.08,-(n.z-.5)*2);sg.add(h);sc.add(sg)}
+function applyPose(lm){if(model&&Object.keys(skel).length>0){let map={};Object.keys(skel).forEach(name=>{let n=name.toLowerCase();if(n.includes('upper_arm')||n.includes('arm')||n.includes('shoulder')){if(n.includes('l')||n.includes('left'))map[name]=11;else if(n.includes('r')||n.includes('right'))map[name]=12}
+else if(n.includes('forearm')||n.includes('elbow')){if(n.includes('l')||n.includes('left'))map[name]=13;else if(n.includes('r')||n.includes('right'))map[name]=14}
+else if(n.includes('hand')||n.includes('wrist')){if(n.includes('l')||n.includes('left'))map[name]=15;else if(n.includes('r')||n.includes('right'))map[name]=16}
+else if(n.includes('thigh')||n.includes('upleg')){if(n.includes('l')||n.includes('left'))map[name]=23;else if(n.includes('r')||n.includes('right'))map[name]=24}
+else if(n.includes('shin')||n.includes('leg')||n.includes('calf')){if(n.includes('l')||n.includes('left'))map[name]=25;else if(n.includes('r')||n.includes('right'))map[name]=26}
+else if(n.includes('foot')||n.includes('ankle')){if(n.includes('l')||n.includes('left'))map[name]=27;else if(n.includes('r')||n.includes('right'))map[name]=28}
+else if(n.includes('head')||n.includes('neck'))map[name]=0;
+else if(n.includes('spine')||n.includes('chest')||n.includes('torso'))map[name]=-1;
+});
+for(let[boneName,mpIdx]of Object.entries(map)){
+if(mpIdx<0)continue;
+let bone=skel[boneName];if(!bone)continue;
+let p=lm[mpIdx];bone.position.set((p.x-.5)*2.5,-(p.y-.5)*2.5,(p.z-.5)*2);
 }
-
+if(skel['spine']){let shL=lm[11],shR=lm[12];skel['spine'].position.set(((shL.x+shR.x)/2-.5)*2.5,-((shL.y+shR.y)/2-.5)*2.5+.15,((shL.z+shR.z)/2-.5)*2)}
+let hb=Object.values(skel).find(b=>b.name.toLowerCase().includes('head'));if(hb){let n=lm[0];hb.position.set((n.x-.5)*2.5,-(n.y-.5)*2.5+.15,(n.z-.5)*2)}
+}else{buildStick(lm)}}
 async function lp(){const{PoseLandmarker,FilesetResolver}=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/+esm');const v=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm');pd=await PoseLandmarker.createFromOptions(v,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',delegate:'GPU'},runningMode:'IMAGE',numPoses:1})}
 async function dp(img){if(!pd)await lp();let r=pd.detect(img);return r.landmarks[0]||null}
-function sv(){vf.style.display='none';ve.style.display='block';cb.style.display='none';ub.style.display='none';rb.style.display='inline-block';sb.style.display='inline-block';ht.style.display='none'}
-function sf(){vf.style.display='flex';ve.style.display='none';cb.style.display='flex';ub.style.display='flex';rb.style.display='none';sb.style.display='none';ht.style.display='block'}
+function sv(){vf.style.display='none';ve.style.display='block';cb.style.display='none';g2.style.display='flex';rb.style.display='inline-block';sb.style.display='inline-block';ht.style.display='none'}
+function sf(){vf.style.display='flex';ve.style.display='none';cb.style.display='flex';g2.style.display='none';rb.style.display='none';sb.style.display='none';ht.style.display='block'}
 async function pi(img){pr.style.display='flex';await new Promise(r=>setTimeout(r,100));let lm=await dp(img);pr.style.display='none';if(!lm){alert('No pose detected');return}applyPose(lm);sv();co.target.set(0,.3,0);co.update()}
-cb.addEventListener('click',async()=>{let c=document.createElement('canvas');c.width=vi.videoWidth;c.height=vi.videoHeight;c.getContext('2d').drawImage(vi,0,0);let img=new Image();img.src=c.toDataURL();await new Promise(r=>img.onload=r);pi(img)});
-ub.addEventListener('click',()=>fi.click());
-fi.addEventListener('change',async e=>{let f=e.target.files[0];if(!f)return;let img=new Image();img.src=URL.createObjectURL(f);await new Promise(r=>img.onload=r);pi(img)});
-rb.addEventListener('click',sf);
-sb.addEventListener('click',()=>{let a=document.createElement('a');a.download='pose.png';a.href=re.domElement.toDataURL('image/png');a.click()});
+window.capture=async()=>{let c=document.createElement('canvas');c.width=vi.videoWidth;c.height=vi.videoHeight;c.getContext('2d').drawImage(vi,0,0);let img=new Image();img.src=c.toDataURL();await new Promise(r=>img.onload=r);pi(img)}
+window.upload=async e=>{let f=e.target.files[0];if(!f)return;let img=new Image();img.src=URL.createObjectURL(f);await new Promise(r=>img.onload=r);pi(img)}
+window.retake=sf;
+window.save=()=>{let a=document.createElement('a');a.download='pose.png';a.href=re.domElement.toDataURL('image/png');a.click()}
 i3();loadModel();lp();
 navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:640},height:{ideal:480}}}).then(s=>{vi.srcObject=s;vi.play()}).catch(()=>{});
 </script>
