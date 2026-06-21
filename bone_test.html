@@ -1,0 +1,42 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bone Test</title><style>body{margin:0;background:#111}canvas{display:block}</style></head><body>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+
+let scene=new THREE.Scene();scene.background=new THREE.Color(0x111);
+let camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,20);camera.position.set(2,1.5,3);camera.lookAt(0,.5,0);
+let renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);document.body.appendChild(renderer.domElement);
+let controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.5,0);controls.update();
+scene.add(new THREE.AmbientLight(0xffffff,.8));let d=new THREE.DirectionalLight(0xffffff,.5);d.position.set(1,3,2);scene.add(d);
+
+let bones={};
+
+new GLTFLoader().loadAsync('models/xbot.glb').then(gltf=>{
+ let model=gltf.scene;
+ model.scale.setScalar(1.5);model.position.y=-.7;
+ scene.add(model);
+
+ // Find bones
+ model.traverse(o=>{if(o.isBone)bones[o.name]=o});
+ console.log('Bones found:',Object.keys(bones).length);
+
+ // Show bone names
+ Object.keys(bones).forEach(n=>console.log(' ',n));
+
+ // Test 1: Raise left arm 45 degrees forward
+ setTimeout(()=>{
+  let la=bones['mixamorig:LeftArm'];
+  if(la){
+   console.log('Rotating LeftArm...',la.parent?.name);
+   la.quaternion.setFromAxisAngle(new THREE.Vector3(0,0,1),Math.PI/4);
+   la.updateMatrixWorld();
+  }
+ },2000);
+
+ function anim(){requestAnimationFrame(anim);controls.update();renderer.render(scene,camera)}
+ anim();
+});
+</script>
+</body></html>
