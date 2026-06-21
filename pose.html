@@ -16,7 +16,7 @@ body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFon
 .bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:flex;justify-content:center;align-items:center;gap:12px;padding:0 16px}
 .exit-btn{padding:6px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;letter-spacing:.05em;user-select:none;-webkit-user-select:none}
 .cap-btn{position:relative;width:60px;height:60px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;-webkit-user-select:none}
-.cap-btn::after{content:'';position:absolute;top:5px;left:5px;width:44px;height:44px;border-radius:50%;background:#fff}
+.cap-inner{position:absolute;top:5px;left:5px;width:44px;height:44px;border-radius:50%;background:#fff}
 .aux-btn{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.45;transition:.2s;font-size:13px;color:#fff}
 .aux-btn svg{width:16px;height:16px;fill:#fff}
 .act-row{position:fixed;bottom:128px;left:50%;transform:translateX(-50%);z-index:10;display:none;gap:8px}
@@ -35,7 +35,7 @@ body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFon
 <div id=pr><div class=sp></div><div class=txt>Processing...</div></div>
 <div class=bottom-bar>
 <button class=exit-btn onclick=history.back()>EXIT</button>
-<div class=cap-btn id=cb onclick=capture()></div>
+<div class=cap-btn id=cb onclick=capture()><div class=cap-inner></div></div>
 <div class=aux-btn id=ub onclick="document.getElementById('fi').click()"><svg viewBox='0 0 24 24'><path d='M24 19H21V23H19V19H16L20 15L24 19ZM21.0078 3C21.5555 3 21.9999 3.44482 22 3.99316V13H20V5H4V18.999L14 9L17 12V14.8291L14 11.8281L6.82715 19H14V21H2.99219C2.44451 21 2.00013 20.5552 2 20.0068V3.99316C2.00013 3.44463 2.45577 3 2.99219 3H21.0078ZM8 7C9.10457 7 10 7.89543 10 9C10 10.1046 9.10457 11 8 11C6.89543 11 6 10.1046 6 9C6 7.89543 6.89543 7 8 7Z'/></svg></div>
 </div>
 <div class=act-row id=act>
