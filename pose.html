@@ -16,7 +16,7 @@ body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFon
 .bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:flex;justify-content:center;align-items:center;gap:12px;padding:0 16px}
 .exit-btn{padding:6px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;letter-spacing:.05em;user-select:none;-webkit-user-select:none}
 .cap-btn{position:relative;width:60px;height:60px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;-webkit-user-select:none}
-.cap-btn::after{content:'';position:absolute;top:5px;left:5px;width:44px;height:44px;border-radius:50%;background:#fff}
+.cap-btn::after{content:";position:absolute;top:5px;left:5px;width:44px;height:44px;border-radius:50%;background:#fff}
 .aux-btn{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.45;transition:.2s;font-size:13px;color:#fff}
 .aux-btn svg{width:16px;height:16px;fill:#fff}
 .act-row{position:fixed;bottom:128px;left:50%;transform:translateX(-50%);z-index:10;display:none;gap:8px}
@@ -33,10 +33,6 @@ body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFon
 <div id=vf><video id=vi playsinline autoplay muted></video></div>
 <div id=ve></div>
 <div id=pr><div class=sp></div><div class=txt>Processing...</div></div>
-<div style="position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))">
-<span style="color:rgba(255,255,255,.5);font-size:13px;font-weight:500;letter-spacing:.15em">POSE</span>
-<span></span>
-</div>
 <div class=bottom-bar>
 <button class=exit-btn onclick=history.back()>EXIT</button>
 <div class=cap-btn id=cb onclick=capture()></div>
@@ -53,14 +49,57 @@ body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFon
 <script type=module>
 import * as THREE from'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{GLTFLoader}from'three/addons/loaders/GLTFLoader.js';
 const vf=document.getElementById('vf'),ve=document.getElementById('ve'),vi=document.getElementById('vi'),pr=document.getElementById('pr'),cb=document.getElementById('cb'),act=document.getElementById('act');
-let sc,ca,re,co,model=null,skel={},pd;
-function i3(){sc=new THREE.Scene();sc.background=new THREE.Color(0x0a0a0f);ca=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.01,20);ca.position.set(0,1.2,3);ca.lookAt(0,.6,0);re=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});re.setPixelRatio(Math.min(window.devicePixelRatio,2));re.setSize(innerWidth,innerHeight);ve.appendChild(re.domElement);co=new OrbitControls(ca,re.domElement);co.enableDamping=true;co.dampingFactor=.12;co.target.set(0,.6,0);co.update();sc.add(new THREE.AmbientLight(0xffffff,.7));let d=new THREE.DirectionalLight(0xffffff,.6);d.position.set(1,3,2);sc.add(d);let d2=new THREE.DirectionalLight(0xffffff,.4);d2.position.set(-1,1,-1);sc.add(d2);let g=new THREE.GridHelper(3,20,0x333,0x222);g.position.y=-.5;sc.add(g);window.addEventListener('resize',()=>{ca.aspect=innerWidth/innerHeight;ca.updateProjectionMatrix();re.setSize(innerWidth,innerHeight)});an()}
+let sc,ca,re,co,md=null,bones={},pd,v3=THREE.Vector3,q=THREE.Quaternion;
+
 function an(){requestAnimationFrame(an);if(co)co.update();if(re)re.render(sc,ca)}
-async function loadModel(){try{let loader=new GLTFLoader();let gltf=await loader.loadAsync('models/model-human.glb');model=gltf.scene;let box=new THREE.Box3().setFromObject(model);let size=box.getSize(new THREE.Vector3());let center=box.getCenter(new THREE.Vector3());model.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));model.position.y=-center.y*model.scale.y;skel={};model.traverse(o=>{if(o.isBone)skel[o.name]=o});sc.add(model);console.log('Model loaded, bones:',Object.keys(skel).length,Object.keys(skel).slice(0,10))}catch(e){console.warn('Model failed:',e);model=null}}
-const BN=[[11,12],[12,14],[14,16],[11,13],[13,15],[12,24],[11,23],[23,24],[24,26],[26,28],[23,25],[25,27]];
-let sg=null;
-function buildStick(lm){if(sg)sc.remove(sg);sg=new THREE.Group();lm.forEach((p,i)=>{let g=new THREE.SphereGeometry(.025,8,8);let m=new THREE.MeshStandardMaterial({color:0xff6b6b,emissive:0xff3333,emissiveIntensity:.5});let s=new THREE.Mesh(g,m);s.position.set((p.x-.5)*2.5,-(p.y-.5)*2.5,-(p.z-.5)*2);sg.add(s)});BN.forEach(([a,b])=>{let sa=lm[a],sb=lm[b];let dv=new THREE.Vector3((sb.x-sa.x)*2.5,-(sb.y-sa.y)*2.5,-(sb.z-sa.z)*2);let mid=new THREE.Vector3((sa.x-.5)*2.5,-(sa.y-.5)*2.5,-(sa.z-.5)*2);let ln=dv.length();if(ln<.01)return;let g=new THREE.CylinderGeometry(.01,.01,ln,6);let m=new THREE.MeshStandardMaterial({color:0x4ecdc4,emissive:0x1a8a7a,emissiveIntensity:.5});let me=new THREE.Mesh(g,m);me.position.copy(mid).add(dv.clone().multiplyScalar(.5));me.setRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),dv.normalize()));sg.add(me)});let n=lm[0];let hg=new THREE.SphereGeometry(.12,16,16);let hm=new THREE.MeshStandardMaterial({color:0x4ecdc4,emissive:0x1a8a7a,emissiveIntensity:.3,transparent:true,opacity:.5});let h=new THREE.Mesh(hg,hm);h.position.set((n.x-.5)*2.5,-(n.y-.5)*2.5+.08,-(n.z-.5)*2);sg.add(h);sc.add(sg)}
-function applyPose(lm){if(model&&Object.keys(skel).length>0){let map={};Object.keys(skel).forEach(name=>{let n=name.toLowerCase();if(n.includes('upper_arm')||n.includes('shoulder')){if(n.includes('l')||n.includes('left'))map[name]=11;else if(n.includes('r')||n.includes('right'))map[name]=12}else if(n.includes('forearm')||n.includes('elbow')){if(n.includes('l')||n.includes('left'))map[name]=13;else if(n.includes('r')||n.includes('right'))map[name]=14}else if(n.includes('hand')||n.includes('wrist')){if(n.includes('l')||n.includes('left'))map[name]=15;else if(n.includes('r')||n.includes('right'))map[name]=16}else if(n.includes('thigh')||n.includes('upleg')){if(n.includes('l')||n.includes('left'))map[name]=23;else if(n.includes('r')||n.includes('right'))map[name]=24}else if(n.includes('shin')||n.includes('calf')||n.includes('leg')){if(n.includes('l')||n.includes('left'))map[name]=25;else if(n.includes('r')||n.includes('right'))map[name]=26}else if(n.includes('foot')||n.includes('ankle')){if(n.includes('l')||n.includes('left'))map[name]=27;else if(n.includes('r')||n.includes('right'))map[name]=28}else if(n.includes('head')||n.includes('neck'))map[name]=0});for(let[boneName,mpIdx]of Object.entries(map)){if(mpIdx<0)continue;let bone=skel[boneName];if(!bone)continue;let p=lm[mpIdx];bone.position.set((p.x-.5)*2.5,-(p.y-.5)*2.5,(p.z-.5)*2)}if(skel['spine']){let shL=lm[11],shR=lm[12];skel['spine'].position.set(((shL.x+shR.x)/2-.5)*2.5,-((shL.y+shR.y)/2-.5)*2.5+.15,((shL.z+shR.z)/2-.5)*2)}let hb=Object.values(skel).find(b=>b.name.toLowerCase().includes('head'));if(hb){let n=lm[0];hb.position.set((n.x-.5)*2.5,-(n.y-.5)*2.5+.15,(n.z-.5)*2)}}else{buildStick(lm)}}
+
+async function loadModel(){try{let loader=new GLTFLoader();let gltf=await loader.loadAsync('models/model-human.glb');md=gltf.scene;let box=new THREE.Box3().setFromObject(md);let size=box.getSize(new v3());let center=box.getCenter(new v3());md.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));md.position.y=-center.y*md.scale.y;bones={};md.traverse(o=>{if(o.isBone){bones[o.name]=o;o.userData.restPos=o.position.clone();o.userData.restQuat=o.quaternion.clone()}});sc.add(md)}catch(e){console.warn(e);md=null}}
+
+function toPos(lm,i,sc=2.5){let p=lm[i];return new v3((p.x-.5)*sc,-(p.y-.5)*sc+.15,(p.z-.5)*sc)}
+
+function rotBone(bone,targetPos){
+ let parent=bone.parent;if(!parent||!parent.isBone)return;
+ let pWorld=new v3();parent.getWorldPosition(pWorld);
+ let localTarget=targetPos.clone().sub(pWorld);
+ let restDir=new v3(0,1,0);
+ if(bone.userData.restQuat)restDir.applyQuaternion(bone.userData.restQuat);
+ let targetDir=localTarget.clone().normalize();
+ if(targetDir.length()<.01)return;
+ let rotQ=new q().setFromUnitVectors(restDir,targetDir);
+ bone.quaternion.copy(rotQ);
+ let ratio=localTarget.length()/(bone.userData.length||.5);
+ bone.position.set(0,ratio*0.5,0);
+}
+
+function applyPose(lm){
+ if(!md||Object.keys(bones).length<3)return;
+ let lmPos={};
+ [0,11,12,13,14,15,16,23,24,25,26,27,28].forEach(i=>lmPos[i]=toPos(lm,i));
+
+ let getBone=(...names)=>{for(let n of names){for(let[k,b]of Object.entries(bones))if(k.toLowerCase().includes(n))return b}return null};
+ let head=lm[0],shL=lm[11],shR=lm[12],elL=lm[13],elR=lm[14],wrL=lm[15],wrR=lm[16],hiL=lm[23],hiR=lm[24],knL=lm[25],knR=lm[26],anL=lm[27],anR=lm[28];
+
+ setBone(getBone('hips','pelvis'),new v3(((hiL.x+hiR.x)/2-.5)*2.5,-((hiL.y+hiR.y)/2-.5)*2.5+.15,((hiL.z+hiR.z)/2-.5)*2));
+ let spine=getBone('spine','chest');
+ if(spine){let midX=(shL.x+shR.x+hiL.x+hiR.x)/4;let midY=(shL.y+shR.y+hiL.y+hiR.y)/4;let midZ=(shL.z+shR.z+hiL.z+hiR.z)/4;spine.position.set((midX-.5)*2.5,-(midY-.5)*2.5+.15,(midZ-.5)*2.5)}
+
+ setBone(getBone('head','neck'),toPos(lm,0,2.5));toPos(lm,0,2.5).y+=.08;
+ function setBone(bone,pos){if(!bone)return;let p=new v3();bone.parent&&bone.parent.isBone?bone.parent.getWorldPosition(p):p.set(0,0,0);bone.position.copy(pos.clone().sub(p));let dir=pos.clone().sub(p).normalize();if(dir.length()>.01){let rq=new q().setFromUnitVectors(new v3(0,1,0),dir);bone.quaternion.copy(rq)}}
+
+ setBone(getBone('upper_arm','arm','shoulder','clavicle',true),toPos(lm,11));
+ setBone(getBone('upper_arm','arm','shoulder','clavicle',false),toPos(lm,12));
+ setBone(getBone('forearm','elbow',true),toPos(lm,13));
+ setBone(getBone('forearm','elbow',false),toPos(lm,14));
+ setBone(getBone('hand','wrist',true),toPos(lm,15));
+ setBone(getBone('hand','wrist',false),toPos(lm,16));
+ setBone(getBone('thigh','upleg',true),toPos(lm,23));
+ setBone(getBone('thigh','upleg',false),toPos(lm,24));
+ setBone(getBone('shin','calf','leg',true),toPos(lm,25));
+ setBone(getBone('shin','calf','leg',false),toPos(lm,26));
+ setBone(getBone('foot','ankle',true),toPos(lm,27));
+ setBone(getBone('foot','ankle',false),toPos(lm,28));
+}
+
 async function lp(){const{PoseLandmarker,FilesetResolver}=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/+esm');const v=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm');pd=await PoseLandmarker.createFromOptions(v,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',delegate:'GPU'},runningMode:'IMAGE',numPoses:1})}
 async function dp(img){if(!pd)await lp();let r=pd.detect(img);return r.landmarks[0]||null}
 function sv(){vf.style.display='none';ve.style.display='block';cb.style.display='none';act.classList.add('show')}
