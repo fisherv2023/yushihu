@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Pose to 3D</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#111;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
+#status{position:fixed;top:20px;left:50%;transform:translateX(-50%);color:#fff;z-index:10;font-size:14px;background:rgba(0,0,0,.7);padding:8px 16px;border-radius:20px}
+video{display:none}
+canvas{display:block}
+</style>
+</head>
+<body>
+<div id="status">Requesting camera...</div>
+<video id="video" playsinline></video>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+const BONES = [[11,12],[12,14],[14,16],[11,13],[13,15],[12,24],[11,23],[23,24],[24,26],[26,28],[23,25],[25,27]];
+
+let scene,camera,renderer,spheres=[],lines=[],pose;
+
+async function init(){
+  scene=new THREE.Scene(); scene.background=new THREE.Color(0x1a1a2e);
+  camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,10);
+  camera.position.set(0,0,4); camera.lookAt(0,-.3,0);
+
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(innerWidth,innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  for(let i=0;i<33;i++){
+    let g=new THREE.SphereGeometry(.03,8,8),m=new THREE.MeshBasicMaterial({color:0xff6b6b});
+    let s=new THREE.Mesh(g,m); s.visible=false;
+    scene.add(s); spheres.push(s);
+  }
+  BONES.forEach(()=>{
+    let g=new THREE.BufferGeometry(),m=new THREE.LineBasicMaterial({color:0x4ecdc4,linewidth:2});
+    let l=new THREE.Line(g,m); l.visible=false;
+    scene.add(l); lines.push(l);
+  });
+
+  let pg=new THREE.PlaneGeometry(1.5,1.5),pm=new THREE.MeshBasicMaterial({color:0x333,side:THREE.DoubleSide});
+  let plane=new THREE.Mesh(pg,pm);
+  plane.position.z=-.5; scene.add(plane);
+
+  window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight)});
+  document.getElementById('status').textContent='Loading MediaPipe...';
+
+  try{
+    const {PoseLandmarker,FilesetResolver,drawingUtils}=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/+esm');
+
+    const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm');
+    pose=await PoseLandmarker.createFromOptions(vision,{
+      baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',delegate:'GPU'},
+      runningMode:'VIDEO',numPoses:1
+    });
+    document.getElementById('status').textContent='Requesting camera...';
+    startCamera();
+  }catch(e){
+    document.getElementById('status').textContent='MediaPipe failed: '+e.message;
+    console.error(e);
+  }
+}
+
+async function startCamera(){
+  let stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}}});
+  video.srcObject=stream; video.play();
+  document.getElementById('status').textContent='Pose to 3D — waiting for pose...';
+  loop();
+}
+
+let lastTime=0;
+function loop(t=0){
+  requestAnimationFrame(loop);
+  if(!pose||!video.readyState)return;
+  if(t-lastTime<50)return; lastTime=t;
+
+  let results=pose.detectForVideo(video,performance.now());
+  if(results.landmarks.length===0){hideAll(); return;}
+  document.getElementById('status').textContent='Pose detected';
+
+  let lm=results.landmarks[0];
+  for(let i=0;i<33;i++){
+    let p=lm[i],s=spheres[i];
+    s.position.set((p.x-.5)*2.5, -(p.y-.5)*2.5+.5, -(p.z-.5)*3);
+    s.visible=true;
+  }
+  BONES.forEach(([a,b],i)=>{
+    let sa=spheres[a],sb=spheres[b];
+    if(!sa.visible||!sb.visible){lines[i].visible=false; return;}
+    lines[i].geometry.setFromPoints([sa.position,sb.position]);
+    lines[i].visible=true;
+  });
+
+  renderer.render(scene,camera);
+}
+
+function hideAll(){
+  spheres.forEach(s=>s.visible=false);
+  lines.forEach(l=>l.visible=false);
+  renderer.render(scene,camera);
+}
+
+init();
+</script>
+</body>
+</html>
