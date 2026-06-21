@@ -13,24 +13,19 @@ body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFon
 #vf video{width:100%;height:100%;object-fit:cover}
 #ve{position:fixed;inset:0;z-index:2;display:none}
 #ve canvas{display:block}
-.top-bar{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))}
-.top-bar .label{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;letter-spacing:.15em}
-.top-bar .exit{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;cursor:pointer;background:none;border:none;padding:4px 8px;letter-spacing:.1em}
-.bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 16px;column-gap:6px}
-.group-l{display:flex;align-items:center;gap:8px;justify-content:flex-end}
-.group-m{display:flex;align-items:center;justify-content:center;gap:8px}
-.aux-btn{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.45;transition:.2s;font-size:13px;color:#fff}
-.aux-btn svg{width:16px;height:16px;fill:#fff}
+.bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:flex;justify-content:center;align-items:center;gap:12px;padding:0 16px}
+.exit-btn{padding:6px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;letter-spacing:.05em;user-select:none;-webkit-user-select:none}
 .cap-btn{position:relative;width:60px;height:60px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;-webkit-user-select:none}
 .cap-btn::after{content:";position:absolute;top:5px;left:5px;width:44px;height:44px;border-radius:50%;background:#fff}
-.act-btn{padding:6px 18px;border-radius:18px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:13px;cursor:pointer;color:#fff;user-select:none;-webkit-user-select:none}
-.act-row{display:none;gap:8px}
+.aux-btn{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.45;transition:.2s;font-size:13px;color:#fff}
+.aux-btn svg{width:16px;height:16px;fill:#fff}
+.act-row{position:fixed;bottom:128px;left:50%;transform:translateX(-50%);z-index:10;display:none;gap:8px}
 .act-row.show{display:flex}
+.act-btn{padding:6px 18px;border-radius:18px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:13px;cursor:pointer;color:#fff;user-select:none;-webkit-user-select:none}
 #pr{position:fixed;inset:0;z-index:5;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;flex-direction:column}
 #pr .sp{width:28px;height:28px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #pr .txt{color:#fff;margin-top:14px;font-size:13px;letter-spacing:.1em}
-#ht{position:fixed;bottom:140px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.35);font-size:12px;z-index:10;text-align:center;letter-spacing:.08em}
 #fi{display:none}
 </style>
 </head>
@@ -38,32 +33,26 @@ body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFon
 <div id=vf><video id=vi playsinline autoplay muted></video></div>
 <div id=ve></div>
 <div id=pr><div class=sp></div><div class=txt>Processing...</div></div>
-<div class=top-bar><span class=label>POSE</span><button class=exit onclick=history.back()>EXIT</button></div>
 <div class=bottom-bar>
-<div class=group-l>
+<button class=exit-btn onclick=history.back()>EXIT</button>
+<div class=cap-btn id=cb onclick=capture()></div>
 <div class=aux-btn id=ub onclick="document.getElementById('fi').click()"><svg viewBox='0 0 24 24'><path d='M24 19H21V23H19V19H16L20 15L24 19ZM21.0078 3C21.5555 3 21.9999 3.44482 22 3.99316V13H20V5H4V18.999L14 9L17 12V14.8291L14 11.8281L6.82715 19H14V21H2.99219C2.44451 21 2.00013 20.5552 2 20.0068V3.99316C2.00013 3.44463 2.45577 3 2.99219 3H21.0078ZM8 7C9.10457 7 10 7.89543 10 9C10 10.1046 9.10457 11 8 11C6.89543 11 6 10.1046 6 9C6 7.89543 6.89543 7 8 7Z'/></svg></div>
 </div>
-<div class=group-m>
-<div class=cap-btn id=cb onclick=capture()></div>
 <div class=act-row id=act>
 <button class=act-btn onclick=retake()>retake</button>
 <button class=act-btn onclick=save()>save</button>
 </div>
-</div>
-<div class=group-m></div>
-</div>
-<div id=ht>Tap to capture &middot; Upload photo &middot; Rotate 3D model</div>
 <input type=file id=fi accept=image/* onchange=upload(event)>
 <script type=importmap>
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
 </script>
 <script type=module>
 import * as THREE from'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{GLTFLoader}from'three/addons/loaders/GLTFLoader.js';
-const vf=document.getElementById('vf'),ve=document.getElementById('ve'),vi=document.getElementById('vi'),pr=document.getElementById('pr'),cb=document.getElementById('cb'),act=document.getElementById('act'),ht=document.getElementById('ht');
+const vf=document.getElementById('vf'),ve=document.getElementById('ve'),vi=document.getElementById('vi'),pr=document.getElementById('pr'),cb=document.getElementById('cb'),act=document.getElementById('act');
 let sc,ca,re,co,model=null,skel={},pd;
-function i3(){sc=new THREE.Scene();sc.background=new THREE.Color(0x0a0a0f);ca=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,10);ca.position.set(0,.8,2.5);ca.lookAt(0,.3,0);re=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});re.setPixelRatio(Math.min(window.devicePixelRatio,2));re.setSize(innerWidth,innerHeight);ve.appendChild(re.domElement);co=new OrbitControls(ca,re.domElement);co.enableDamping=true;co.dampingFactor=.12;co.target.set(0,.3,0);co.update();sc.add(new THREE.AmbientLight(0x606080,.6));sc.add(new THREE.AmbientLight(0x404040,.4));let d=new THREE.DirectionalLight(0xffffff,1);d.position.set(1,3,2);sc.add(d);let d2=new THREE.DirectionalLight(0xffffff,.4);d2.position.set(-1,1,-1);sc.add(d2);let g=new THREE.GridHelper(3,20,0x222,0x111);g.position.y=-.8;sc.add(g);window.addEventListener('resize',()=>{ca.aspect=innerWidth/innerHeight;ca.updateProjectionMatrix();re.setSize(innerWidth,innerHeight)});an()}
+function i3(){sc=new THREE.Scene();sc.background=new THREE.Color(0x0a0a0f);ca=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.01,20);ca.position.set(0,1.2,3);ca.lookAt(0,.6,0);re=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});re.setPixelRatio(Math.min(window.devicePixelRatio,2));re.setSize(innerWidth,innerHeight);ve.appendChild(re.domElement);co=new OrbitControls(ca,re.domElement);co.enableDamping=true;co.dampingFactor=.12;co.target.set(0,.6,0);co.update();sc.add(new THREE.AmbientLight(0xffffff,.7));let d=new THREE.DirectionalLight(0xffffff,.6);d.position.set(1,3,2);sc.add(d);let d2=new THREE.DirectionalLight(0xffffff,.4);d2.position.set(-1,1,-1);sc.add(d2);let g=new THREE.GridHelper(3,20,0x333,0x222);g.position.y=-.5;sc.add(g);window.addEventListener('resize',()=>{ca.aspect=innerWidth/innerHeight;ca.updateProjectionMatrix();re.setSize(innerWidth,innerHeight)});an()}
 function an(){requestAnimationFrame(an);if(co)co.update();if(re)re.render(sc,ca)}
-async function loadModel(){try{let loader=new GLTFLoader();let gltf=await loader.loadAsync('models/model-human.glb');model=gltf.scene;model.traverse(o=>{if(o.isBone){skel[o.name]=o}});sc.add(model)}catch(e){console.warn('Model failed:',e);model=null}}
+async function loadModel(){try{let loader=new GLTFLoader();let gltf=await loader.loadAsync('models/model-human.glb');model=gltf.scene;let box=new THREE.Box3().setFromObject(model);let size=box.getSize(new THREE.Vector3());let center=box.getCenter(new THREE.Vector3());model.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));model.position.y=-center.y*model.scale.y;skel={};model.traverse(o=>{if(o.isBone)skel[o.name]=o});sc.add(model);console.log('Model loaded, bones:',Object.keys(skel).length,Object.keys(skel).slice(0,10))}catch(e){console.warn('Model failed:',e);model=null}}
 const BN=[[11,12],[12,14],[14,16],[11,13],[13,15],[12,24],[11,23],[23,24],[24,26],[26,28],[23,25],[25,27]];
 let sg=null;
 function buildStick(lm){if(sg)sc.remove(sg);sg=new THREE.Group();lm.forEach((p,i)=>{let g=new THREE.SphereGeometry(.025,8,8);let m=new THREE.MeshStandardMaterial({color:0xff6b6b,emissive:0xff3333,emissiveIntensity:.5});let s=new THREE.Mesh(g,m);s.position.set((p.x-.5)*2.5,-(p.y-.5)*2.5,-(p.z-.5)*2);sg.add(s)});BN.forEach(([a,b])=>{let sa=lm[a],sb=lm[b];let dv=new THREE.Vector3((sb.x-sa.x)*2.5,-(sb.y-sa.y)*2.5,-(sb.z-sa.z)*2);let mid=new THREE.Vector3((sa.x-.5)*2.5,-(sa.y-.5)*2.5,-(sa.z-.5)*2);let ln=dv.length();if(ln<.01)return;let g=new THREE.CylinderGeometry(.01,.01,ln,6);let m=new THREE.MeshStandardMaterial({color:0x4ecdc4,emissive:0x1a8a7a,emissiveIntensity:.5});let me=new THREE.Mesh(g,m);me.position.copy(mid).add(dv.clone().multiplyScalar(.5));me.setRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),dv.normalize()));sg.add(me)});let n=lm[0];let hg=new THREE.SphereGeometry(.12,16,16);let hm=new THREE.MeshStandardMaterial({color:0x4ecdc4,emissive:0x1a8a7a,emissiveIntensity:.3,transparent:true,opacity:.5});let h=new THREE.Mesh(hg,hm);h.position.set((n.x-.5)*2.5,-(n.y-.5)*2.5+.08,-(n.z-.5)*2);sg.add(h);sc.add(sg)}
@@ -72,7 +61,7 @@ async function lp(){const{PoseLandmarker,FilesetResolver}=await import('https://
 async function dp(img){if(!pd)await lp();let r=pd.detect(img);return r.landmarks[0]||null}
 function sv(){vf.style.display='none';ve.style.display='block';cb.style.display='none';act.classList.add('show')}
 function sf(){vf.style.display='flex';ve.style.display='none';cb.style.display='flex';act.classList.remove('show')}
-async function pi(img){pr.style.display='flex';await new Promise(r=>setTimeout(r,100));let lm=await dp(img);pr.style.display='none';if(!lm){alert('No pose detected');return}applyPose(lm);sv();co.target.set(0,.3,0);co.update()}
+async function pi(img){pr.style.display='flex';await new Promise(r=>setTimeout(r,100));let lm=await dp(img);pr.style.display='none';if(!lm){alert('No pose detected');return}applyPose(lm);sv();co.target.set(0,.6,0);co.update()}
 window.capture=async()=>{let c=document.createElement('canvas');c.width=vi.videoWidth;c.height=vi.videoHeight;c.getContext('2d').drawImage(vi,0,0);let img=new Image();img.src=c.toDataURL();await new Promise(r=>img.onload=r);pi(img)}
 window.upload=async e=>{let f=e.target.files[0];if(!f)return;let img=new Image();img.src=URL.createObjectURL(f);await new Promise(r=>img.onload=r);pi(img)}
 window.retake=sf;
