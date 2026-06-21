@@ -33,6 +33,7 @@ body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFon
 <div id=vf><video id=vi playsinline autoplay muted></video></div>
 <div id=ve></div>
 <div id=pr><div class=sp></div><div class=txt>Processing...</div></div>
+<div style="position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))"><span style="color:rgba(255,255,255,.5);font-size:13px;font-weight:500;letter-spacing:.15em">POSE</span><span></span></div>
 <div class=bottom-bar>
 <button class=exit-btn onclick=history.back()>EXIT</button>
 <div class=cap-btn id=cb onclick=capture()><div class=cap-inner></div></div>
@@ -126,7 +127,21 @@ async function lp(){const{PoseLandmarker,FilesetResolver}=await import('https://
 async function dp(img){if(!pd)await lp();let r=pd.detect(img);return r.landmarks[0]||null}
 function sv(){vf.style.display='none';ve.style.display='block';cb.style.display='none';act.classList.add('show')}
 function sf(){vf.style.display='flex';ve.style.display='none';cb.style.display='flex';act.classList.remove('show')}
-async function pi(img){pr.style.display='flex';await new Promise(r=>setTimeout(r,100));let lm=await dp(img);pr.style.display='none';if(!lm){alert('No pose detected');return}applyPose(lm);sv();co.target.set(0,.6,0);co.update()}
+async function pi(img){
+ pr.style.display='flex';
+ await new Promise(r=>setTimeout(r,100));
+ // Wait for model to be ready
+ if(!md){document.getElementById('pr').querySelector('.txt').textContent='Loading 3D model...';}
+ let tries=0;
+ while(!md&&tries<50){await new Promise(r=>setTimeout(r,200));tries++}
+ let lm=await dp(img);
+ pr.style.display='none';
+ if(!lm){alert('No pose detected in photo');return}
+ if(!md){alert('3D model still loading. Please wait a moment and try again.');return}
+ applyPose(lm);
+ sv();
+ co.target.set(0,.6,0);co.update();
+}
 window.capture=async()=>{let c=document.createElement('canvas');c.width=vi.videoWidth;c.height=vi.videoHeight;c.getContext('2d').drawImage(vi,0,0);let img=new Image();img.src=c.toDataURL();await new Promise(r=>img.onload=r);pi(img)}
 window.upload=async e=>{let f=e.target.files[0];if(!f)return;let img=new Image();img.src=URL.createObjectURL(f);await new Promise(r=>img.onload=r);pi(img)}
 window.retake=sf;
