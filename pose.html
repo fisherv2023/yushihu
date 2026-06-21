@@ -57,47 +57,67 @@ async function loadModel(){try{let loader=new GLTFLoader();let gltf=await loader
 
 function toPos(lm,i,sc=2.5){let p=lm[i];return new v3((p.x-.5)*sc,-(p.y-.5)*sc+.15,(p.z-.5)*sc)}
 
-function rotBone(bone,targetPos){
- let parent=bone.parent;if(!parent||!parent.isBone)return;
- let pWorld=new v3();parent.getWorldPosition(pWorld);
- let localTarget=targetPos.clone().sub(pWorld);
- let restDir=new v3(0,1,0);
- if(bone.userData.restQuat)restDir.applyQuaternion(bone.userData.restQuat);
- let targetDir=localTarget.clone().normalize();
- if(targetDir.length()<.01)return;
- let rotQ=new q().setFromUnitVectors(restDir,targetDir);
- bone.quaternion.copy(rotQ);
- let ratio=localTarget.length()/(bone.userData.length||.5);
- bone.position.set(0,ratio*0.5,0);
-}
-
 function applyPose(lm){
  if(!md||Object.keys(bones).length<3)return;
- let lmPos={};
- [0,11,12,13,14,15,16,23,24,25,26,27,28].forEach(i=>lmPos[i]=toPos(lm,i));
 
- let getBone=(...names)=>{for(let n of names){for(let[k,b]of Object.entries(bones))if(k.toLowerCase().includes(n))return b}return null};
- let head=lm[0],shL=lm[11],shR=lm[12],elL=lm[13],elR=lm[14],wrL=lm[15],wrR=lm[16],hiL=lm[23],hiR=lm[24],knL=lm[25],knR=lm[26],anL=lm[27],anR=lm[28];
+ let toP=(i,s=2.5)=>{let p=lm[i];return new v3((p.x-.5)*s,-(p.y-.5)*s+.15,(p.z-.5)*s)};
 
- setBone(getBone('hips','pelvis'),new v3(((hiL.x+hiR.x)/2-.5)*2.5,-((hiL.y+hiR.y)/2-.5)*2.5+.15,((hiL.z+hiR.z)/2-.5)*2));
- let spine=getBone('spine','chest');
- if(spine){let midX=(shL.x+shR.x+hiL.x+hiR.x)/4;let midY=(shL.y+shR.y+hiL.y+hiR.y)/4;let midZ=(shL.z+shR.z+hiL.z+hiR.z)/4;spine.position.set((midX-.5)*2.5,-(midY-.5)*2.5+.15,(midZ-.5)*2.5)}
+ let getBone=(needles,side)=>{
+  let n=needles.toLowerCase().split('|');
+  let matches=[];
+  for(let[k,b]of Object.entries(bones)){
+   let nk=k.toLowerCase();
+   let hit=n.some(pat=>nk.includes(pat));
+   if(!hit)continue;
+   if(side===undefined){matches.push(b)}
+   else if(side==='L'&&(nk.includes('.l')||nk.includes('left')))matches.push(b);
+   else if(side==='R'&&(nk.includes('.r')||nk.includes('right')))matches.push(b);
+   else if(side==='M'&&!nk.includes('.l')&&!nk.includes('.r')&&!nk.includes('left')&&!nk.includes('right'))matches.push(b);
+  }
+  return matches[0]||null;
+ };
 
- setBone(getBone('head','neck'),toPos(lm,0,2.5));toPos(lm,0,2.5).y+=.08;
- function setBone(bone,pos){if(!bone)return;let p=new v3();bone.parent&&bone.parent.isBone?bone.parent.getWorldPosition(p):p.set(0,0,0);bone.position.copy(pos.clone().sub(p));let dir=pos.clone().sub(p).normalize();if(dir.length()>.01){let rq=new q().setFromUnitVectors(new v3(0,1,0),dir);bone.quaternion.copy(rq)}}
+ let setBone=(bone,worldPos)=>{
+  if(!bone)return;
+  let pw=new v3();
+  if(bone.parent&&bone.parent.isBone)bone.parent.getWorldPosition(pw);
+  let local=worldPos.clone().sub(pw);
+  let dist=local.length();
+  if(dist<.001)return;
+  let dir=local.normalize();
+  bone.quaternion.copy(new q().setFromUnitVectors(new v3(0,1,0),dir));
+  bone.position.set(0,dist,0);
+ };
 
- setBone(getBone('upper_arm','arm','shoulder','clavicle',true),toPos(lm,11));
- setBone(getBone('upper_arm','arm','shoulder','clavicle',false),toPos(lm,12));
- setBone(getBone('forearm','elbow',true),toPos(lm,13));
- setBone(getBone('forearm','elbow',false),toPos(lm,14));
- setBone(getBone('hand','wrist',true),toPos(lm,15));
- setBone(getBone('hand','wrist',false),toPos(lm,16));
- setBone(getBone('thigh','upleg',true),toPos(lm,23));
- setBone(getBone('thigh','upleg',false),toPos(lm,24));
- setBone(getBone('shin','calf','leg',true),toPos(lm,25));
- setBone(getBone('shin','calf','leg',false),toPos(lm,26));
- setBone(getBone('foot','ankle',true),toPos(lm,27));
- setBone(getBone('foot','ankle',false),toPos(lm,28));
+ let lmPos={};[0,11,12,13,14,15,16,23,24,25,26,27,28].forEach(i=>lmPos[i]=toP(i));
+
+ // Hips
+ let hiMid=new v3().addVectors(toP(23),toP(24)).multiplyScalar(.5);
+ setBone(getBone('hips|pelvis','M'),hiMid);
+
+ // Spine
+ let shMid=new v3().addVectors(toP(11),toP(12)).multiplyScalar(.5);
+ let spineMid=new v3().addVectors(shMid,hiMid).multiplyScalar(.5);
+ setBone(getBone('spine|chest|torso','M'),spineMid);
+
+ // Head
+ setBone(getBone('head|neck','M'),toP(0,2.5));
+
+ // Arms
+ setBone(getBone('upper_arm|shoulder|clavicle','L'),toP(11));
+ setBone(getBone('upper_arm|shoulder|clavicle','R'),toP(12));
+ setBone(getBone('forearm|elbow','L'),toP(13));
+ setBone(getBone('forearm|elbow','R'),toP(14));
+ setBone(getBone('hand|wrist','L'),toP(15));
+ setBone(getBone('hand|wrist','R'),toP(16));
+
+ // Legs
+ setBone(getBone('thigh|upleg','L'),toP(23));
+ setBone(getBone('thigh|upleg','R'),toP(24));
+ setBone(getBone('shin|calf|leg','L'),toP(25));
+ setBone(getBone('shin|calf|leg','R'),toP(26));
+ setBone(getBone('foot|ankle','L'),toP(27));
+ setBone(getBone('foot|ankle','R'),toP(28));
 }
 
 async function lp(){const{PoseLandmarker,FilesetResolver}=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/+esm');const v=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm');pd=await PoseLandmarker.createFromOptions(v,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',delegate:'GPU'},runningMode:'IMAGE',numPoses:1})}
