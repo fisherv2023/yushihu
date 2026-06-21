@@ -56,7 +56,7 @@ function i3(){sc=new THREE.Scene();sc.background=new THREE.Color(0x0a0a0f);ca=ne
 
 function an(){requestAnimationFrame(an);if(co)co.update();if(re)re.render(sc,ca)}
 
-async function loadModel(){try{let loader=new GLTFLoader();let gltf=await loader.loadAsync('models/model-human.glb');md=gltf.scene;let box=new THREE.Box3().setFromObject(md);let size=box.getSize(new v3());let center=box.getCenter(new v3());md.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));md.position.y=-center.y*md.scale.y;bones={};md.traverse(o=>{if(o.isBone){bones[o.name]=o;o.userData.restPos=o.position.clone();o.userData.restQuat=o.quaternion.clone()}});sc.add(md)}catch(e){console.warn(e);md=null}}
+async function loadModel(){try{let loader=new GLTFLoader();let gltf=await loader.loadAsync('models/model-human.glb');md=gltf.scene;let box=new THREE.Box3().setFromObject(md);let size=box.getSize(new v3());let center=box.getCenter(new v3());md.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));md.position.y=-center.y*md.scale.y;bones={};md.traverse(o=>{if(o.isBone){bones[o.name]=o}});sc.add(md);let bn=Object.keys(bones);console.log('Bones:',bn);document.getElementById('pr').querySelector('.txt').textContent='Model ready ('+bn.length+' bones: '+bn.slice(0,3).join(', ')+'...)';setTimeout(()=>{document.getElementById('pr').querySelector('.txt').textContent='Processing...'},3000)}catch(e){console.warn(e);md=null}}
 
 function toPos(lm,i,sc=2.5){let p=lm[i];return new v3((p.x-.5)*sc,-(p.y-.5)*sc+.15,(p.z-.5)*sc)}
 
