@@ -56,7 +56,7 @@ function i3(){sc=new THREE.Scene();sc.background=new THREE.Color(0x0a0a0f);ca=ne
 
 function an(){requestAnimationFrame(an);if(co)co.update();if(re)re.render(sc,ca)}
 
-async function loadModel(){try{let loader=new GLTFLoader();let gltf=await loader.loadAsync('models/robot.glb');md=gltf.scene;bones={};md.traverse(o=>{if(o.isBone)bones[o.name]=o});let box=new THREE.Box3().setFromObject(md);let size=box.getSize(new v3());let center=box.getCenter(new v3());md.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));md.position.y=-center.y*md.scale.y;sc.add(md);console.log('Robot loaded. Bones:',Object.keys(bones).length)}catch(e){console.warn(e);md=null}}
+async function loadModel(){try{let loader=new GLTFLoader();let gltf=await loader.loadAsync('models/xbot.glb');md=gltf.scene;bones={};md.traverse(o=>{if(o.isBone)bones[o.name]=o});let box=new THREE.Box3().setFromObject(md);let size=box.getSize(new v3());let center=box.getCenter(new v3());md.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));md.position.y=-center.y*md.scale.y;sc.add(md);console.log('XBot loaded. Bones:',Object.keys(bones).length)}catch(e){console.warn(e);md=null}}
 
 function toPos(lm,i,sc=2.5){let p=lm[i];return new v3((p.x-.5)*sc,-(p.y-.5)*sc+.15,(p.z-.5)*sc)}
 
@@ -95,29 +95,29 @@ function applyPose(lm){
 
  // Hips
  let hiMid=new v3().addVectors(toP(23),toP(24)).multiplyScalar(.5);
- setBone(getBone('Hips|pelvis'),hiMid);
+ setBone(getBone('Hips'),hiMid);
 
  // Spine
- setBone(getBone('Body|Torso|spine'),new v3().addVectors(new v3().addVectors(toP(11),toP(12)).multiplyScalar(.5),hiMid).multiplyScalar(.5));
+ setBone(getBone('Spine'),new v3().addVectors(new v3().addVectors(toP(11),toP(12)).multiplyScalar(.5),hiMid).multiplyScalar(.5));
 
  // Head
- setBone(getBone('Head|head|Neck'),toP(0,2.5));
+ setBone(getBone('Head'),toP(0,2.5));
 
  // Arms
- setBone(getBone('UpperArm|Shoulder','L'),toP(11));
- setBone(getBone('UpperArm|Shoulder','R'),toP(12));
- setBone(getBone('LowerArm','L'),toP(13));
- setBone(getBone('LowerArm','R'),toP(14));
- setBone(getBone('Hand|Palm','L'),toP(15));
- setBone(getBone('Hand|Palm','R'),toP(16));
+ setBone(getBone('LeftArm|LeftShoulder','L'),toP(11));
+ setBone(getBone('RightArm|RightShoulder','R'),toP(12));
+ setBone(getBone('LeftForeArm','L'),toP(13));
+ setBone(getBone('RightForeArm','R'),toP(14));
+ setBone(getBone('LeftHand','L'),toP(15));
+ setBone(getBone('RightHand','R'),toP(16));
 
  // Legs
- setBone(getBone('UpperLeg','L'),toP(23));
- setBone(getBone('UpperLeg','R'),toP(24));
- setBone(getBone('LowerLeg|Leg','L'),toP(25));
- setBone(getBone('LowerLeg|Leg','R'),toP(26));
- setBone(getBone('Foot','L'),toP(27));
- setBone(getBone('Foot','R'),toP(28));
+ setBone(getBone('LeftUpLeg','L'),toP(23));
+ setBone(getBone('RightUpLeg','R'),toP(24));
+ setBone(getBone('LeftLeg','L'),toP(25));
+ setBone(getBone('RightLeg','R'),toP(26));
+ setBone(getBone('LeftFoot','L'),toP(27));
+ setBone(getBone('RightFoot','R'),toP(28));
 }
 
 async function lp(){const{PoseLandmarker,FilesetResolver}=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/+esm');const v=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm');pd=await PoseLandmarker.createFromOptions(v,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',delegate:'GPU'},runningMode:'IMAGE',numPoses:1})}
