@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>FBX → GLB Converter</title></head><body>
+<h2>FBX to GLB Pose Converter</h2>
+<p>Drop FBX files. Extracts frame 0.5s as static GLB.</p>
+<pre id="out" style="background:#111;color:#0f0;padding:10px;font:12px monospace;white-space:pre-wrap;max-height:70vh;overflow:auto"></pre>
+<button onclick="document.getElementById('fbxInput').click()" style="padding:10px 20px;font-size:14px">Select FBX files</button>
+<input type="file" id="fbxInput" multiple accept=".fbx" style="display:none">
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+
+let out=document.getElementById('out');
+let fbxInput=document.getElementById('fbxInput');
+
+fbxInput.addEventListener('change',async e=>{
+ for(let f of e.target.files){
+  if(!f.name.endsWith('.fbx'))continue;
+  let poseName=f.name.replace(/\.fbx$/i,'').replace(/\s+/g,'_').toLowerCase();
+  out.textContent+='Converting: '+f.name+' → '+poseName+'.glb\n';
+  let url=URL.createObjectURL(f);
+  try{
+   let fbx=await new FBXLoader().loadAsync(url);
+   let mixer=new THREE.AnimationMixer(fbx);
+   if(fbx.animations&&fbx.animations.length>0){
+    let action=mixer.clipAction(fbx.animations[0]);
+    action.play();
+    mixer.setTime(0.5);
+    mixer.update(0);
+    action.stop();
+   }
+   let exporter=new GLTFExporter();
+   exporter.parse(fbx, result=>{
+    let blob=new Blob([result],{type:'application/octet-stream'});
+    let a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=poseName+'.glb';
+    a.click();
+    out.textContent+='  ✓ Saved as '+poseName+'.glb ('+(result.byteLength/1024).toFixed(1)+'KB)\n';
+    out.textContent+='  → Move this file to models/poses/ folder\n\n';
+   }, err=>{out.textContent+='  ✗ Export error: '+err+'\n'});
+  }catch(err){out.textContent+='  ✗: '+err.message+'\n'}
+  URL.revokeObjectURL(url);
+ }
+});
+</script>
+</body></html>
