@@ -116,6 +116,9 @@ window.selectAnim=async function(idx){
   currentModel.scale.setScalar(1.5/Math.max(size.x,size.y,size.z));
   currentModel.position.y=-center.y*currentModel.scale.y;
   scene.add(currentModel);
+  // Check if model has visible meshes
+  let meshCount=0;currentModel.traverse(o=>{if(o.isMesh)meshCount++});
+  if(meshCount===0){loadingTxt.textContent='Model has no visible geometry';loading.style.display='flex';return}
   if(fbx.animations&&fbx.animations.length>0){
    mixer=new THREE.AnimationMixer(currentModel);
    currentClip=fbx.animations[0];
@@ -129,7 +132,7 @@ window.selectAnim=async function(idx){
    mixer.setTime(0);
   }
   loading.style.display='none';
- }catch(e){loadingTxt.textContent='Error: '+e.message;console.warn(e)}
+ }catch(e){loadingTxt.textContent='Load error: '+e.message;console.warn(e);loading.style.display='flex'}
 };
 
 timeline.addEventListener('input',()=>{
