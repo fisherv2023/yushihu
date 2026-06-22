@@ -166,12 +166,17 @@ function applyPose(poseDef){
    j[jointName][2]*boneScale
   );
   bone.parent.updateMatrixWorld();
+  // Parent world position
   let pw=new THREE.Vector3().setFromMatrixPosition(bone.parent.matrixWorld);
-  let dir=target.clone().sub(pw);
-  let dist=dir.length();if(dist<.001)return;
-  let restDir=bone.userData?.restPos?bone.userData.restPos.clone().normalize():new THREE.Vector3(0,-1,0);
-  let targetDir=dir.normalize();
-  bone.quaternion.setFromUnitVectors(restDir,targetDir);
+  // Direction from parent to target (world space)
+  let worldDir=target.clone().sub(pw);
+  let dist=worldDir.length();if(dist<.001)return;
+  // Convert to parent local space
+  let localDir=worldDir.clone().applyQuaternion(bone.parent.quaternion.clone().invert()).normalize();
+  // Bone's rest direction in local space  
+  let restDir=bone.userData?.restPos?bone.userData.restPos.clone().normalize():new THREE.Vector3(0,0,1);
+  // Rotate rest to target
+  bone.quaternion.setFromUnitVectors(restDir,localDir);
  });
 }
 
