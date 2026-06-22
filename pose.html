@@ -48,6 +48,7 @@ canvas{display:block}
 </div>
 <div class="bottom-bar">
   <button class="aux-btn" onclick="history.back()">EXIT</button>
+  <button class="aux-btn" id="playBtn" onclick="togglePlay()">⏸</button>
   <button class="aux-btn primary" onclick="saveImg()">SAVE</button>
 </div>
 
@@ -95,6 +96,8 @@ function animate(){requestAnimationFrame(animate);controls.update();if(mixer&&!p
 animate();
 
 window.saveImg=function(){
+ paused=true;document.getElementById('playBtn').textContent='▶';
+ renderer.render(scene,camera);
  let a=document.createElement('a');a.download='pose.png';a.href=renderer.domElement.toDataURL('image/png');a.click();
 };
 
@@ -137,15 +140,16 @@ window.selectAnim=async function(idx){
 
 timeline.addEventListener('input',()=>{
  if(!mixer||!currentClip)return;
- paused=true;
+ paused=true;document.getElementById('playBtn').textContent='▶';
  let t=+timeline.value/100;
  mixer.setTime(t);
- mixer.update(0); // apply pose at this time
+ mixer.update(0);
  timeLabel.textContent=t.toFixed(1)+'s';
 });
-timeline.addEventListener('change',()=>{paused=false});
-timeline.addEventListener('touchend',()=>{paused=false});
-timeline.addEventListener('pointerup',()=>{paused=false});
+window.togglePlay=function(){
+ paused=!paused;
+ document.getElementById('playBtn').textContent=paused?'▶':'⏸';
+};
 
 // Load first animation
 selectAnim(0);
