@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>FBX Extractor</title></head><body>
+<html><head><meta charset="UTF-8"><title>FBX Extractor v2</title></head><body>
 <h2>Drop FBX files here</h2>
 <pre id="out" style="background:#111;color:#0f0;padding:10px;font:12px monospace;white-space:pre-wrap"></pre>
 <script type="importmap">
@@ -16,25 +16,33 @@ document.body.addEventListener('drop',async e=>{
  let files=e.dataTransfer.files;
  for(let f of files){
   if(!f.name.endsWith('.fbx'))continue;
-  out.textContent+='\nLoading: '+f.name+'...\n';
+  out.textContent+='\n'+f.name+'...\n';
   let url=URL.createObjectURL(f);
   let loader=new FBXLoader();
   try{
    let obj=await loader.loadAsync(url);
+   let mixer=new THREE.AnimationMixer(obj);
+   let clips=obj.animations||[];
+   out.textContent+='Animation clips: '+clips.length+'\n';
+   if(clips.length>0){
+    // Play first clip to frame 1
+    let action=mixer.clipAction(clips[0]);
+    action.play();
+    mixer.update(0.016); // ~1 frame at 60fps
+   }
    let bones={};
    obj.traverse(o=>{
     if(o.isBone){
      let e=new THREE.Euler().setFromQuaternion(o.quaternion);
      bones[o.name]={
-      rx:+e.x.toFixed(4),ry:+e.y.toFixed(4),rz:+e.z.toFixed(4),
-      px:+o.position.x.toFixed(3),py:+o.position.y.toFixed(3),pz:+o.position.z.toFixed(3)
+      rx:+e.x.toFixed(4),ry:+e.y.toFixed(4),rz:+e.z.toFixed(4)
      };
     }
    });
-   out.textContent+=f.name+' — '+Object.keys(bones).length+' bones\n';
+   out.textContent+=Object.keys(bones).length+' bones\n';
    out.textContent+=JSON.stringify(bones,null,2);
    out.textContent+='\n\n';
-  }catch(err){out.textContent+='Error: '+err.message+'\n'}
+  }catch(err){out.textContent+='Error: '+err+'\n'}
   URL.revokeObjectURL(url);
  }
 });
