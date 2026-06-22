@@ -111,11 +111,11 @@ async function pi(img){
  // Wait for model to be ready
  if(!md){document.getElementById('pr').querySelector('.txt').textContent='Loading 3D model...';}
  let tries=0;
- while(!md&&tries<50){await new Promise(r=>setTimeout(r,200));tries++}
+ while(!md&&tries<150){await new Promise(r=>setTimeout(r,300));tries++}
  let lm=await dp(img);
  pr.style.display='none';
- if(!lm){alert('No pose detected in photo');return}
- if(!md){alert('3D model still loading. Please wait a moment and try again.');return}
+ if(!lm){showViewfinder();alert('No pose detected in photo');return}
+ if(!md){showViewfinder();alert('3D model still loading. Please wait a moment and try again.');return}
  applyPose(lm);
  sv();
  co.target.set(0,.6,0);co.update();
