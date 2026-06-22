@@ -1,145 +1,225 @@
 <!DOCTYPE html>
-<html lang=en>
+<html lang="en">
 <head>
-<meta charset=UTF-8>
-<meta name=viewport content='width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover'>
-<meta name=apple-mobile-web-app-capable content=yes>
-<meta name=apple-mobile-web-app-status-bar-style content=black-translucent>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Pose to 3D</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,sans-serif;touch-action:pan-x pan-y pinch-zoom}
-#vf{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1}
-#vf video{width:100%;height:100%;object-fit:cover}
-#ve{position:fixed;inset:0;z-index:2;display:none}
-#ve canvas{display:block}
+canvas{display:block}
+#overlay{position:fixed;inset:0;z-index:2;pointer-events:none}
+#overlay canvas{pointer-events:auto}
+
+/* Top bar */
+.top-bar{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))}
+.top-bar span{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;letter-spacing:.15em}
+.top-bar button{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;cursor:pointer;background:none;border:none;padding:4px 8px;letter-spacing:.1em}
+
+/* Pose selector bar */
+.pose-bar{position:fixed;bottom:120px;left:0;right:0;z-index:10;overflow-x:auto;overflow-y:hidden;white-space:nowrap;padding:0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.pose-bar::-webkit-scrollbar{display:none}
+.pose-card{display:inline-block;margin:0 4px;padding:10px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;transition:all .2s;letter-spacing:.05em;text-align:center;min-width:72px}
+.pose-card.active{border-color:rgba(255,255,255,.6);color:#fff;background:rgba(255,255,255,.12)}
+.pose-card .emoji{font-size:22px;display:block;margin-bottom:2px}
+.pose-card .lbl{font-size:11px;opacity:.8}
+
+/* Bottom bar */
 .bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:flex;justify-content:center;align-items:center;gap:12px;padding:0 16px}
 .exit-btn{padding:6px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;letter-spacing:.05em;user-select:none;-webkit-user-select:none}
-.cap-btn{position:relative;width:60px;height:60px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;-webkit-user-select:none}
-.cap-inner{position:absolute;top:5px;left:5px;width:44px;height:44px;border-radius:50%;background:#fff}
-.aux-btn{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.45;transition:.2s;font-size:13px;color:#fff}
-.aux-btn svg{width:16px;height:16px;fill:#fff}
-.act-row{position:fixed;bottom:128px;left:50%;transform:translateX(-50%);z-index:10;display:none;gap:8px}
-.act-row.show{display:flex}
-.act-btn{padding:6px 18px;border-radius:18px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:13px;cursor:pointer;color:#fff;user-select:none;-webkit-user-select:none}
-#pr{position:fixed;inset:0;z-index:5;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;flex-direction:column}
-#pr .sp{width:28px;height:28px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+.aux-btn{padding:6px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;letter-spacing:.05em;user-select:none;-webkit-user-select:none;transition:all .2s}
+.aux-btn:active{background:rgba(255,255,255,.1)}
+
+/* Loading */
+#loading{position:fixed;inset:0;z-index:5;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;flex-direction:column}
+#loading .sp{width:28px;height:28px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-#pr .txt{color:#fff;margin-top:14px;font-size:13px;letter-spacing:.1em}
-#fi{display:none}
+#loading .txt{color:#fff;margin-top:14px;font-size:13px;letter-spacing:.1em}
+
+/* Model selector */
+.model-tabs{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:6px}
+.model-tab{padding:6px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.4);font-size:11px;cursor:pointer;letter-spacing:.05em;transition:.2s}
+.model-tab.active{border-color:rgba(255,255,255,.5);color:#fff}
 </style>
 </head>
 <body>
-<div id=vf><video id=vi playsinline autoplay muted></video></div>
-<div id=ve></div>
-<div id=pr><div class=sp></div><div class=txt>Processing...</div></div>
-<div style="position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))"><span style="color:rgba(255,255,255,.5);font-size:13px;font-weight:500;letter-spacing:.15em">POSE</span><span></span></div>
-<div class=bottom-bar>
-<button class=exit-btn onclick=history.back()>EXIT</button>
-<div class=cap-btn id=cb onclick=capture()><div class=cap-inner></div></div>
-<div class=aux-btn id=ub onclick="document.getElementById('fi').click()"><svg viewBox='0 0 24 24'><path d='M24 19H21V23H19V19H16L20 15L24 19ZM21.0078 3C21.5555 3 21.9999 3.44482 22 3.99316V13H20V5H4V18.999L14 9L17 12V14.8291L14 11.8281L6.82715 19H14V21H2.99219C2.44451 21 2.00013 20.5552 2 20.0068V3.99316C2.00013 3.44463 2.45577 3 2.99219 3H21.0078ZM8 7C9.10457 7 10 7.89543 10 9C10 10.1046 9.10457 11 8 11C6.89543 11 6 10.1046 6 9C6 7.89543 6.89543 7 8 7Z'/></svg></div>
+
+<div id="overlay"></div>
+
+<div id="loading"><div class="sp"></div><div class="txt">Loading model...</div></div>
+
+<div class="top-bar">
+  <span>POSE</span>
+  <button onclick="history.back()">EXIT</button>
 </div>
-<div class=act-row id=act>
-<button class=act-btn onclick=retake()>retake</button>
-<button class=act-btn onclick=save()>save</button>
+
+<div class="model-tabs">
+  <button class="model-tab active" data-model="xbot">FEMALE</button>
+  <button class="model-tab" data-model="ybot">MALE</button>
 </div>
-<input type=file id=fi accept=image/* onchange=upload(event)>
-<script type=importmap>
+
+<div class="pose-bar" id="poseBar"></div>
+
+<div class="bottom-bar">
+  <button class="exit-btn" onclick="history.back()">EXIT</button>
+  <button class="aux-btn" onclick="resetPose()">RESET</button>
+  <button class="aux-btn" onclick="save()">SAVE</button>
+</div>
+
+<script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
 </script>
-<script type=module>
-import * as THREE from'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{GLTFLoader}from'three/addons/loaders/GLTFLoader.js';
-const vf=document.getElementById('vf'),ve=document.getElementById('ve'),vi=document.getElementById('vi'),pr=document.getElementById('pr'),cb=document.getElementById('cb'),act=document.getElementById('act');
-let sc,ca,re,co,md=null,bones={},pd,v3=THREE.Vector3,q=THREE.Quaternion;
 
-function i3(){sc=new THREE.Scene();sc.background=new THREE.Color(0x0a0a0f);ca=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.01,20);ca.position.set(0,1.2,3);ca.lookAt(0,.6,0);re=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});re.setPixelRatio(Math.min(window.devicePixelRatio,2));re.setSize(innerWidth,innerHeight);ve.appendChild(re.domElement);co=new OrbitControls(ca,re.domElement);co.enableDamping=true;co.dampingFactor=.12;co.target.set(0,.6,0);co.update();sc.add(new THREE.AmbientLight(0xffffff,.7));let d=new THREE.DirectionalLight(0xffffff,.6);d.position.set(1,3,2);sc.add(d);let d2=new THREE.DirectionalLight(0xffffff,.4);d2.position.set(-1,1,-1);sc.add(d2);window.addEventListener('resize',()=>{ca.aspect=innerWidth/innerHeight;ca.updateProjectionMatrix();re.setSize(innerWidth,innerHeight)});an()}
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
-function an(){requestAnimationFrame(an);if(co)co.update();if(re)re.render(sc,ca)}
+// DOM
+const overlay=document.getElementById('overlay');
+const loading=document.getElementById('loading');
+const poseBar=document.getElementById('poseBar');
+const loadingTxt=loading.querySelector('.txt');
 
-async function loadModel(){try{let loader=new GLTFLoader();let gltf=await loader.loadAsync('models/xbot.glb');md=gltf.scene;bones={};md.traverse(o=>{if(o.isBone)bones[o.name]=o});let box=new THREE.Box3().setFromObject(md);let size=box.getSize(new v3());let center=box.getCenter(new v3());md.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));md.position.y=-center.y*md.scale.y;sc.add(md);console.log('XBot loaded. Bones:',Object.keys(bones).length)}catch(e){console.warn(e);md=null}}
+let scene,camera,renderer,controls,model=null,bones={},poses={},poseOrder=[],currentPose=null;
 
-function applyPose(lm){
- if(!md||Object.keys(bones).length<3)return;
+// Init Three.js
+scene=new THREE.Scene();scene.background=new THREE.Color(0x0a0a0f);
+camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.01,20);
+camera.position.set(0,1.2,3);camera.lookAt(0,.6,0);
+renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+overlay.appendChild(renderer.domElement);
+controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=.12;
+controls.target.set(0,.6,0);controls.update();
+scene.add(new THREE.AmbientLight(0xffffff,.7));
+let dl=new THREE.DirectionalLight(0xffffff,.6);dl.position.set(1,3,2);scene.add(dl);
+scene.add(new THREE.GridHelper(3,30,0x222,0x111).translateY(-.7));
 
- let PI=Math.PI;
- let lm3=lm.map(p=>({x:p.x-.5, y:p.y-.5, z:p.z-.5}));
+window.addEventListener('resize',()=>{
+ camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
+});
 
- // Find 2D angle in the XY plane (front-facing camera)
- let angleXY=(a,b)=>Math.atan2(b.y-a.y, b.x-a.x);
+// Animation loop
+function animate(){
+ requestAnimationFrame(animate);
+ controls.update();
+ renderer.render(scene,camera);
+}
+animate();
 
- // Direction between two 3D points
- let dir=(a,b)=>({x:b.x-a.x, y:b.y-a.y, z:b.z-a.z});
+// Load poses JSON
+async function loadPoses(){
+ try{
+  let r=await fetch('models/poses.json');
+  let data=await r.json();
+  poses=data.poses;
+  poseOrder=data.order;
+  buildPoseBar();
+  if(poseOrder.length>0)selectPose(poseOrder[0]);
+ }catch(e){console.warn('poses load error',e)}
+}
 
- let dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
- let len=(v)=>Math.sqrt(v.x*v.x+v.y*v.y+v.z*v.z);
- let angleBetween=(a,b)=>{
-  let d=dot(a,b)/(len(a)*len(b)||1);
-  return Math.acos(Math.max(-1,Math.min(1,d)));
- };
+// Build pose selector bar
+function buildPoseBar(){
+ poseBar.innerHTML=poseOrder.map(id=>{
+  let p=poses[id];
+  return `<div class=\"pose-card\" data-pose=\"${id}\" onclick=\"selectPose('${id}')\">
+   <span class=\"emoji\">${p.emoji}</span>
+   <span class=\"lbl\">${p.label}</span>
+  </div>`;
+ }).join('');
+}
 
- // Simple approach: for each bone, rotate it to point toward the target
- // by computing the angle between rest direction and target direction
- function bend(name,a,b,scale=1){
-  let bone=bones[name];if(!bone)return;
-  let restDir={x:0, y:-1, z:0};
-  let targetDir={x:b.x-a.x, y:-(b.y-a.y), z:b.z-a.z};
-  let tl=Math.sqrt(targetDir.x*targetDir.x+targetDir.y*targetDir.y+targetDir.z*targetDir.z);
-  if(tl<.001)return;
-  targetDir.x/=tl; targetDir.y/=tl; targetDir.z/=tl;
-  let cross={
-   x: restDir.y*targetDir.z - restDir.z*targetDir.y,
-   y: restDir.z*targetDir.x - restDir.x*targetDir.z,
-   z: restDir.x*targetDir.y - restDir.y*targetDir.x
-  };
-  let cl=Math.sqrt(cross.x*cross.x+cross.y*cross.y+cross.z*cross.z);
-  if(cl<.0001)return;
-  let angle=Math.acos(Math.max(-1,Math.min(1,restDir.x*targetDir.x+restDir.y*targetDir.y+restDir.z*targetDir.z)))*scale;
-  bone.quaternion.setFromAxisAngle(new THREE.Vector3(cross.x/cl,cross.y/cl,cross.z/cl),angle);
+// Select and apply a pose
+window.selectPose=function(id){
+ currentPose=id;
+ poseBar.querySelectorAll('.pose-card').forEach(c=>c.classList.remove('active'));
+ let card=poseBar.querySelector(`[data-pose=\"${id}\"]`);
+ if(card)card.classList.add('active');
+ applyPose(poses[id]);
+};
+
+// Apply bone rotations from pose definition
+function applyPose(poseDef){
+ if(!model)return;
+ // Reset all bones
+ Object.values(bones).forEach(b=>{
+  b.quaternion.identity();
+  b.position.set(b.userData?.restPos?.x||0, b.userData?.restPos?.y||0, b.userData?.restPos?.z||0);
+ });
+ // Apply specified rotations
+ if(!poseDef||!poseDef.bones)return;
+ Object.entries(poseDef.bones).forEach(([name,rots])=>{
+  let b=bones[name];if(!b)return;
+  let e=new THREE.Euler(rots.x||0, rots.y||0, rots.z||0);
+  b.quaternion.setFromEuler(e);
+ });
+}
+
+// Reset to T-pose
+window.resetPose=function(){
+ applyPose({bones:{}});
+ poseBar.querySelectorAll('.pose-card').forEach(c=>c.classList.remove('active'));
+ currentPose=null;
+};
+
+// Save screenshot
+window.save=function(){
+ let a=document.createElement('a');
+ a.download='pose.png';
+ a.href=renderer.domElement.toDataURL('image/png');
+ a.click();
+};
+
+// Load model
+async function loadModel(modelName){
+ loading.style.display='flex';
+ loadingTxt.textContent='Loading '+modelName+'...';
+ if(model){scene.remove(model);model=null;bones={}}
+ try{
+  let loader=new GLTFLoader();
+  let gltf=await loader.loadAsync('models/'+modelName+'.glb');
+  model=gltf.scene;
+  bones={};
+  model.traverse(o=>{
+   if(o.isBone){
+    bones[o.name]=o;
+    o.userData={restPos:o.position.clone(),restQuat:o.quaternion.clone()};
+   }
+  });
+  let box=new THREE.Box3().setFromObject(model);
+  let size=box.getSize(new THREE.Vector3());
+  let center=box.getCenter(new THREE.Vector3());
+  model.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));
+  model.position.y=-center.y*model.scale.y;
+  scene.add(model);
+  loading.style.display='none';
+  console.log(modelName,'loaded. Bones:',Object.keys(bones).length);
+  if(currentPose&&poses[currentPose])applyPose(poses[currentPose]);
+ }catch(e){
+  loadingTxt.textContent='Error loading model';
+  console.warn(e);
  }
-
- // Arms: shoulder→elbow, elbow→wrist
- bend('mixamorigLeftArm', lm3[11], lm3[13], 1);
- bend('mixamorigRightArm', lm3[12], lm3[14], 1);
- bend('mixamorigLeftForeArm', lm3[13], lm3[15], 0.8);
- bend('mixamorigRightForeArm', lm3[14], lm3[16], 0.8);
-
- // Legs: hip→knee, knee→ankle
- bend('mixamorigLeftUpLeg', lm3[23], lm3[25], 1);
- bend('mixamorigRightUpLeg', lm3[24], lm3[26], 1);
- bend('mixamorigLeftLeg', lm3[25], lm3[27], 0.8);
- bend('mixamorigRightLeg', lm3[26], lm3[28], 0.8);
-
- // Spine: hips midpoint → shoulders midpoint
- let hiM={x:(lm3[23].x+lm3[24].x)/2, y:(lm3[23].y+lm3[24].y)/2, z:(lm3[23].z+lm3[24].z)/2};
- let shM={x:(lm3[11].x+lm3[12].x)/2, y:(lm3[11].y+lm3[12].y)/2, z:(lm3[11].z+lm3[12].z)/2};
- bend('mixamorigSpine', hiM, shM, 0.6);
 }
 
-async function lp(){const{PoseLandmarker,FilesetResolver}=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/+esm');const v=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm');pd=await PoseLandmarker.createFromOptions(v,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',delegate:'GPU'},runningMode:'IMAGE',numPoses:1})}
-async function dp(img){if(!pd)await lp();let r=pd.detect(img);return r.landmarks[0]||null}
-function sv(){vf.style.display='none';ve.style.display='block';cb.style.display='none';act.classList.add('show')}
-function sf(){vf.style.display='flex';ve.style.display='none';cb.style.display='flex';act.classList.remove('show')}
-async function pi(img){
- pr.style.display='flex';
- await new Promise(r=>setTimeout(r,100));
- // Wait for model to be ready
- if(!md){document.getElementById('pr').querySelector('.txt').textContent='Loading 3D model...';}
- let tries=0;
- while(!md&&tries<150){await new Promise(r=>setTimeout(r,300));tries++}
- let lm=await dp(img);
- pr.style.display='none';
- if(!lm){showViewfinder();alert('No pose detected in photo');return}
- if(!md){showViewfinder();alert('3D model still loading. Please wait a moment and try again.');return}
- applyPose(lm);
- sv();
- co.target.set(0,.6,0);co.update();
-}
-window.capture=async()=>{let c=document.createElement('canvas');c.width=vi.videoWidth;c.height=vi.videoHeight;c.getContext('2d').drawImage(vi,0,0);let img=new Image();img.src=c.toDataURL();await new Promise(r=>img.onload=r);pi(img)}
-window.upload=async e=>{let f=e.target.files[0];if(!f)return;let img=new Image();img.src=URL.createObjectURL(f);await new Promise(r=>img.onload=r);pi(img)}
-window.retake=sf;
-window.save=()=>{let a=document.createElement('a');a.download='pose.png';a.href=re.domElement.toDataURL('image/png');a.click()}
-i3();loadModel();lp();
-navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:640},height:{ideal:480}}}).then(s=>{vi.srcObject=s;vi.play()}).catch(()=>{});
+// Model switching
+document.querySelectorAll('.model-tab').forEach(tab=>{
+ tab.addEventListener('click',()=>{
+  document.querySelectorAll('.model-tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+  loadModel(tab.dataset.model);
+ });
+});
+
+// Init
+loadPoses();
+loadModel('xbot');
 </script>
 </body>
 </html>
