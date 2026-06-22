@@ -66,15 +66,11 @@ function applyPose(lm){
  let toP=(i,s=2.5)=>{let p=lm[i];return new v3((p.x-.5)*s,-(p.y-.5)*s+.15,(p.z-.5)*s)};
 
  let setBone=(b,worldPos)=>{
-  if(!b)return;
-  let pw=new v3();
-  if(b.parent&&b.parent.isBone)b.parent.getWorldPosition(pw);
-  let local=worldPos.clone().sub(pw);
-  let dist=local.length();
-  if(dist<.001)return;
-  let dir=local.normalize();
-  b.quaternion.copy(new q().setFromUnitVectors(new v3(0,1,0),dir));
-  b.position.set(0,dist,0);
+  if(!b||!b.parent||!b.parent.isBone)return;
+  b.parent.updateMatrixWorld();
+  let inv=new THREE.Matrix4().copy(b.parent.matrixWorld).invert();
+  let local=worldPos.clone().applyMatrix4(inv);
+  b.position.copy(local);
  };
 
  let hiMid=new v3().addVectors(toP(23),toP(24)).multiplyScalar(.5);
