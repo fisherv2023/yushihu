@@ -157,13 +157,8 @@ function applyPose(poseDef){
  if(!poseDef||!poseDef.bones)return;
  Object.entries(poseDef.bones).forEach(([name,rot])=>{
   let b=bones[name];if(!b)return;
-  // Reset to rest first, then apply
-  if(b.userData?.restQuat)b.quaternion.copy(b.userData.restQuat);
-  else b.quaternion.identity();
   let e=new THREE.Euler(rot.x||0, rot.y||0, rot.z||0);
-  let animQ=new THREE.Quaternion().setFromEuler(e);
-  // Compose: rest * animation
-  b.quaternion.multiply(animQ);
+  b.quaternion.setFromEuler(e);
  });
 }
 
