@@ -67,7 +67,7 @@ const timeline=document.getElementById('timeline');
 const timeLabel=document.getElementById('timeLabel');
 const durLabel=document.getElementById('durLabel');
 
-let scene,camera,renderer,controls,currentModel=null,mixer=null,currentClip=null;
+let scene,camera,renderer,controls,currentModel=null,mixer=null,currentClip=null,paused=false;
 const ANIMS=[
   {name:'Crouching',file:'models/poses/Crouching.fbx'},
   {name:'Sitting',file:'models/poses/Sitting_Gun_Motion.fbx'},
@@ -91,7 +91,7 @@ scene.add(new THREE.AmbientLight(0xffffff,.7));
 let dl=new THREE.DirectionalLight(0xffffff,.5);dl.position.set(1,3,2);scene.add(dl);
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
-function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);}
+function animate(){requestAnimationFrame(animate);controls.update();if(mixer&&!paused)mixer.update(0.016);renderer.render(scene,camera);}
 animate();
 
 window.saveImg=function(){
@@ -121,7 +121,7 @@ window.selectAnim=async function(idx){
    currentClip=fbx.animations[0];
    let action=mixer.clipAction(currentClip);
    action.play();
-   action.paused=true; // freeze at current time
+   paused=false;
    timeline.max=Math.round(currentClip.duration*100);
    timeline.value=0;
    durLabel.textContent=currentClip.duration.toFixed(1)+'s';
@@ -134,9 +134,14 @@ window.selectAnim=async function(idx){
 
 timeline.addEventListener('input',()=>{
  if(!mixer||!currentClip)return;
+ paused=true;
  let t=+timeline.value/100;
  mixer.setTime(t);
  timeLabel.textContent=t.toFixed(1)+'s';
+});
+timeline.addEventListener('change',()=>{
+ // Resume playback from slider position
+ paused=false;
 });
 
 // Load first animation
