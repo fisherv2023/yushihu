@@ -157,8 +157,8 @@ function applyPose(poseDef){
  if(!poseDef||!poseDef.bones)return;
  Object.entries(poseDef.bones).forEach(([name,rot])=>{
   let b=bones[name];if(!b)return;
-  let e=new THREE.Euler(rot.x||0, rot.y||0, rot.z||0);
-  b.quaternion.setFromEuler(e);
+  if(rot.w!==undefined)b.quaternion.set(rot.x||0, rot.y||0, rot.z||0, rot.w||1);
+  else b.quaternion.setFromEuler(new THREE.Euler(rot.x||0, rot.y||0, rot.z||0));
  });
 }
 
