@@ -48,7 +48,7 @@ document.body.addEventListener('drop',async e=>{
       let qi=idx*4;
       if(qi+3<values.length){
        let q=new THREE.Quaternion(values[qi],values[qi+1],values[qi+2],values[qi+3]);
-       let e=new THREE.Euler().setFromQuaternion(q);
+       let e=new THREE.Euler().setFromQuaternion(q, 'YXZ');
        bones[name]={
         rx:+e.x.toFixed(4),ry:+e.y.toFixed(4),rz:+e.z.toFixed(4)
        };
