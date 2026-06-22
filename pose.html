@@ -61,97 +61,58 @@ async function loadModel(){try{let loader=new GLTFLoader();let gltf=await loader
 function applyPose(lm){
  if(!md||Object.keys(bones).length<3)return;
 
- let clamp=(v,min,max)=>Math.min(Math.max(v,min),max);
-
- // findRotation: compute Euler angles from point A to B (like Kalidokit)
- // Returns {x,y,z} in radians — x=roll, y=yaw, z=pitch
- let findRot=(a,b)=>{
-  let dx=b.x-a.x, dy=b.y-a.y, dz=b.z-a.z;
-  return {
-   x: Math.atan2(dz, dx),
-   y: Math.atan2(dz, dy),
-   z: Math.atan2(dx, dy),
-  };
- };
-
- let angleBetween=(a,b,c)=>{
-  let v1={x:a.x-b.x,y:a.y-b.y,z:a.z-b.z};
-  let v2={x:c.x-b.x,y:c.y-b.y,z:c.z-b.z};
-  let n1=Math.sqrt(v1.x*v1.x+v1.y*v1.y+v1.z*v1.z);
-  let n2=Math.sqrt(v2.x*v2.x+v2.y*v2.y+v2.z*v2.z);
-  if(n1<.001||n2<.001)return 0;
-  return Math.acos((v1.x*v2.x+v1.y*v2.y+v1.z*v2.z)/(n1*n2));
- };
-
  let PI=Math.PI;
- let lm3=lm.map(p=>({x:p.x,y:p.y,z:p.z}));
+ let lm3=lm.map(p=>({x:p.x-.5, y:p.y-.5, z:p.z-.5}));
 
- // Hips: use midpoint of hip landmarks
+ // Find 2D angle in the XY plane (front-facing camera)
+ let angleXY=(a,b)=>Math.atan2(b.y-a.y, b.x-a.x);
+
+ // Direction between two 3D points
+ let dir=(a,b)=>({x:b.x-a.x, y:b.y-a.y, z:b.z-a.z});
+
+ let dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+ let len=(v)=>Math.sqrt(v.x*v.x+v.y*v.y+v.z*v.z);
+ let angleBetween=(a,b)=>{
+  let d=dot(a,b)/(len(a)*len(b)||1);
+  return Math.acos(Math.max(-1,Math.min(1,d)));
+ };
+
+ // Simple approach: for each bone, rotate it to point toward the target
+ // by computing the angle between rest direction and target direction
+ function bend(name,a,b,scale=1){
+  let bone=bones[name];if(!bone)return;
+  let restDir={x:0, y:-1, z:0};
+  let targetDir={x:b.x-a.x, y:-(b.y-a.y), z:b.z-a.z};
+  let tl=Math.sqrt(targetDir.x*targetDir.x+targetDir.y*targetDir.y+targetDir.z*targetDir.z);
+  if(tl<.001)return;
+  targetDir.x/=tl; targetDir.y/=tl; targetDir.z/=tl;
+  let cross={
+   x: restDir.y*targetDir.z - restDir.z*targetDir.y,
+   y: restDir.z*targetDir.x - restDir.x*targetDir.z,
+   z: restDir.x*targetDir.y - restDir.y*targetDir.x
+  };
+  let cl=Math.sqrt(cross.x*cross.x+cross.y*cross.y+cross.z*cross.z);
+  if(cl<.0001)return;
+  let angle=Math.acos(Math.max(-1,Math.min(1,restDir.x*targetDir.x+restDir.y*targetDir.y+restDir.z*targetDir.z)))*scale;
+  bone.quaternion.setFromAxisAngle(new THREE.Vector3(cross.x/cl,cross.y/cl,cross.z/cl),angle);
+ }
+
+ // Arms: shoulder→elbow, elbow→wrist
+ bend('mixamorigLeftArm', lm3[11], lm3[13], 1);
+ bend('mixamorigRightArm', lm3[12], lm3[14], 1);
+ bend('mixamorigLeftForeArm', lm3[13], lm3[15], 0.8);
+ bend('mixamorigRightForeArm', lm3[14], lm3[16], 0.8);
+
+ // Legs: hip→knee, knee→ankle
+ bend('mixamorigLeftUpLeg', lm3[23], lm3[25], 1);
+ bend('mixamorigRightUpLeg', lm3[24], lm3[26], 1);
+ bend('mixamorigLeftLeg', lm3[25], lm3[27], 0.8);
+ bend('mixamorigRightLeg', lm3[26], lm3[28], 0.8);
+
+ // Spine: hips midpoint → shoulders midpoint
  let hiM={x:(lm3[23].x+lm3[24].x)/2, y:(lm3[23].y+lm3[24].y)/2, z:(lm3[23].z+lm3[24].z)/2};
  let shM={x:(lm3[11].x+lm3[12].x)/2, y:(lm3[11].y+lm3[12].y)/2, z:(lm3[11].z+lm3[12].z)/2};
- applyBone('mixamorigHips', new THREE.Euler(0,hiM.y*PI,0));
-
- // Spine
- let spine=findRot(hiM,shM);
- applyBone('mixamorigSpine', new THREE.Euler(spine.x*PI*.5,spine.y*PI*.5,spine.z*PI*.5));
-
- // Head
- let head=findRot(shM,lm3[0]);
- applyBone('mixamorigHead', new THREE.Euler(head.x,head.y,0));
- applyBone('mixamorigNeck', new THREE.Euler(head.x*.5,head.y*.5,0));
-
- // Arms
- rigArm(lm3[11],lm3[13],lm3[15],'L');
- rigArm(lm3[12],lm3[14],lm3[16],'R');
-
- // Legs
- rigLeg(lm3[23],lm3[25],lm3[27],'L');
- rigLeg(lm3[24],lm3[26],lm3[28],'R');
-
- function rigArm(sh,el,wr,side){
-  let inv=side==='L'?1:-1;
-  let ua=findRot(sh,el);
-  let la=findRot(el,wr);
-  let hd=findRot(wr,{x:wr.x,y:wr.y+0.5,z:wr.z});
-
-  ua.z*=-2.3*inv;
-  ua.y*=PI*inv;
-  ua.y-=Math.max(la.x);
-  ua.y-=-inv*Math.max(la.z,0);
-  ua.x-=.3*inv;
-  la.z*=-2.14*inv;
-  la.y*=2.14*inv;
-  la.x*=2.14*inv;
-  ua.x=clamp(ua.x,-.5,PI);
-  la.x=clamp(la.x,-.3,.3);
-  hd.y=clamp(hd.z*2,-.6,.6);
-  hd.z=hd.z*-2.3*inv;
-
-  applyBone('mixamorig'+side+'Arm', new THREE.Euler(ua.x,ua.y,ua.z));
-  applyBone('mixamorig'+side+'ForeArm', new THREE.Euler(la.x,la.y,la.z));
-  applyBone('mixamorig'+side+'Hand', new THREE.Euler(hd.x,hd.y,hd.z));
- }
-
- function rigLeg(hi,kn,an,side){
-  let inv=side==='L'?1:-1;
-  let ul=findRot(hi,kn);
-  let ll=findRot(kn,an);
-
-  ul.z*=-inv*.6;
-  ul.x=clamp(ul.x,-.5,PI*.5);
-  ul.y=clamp(ul.y*PI*inv,-inv*PI*.5,PI*.5);
-  ll.x=clamp(ll.x*PI*inv,-.8,.8);
-  ll.y=clamp(ll.y*PI*inv,-.3,.3);
-
-  applyBone('mixamorig'+side+'UpLeg', new THREE.Euler(ul.x,ul.y,ul.z));
-  applyBone('mixamorig'+side+'Leg', new THREE.Euler(ll.x,ll.y,ll.z));
-  applyBone('mixamorig'+side+'Foot', new THREE.Euler(ll.x*.5,0,0));
- }
-
- function applyBone(name, euler){
-  let b=bones[name]; if(!b)return;
-  b.quaternion.setFromEuler(euler);
- }
+ bend('mixamorigSpine', hiM, shM, 0.6);
 }
 
 async function lp(){const{PoseLandmarker,FilesetResolver}=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/+esm');const v=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm');pd=await PoseLandmarker.createFromOptions(v,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',delegate:'GPU'},runningMode:'IMAGE',numPoses:1})}
