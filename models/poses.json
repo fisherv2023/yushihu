@@ -1,105 +1,175 @@
 {
+  "model": "xbot",
   "poses": {
     "stand01": {
       "label": "Standing",
       "emoji": "🧍",
-      "desc": "Natural standing pose",
-      "bones": {}
+      "joints": {}
     },
     "sit01": {
       "label": "Sitting",
       "emoji": "🪑",
-      "desc": "Seated on chair",
-      "bones": {
-        "mixamorigHips": {"y": 0, "x": 0, "z": 0},
-        "mixamorigSpine": {"x": 0.3},
-        "mixamorigLeftUpLeg": {"x": 1.5},
-        "mixamorigRightUpLeg": {"x": 1.5},
-        "mixamorigLeftLeg": {"x": -1.2},
-        "mixamorigRightLeg": {"x": -1.2},
-        "mixamorigLeftArm": {"z": 0.5},
-        "mixamorigRightArm": {"z": -0.5},
-        "mixamorigLeftForeArm": {"z": 0.5},
-        "mixamorigRightForeArm": {"z": -0.5}
+      "joints": {
+        "hips":    [0,   0.5,  0],
+        "spine":   [0,   0.65, -0.05],
+        "head":    [0,   0.85, -0.05],
+        "lShoulder": [-0.12, 0.68, -0.02],
+        "rShoulder": [0.12,  0.68, -0.02],
+        "lElbow":  [-0.15, 0.55,  0.12],
+        "rElbow":  [0.15,  0.55,  0.12],
+        "lWrist":  [-0.1,  0.4,   0.2],
+        "rWrist":  [0.1,   0.4,   0.2],
+        "lHip":    [-0.08, 0.5,   0.02],
+        "rHip":    [0.08,  0.5,   0.02],
+        "lKnee":   [-0.08, 0.2,   0.15],
+        "rKnee":   [0.08,  0.2,   0.15],
+        "lAnkle":  [-0.08, -0.15, 0.1],
+        "rAnkle":  [0.08,  -0.15, 0.1]
+      }
+    },
+    "kneel01": {
+      "label": "Kneeling",
+      "emoji": "🙇",
+      "joints": {
+        "hips":    [0,   0.45,  0],
+        "spine":   [0,   0.6,  -0.02],
+        "head":    [0,   0.78, -0.05],
+        "lShoulder": [-0.12, 0.63, 0],
+        "rShoulder": [0.12,  0.63, 0],
+        "lElbow":  [-0.15, 0.5,  0.1],
+        "rElbow":  [0.15,  0.5,  0.1],
+        "lWrist":  [-0.1,  0.38, 0.15],
+        "rWrist":  [0.1,   0.38, 0.15],
+        "lHip":    [-0.08, 0.45, 0],
+        "rHip":    [0.08,  0.45, 0.0],
+        "lKnee":   [-0.08, 0.15, 0.3],
+        "rKnee":   [0.08,  0.15, 0.2],
+        "lAnkle":  [-0.08, -0.15, 0.2],
+        "rAnkle":  [0.08,  -0.15, 0.25]
       }
     },
     "crouch01": {
       "label": "Crouching",
       "emoji": "🧎",
-      "desc": "Low squat pose",
-      "bones": {
-        "mixamorigHips": {"y": -0.8},
-        "mixamorigSpine": {"x": 0.5},
-        "mixamorigLeftUpLeg": {"x": 2.0},
-        "mixamorigRightUpLeg": {"x": 2.0},
-        "mixamorigLeftLeg": {"x": -2.2},
-        "mixamorigRightLeg": {"x": -2.2},
-        "mixamorigLeftFoot": {"x": 0.5},
-        "mixamorigRightFoot": {"x": 0.5},
-        "mixamorigLeftArm": {"z": 1.0, "x": 0.8},
-        "mixamorigRightArm": {"z": -1.0, "x": 0.8},
-        "mixamorigLeftForeArm": {"z": 0.8},
-        "mixamorigRightForeArm": {"z": -0.8}
+      "joints": {
+        "hips":    [0,   0.35, 0],
+        "spine":   [0,   0.52, 0.02],
+        "head":    [0,   0.7,  0.02],
+        "lShoulder": [-0.12, 0.55, 0.02],
+        "rShoulder": [0.12,  0.55, 0.02],
+        "lElbow":  [-0.15, 0.38, 0.2],
+        "rElbow":  [0.15,  0.38, 0.2],
+        "lWrist":  [-0.1,  0.2,  0.3],
+        "rWrist":  [0.1,   0.2,  0.3],
+        "lHip":    [-0.08, 0.35, 0],
+        "rHip":    [0.08,  0.35, 0],
+        "lKnee":   [-0.08, 0.08, 0.15],
+        "rKnee":   [0.08,  0.08, 0.15],
+        "lAnkle":  [-0.08, -0.2, 0.05],
+        "rAnkle":  [0.08,  -0.2, 0.05]
       }
     },
     "walk01": {
       "label": "Walking",
       "emoji": "🚶",
-      "desc": "Mid-stride",
-      "bones": {
-        "mixamorigHips": {"y": 0.3},
-        "mixamorigSpine": {"x": -0.1},
-        "mixamorigLeftUpLeg": {"x": 0.6},
-        "mixamorigRightUpLeg": {"x": -0.4},
-        "mixamorigLeftLeg": {"x": -0.3},
-        "mixamorigRightLeg": {"x": 0.8},
-        "mixamorigLeftFoot": {"x": -0.2},
-        "mixamorigRightFoot": {"x": -0.5},
-        "mixamorigLeftArm": {"z": -0.4, "x": 0.2},
-        "mixamorigRightArm": {"z": 0.5, "x": 0.2},
-        "mixamorigLeftForeArm": {"z": -0.3},
-        "mixamorigRightForeArm": {"z": 0.4}
+      "joints": {
+        "hips":    [0,   0.6,  0],
+        "spine":   [0,   0.75, -0.02],
+        "head":    [0,   0.93, -0.02],
+        "lShoulder": [-0.12, 0.78, 0],
+        "rShoulder": [0.12,  0.78, 0],
+        "lElbow":  [-0.18, 0.65, 0],
+        "rElbow":  [0.05,  0.63, 0.05],
+        "lWrist":  [-0.25, 0.52, 0],
+        "rWrist":  [0.15,  0.5,  0.08],
+        "lHip":    [-0.08, 0.6,  0],
+        "rHip":    [0.08,  0.6,  0],
+        "lKnee":   [-0.08, 0.35,  0.3],
+        "rKnee":   [0.08,  0.45, -0.05],
+        "lAnkle":  [-0.08, 0.05,  0.05],
+        "rAnkle":  [0.08,  0.25, -0.15]
       }
     },
     "run01": {
       "label": "Running",
       "emoji": "🏃",
-      "desc": "Full stride",
-      "bones": {
-        "mixamorigHips": {"y": 0.5},
-        "mixamorigSpine": {"x": -0.2},
-        "mixamorigLeftUpLeg": {"x": 1.0},
-        "mixamorigRightUpLeg": {"x": -0.8},
-        "mixamorigLeftLeg": {"x": -1.5},
-        "mixamorigRightLeg": {"x": 1.0},
-        "mixamorigLeftFoot": {"x": 0.5},
-        "mixamorigRightFoot": {"x": -0.8},
-        "mixamorigLeftArm": {"z": -0.8, "x": 0.4},
-        "mixamorigRightArm": {"z": 1.0, "x": 0.3},
-        "mixamorigLeftForeArm": {"z": -1.0},
-        "mixamorigRightForeArm": {"z": 1.3}
+      "joints": {
+        "hips":    [0,   0.65, 0],
+        "spine":   [0,   0.78, -0.05],
+        "head":    [0,   0.95, -0.08],
+        "lShoulder": [-0.14, 0.82, -0.02],
+        "rShoulder": [0.14,  0.82, -0.02],
+        "lElbow":  [-0.22, 0.65, 0.05],
+        "rElbow":  [0.05,  0.7,  0],
+        "lWrist":  [-0.3,  0.48, 0.1],
+        "rWrist":  [0.2,   0.55, 0],
+        "lHip":    [-0.08, 0.65, 0],
+        "rHip":    [0.08,  0.65, 0],
+        "lKnee":   [-0.08, 0.3,   0.4],
+        "rKnee":   [0.08,  0.5,  -0.1],
+        "lAnkle":  [-0.08, -0.05,  0.1],
+        "rAnkle":  [0.08,  0.3,  -0.2]
       }
     },
-    "sit02": {
-      "label": "Kneeling",
-      "emoji": "🙇",
-      "desc": "On one knee",
-      "bones": {
-        "mixamorigHips": {"y": -0.5},
-        "mixamorigSpine": {"x": 0.1},
-        "mixamorigLeftUpLeg": {"x": 0.3},
-        "mixamorigRightUpLeg": {"x": 1.8},
-        "mixamorigLeftLeg": {"x": -0.5},
-        "mixamorigRightLeg": {"x": -2.5},
-        "mixamorigRightFoot": {"x": 1.2},
-        "mixamorigLeftArm": {"z": 0.3},
-        "mixamorigRightArm": {"z": -0.3, "x": 0.2},
-        "mixamorigLeftForeArm": {"z": 0.3},
-        "mixamorigRightForeArm": {"z": -0.4}
+    "crossleg01": {
+      "label": "Cross-Leg",
+      "emoji": "🧘",
+      "joints": {
+        "hips":    [0,   0.4,  0],
+        "spine":   [0,   0.58, 0],
+        "head":    [0,   0.76, 0],
+        "lShoulder": [-0.12, 0.62, 0],
+        "rShoulder": [0.12,  0.62, 0],
+        "lElbow":  [-0.15, 0.48, 0.05],
+        "rElbow":  [0.15,  0.48, 0.05],
+        "lWrist":  [-0.1,  0.32, 0.08],
+        "rWrist":  [0.1,   0.32, 0.08],
+        "lHip":    [-0.15, 0.4,  0.05],
+        "rHip":    [0.15,  0.4,  0.05],
+        "lKnee":   [-0.05, 0.2,  0.2],
+        "rKnee":   [0.05,  0.2,  0.2],
+        "lAnkle":  [0.05,  0.1,  0.1],
+        "rAnkle":  [-0.05, 0.1,  0.1]
+      }
+    },
+    "reaching01": {
+      "label": "Reaching",
+      "emoji": "🙋",
+      "joints": {
+        "spine":   [0,   0.78, -0.02],
+        "head":    [0,   0.96, -0.02],
+        "lShoulder": [-0.12, 0.8, 0],
+        "rShoulder": [0.12,  0.8, 0],
+        "lElbow":  [-0.12, 0.65, 0.05],
+        "rElbow":  [0.12,  1.0,  -0.02],
+        "lWrist":  [-0.1,  0.5,  0.08],
+        "rWrist":  [0.1,   1.25, -0.05],
+        "lKnee":   [-0.08, 0.35, 0],
+        "rKnee":   [0.08,  0.35, 0],
+        "lAnkle":  [-0.08, 0.1,  0],
+        "rAnkle":  [0.08,  0.1,  0]
       }
     }
   },
-  "order": ["stand01", "sit01", "sit02", "crouch01", "walk01", "run01"],
+  "order": ["stand01", "sit01", "kneel01", "crouch01", "walk01", "run01", "crossleg01", "reaching01"],
   "defaultPose": "stand01",
-  "model": "xbot"
+  "jointToBone": {
+    "hips":    "mixamorigHips",
+    "spine":   "mixamorigSpine",
+    "head":    "mixamorigHead",
+    "lShoulder": "mixamorigLeftArm",
+    "rShoulder": "mixamorigRightArm",
+    "lElbow":  "mixamorigLeftForeArm",
+    "rElbow":  "mixamorigRightForeArm",
+    "lWrist":  "mixamorigLeftHand",
+    "rWrist":  "mixamorigRightHand",
+    "lHip":    "mixamorigLeftUpLeg",
+    "rHip":    "mixamorigRightUpLeg",
+    "lKnee":   "mixamorigLeftLeg",
+    "rKnee":   "mixamorigRightLeg",
+    "lAnkle":  "mixamorigLeftFoot",
+    "rAnkle":  "mixamorigRightFoot"
+  },
+  "boneScale": 2.5,
+  "boneYOffset": 0.15
 }

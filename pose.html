@@ -83,7 +83,7 @@ const loading=document.getElementById('loading');
 const poseBar=document.getElementById('poseBar');
 const loadingTxt=loading.querySelector('.txt');
 
-let scene,camera,renderer,controls,model=null,bones={},poses={},poseOrder=[],currentPose=null;
+let scene,camera,renderer,controls,model=null,bones={},poses={},poseOrder=[],jointToBone={},boneScale=2.5,boneYOffset=0.15,currentPose=null,poseData=null;
 
 // Init Three.js
 scene=new THREE.Scene();scene.background=new THREE.Color(0x0a0a0f);
@@ -117,9 +117,12 @@ animate();
 async function loadPoses(){
  try{
   let r=await fetch('models/poses.json');
-  let data=await r.json();
-  poses=data.poses;
-  poseOrder=data.order;
+  poseData=await r.json();
+  poses=poseData.poses;
+  poseOrder=poseData.order;
+  jointToBone=poseData.jointToBone||{};
+  boneScale=poseData.boneScale||2.5;
+  boneYOffset=poseData.boneYOffset||0.15;
   buildPoseBar();
   if(poseOrder.length>0)selectPose(poseOrder[0]);
  }catch(e){console.warn('poses load error',e)}
@@ -149,22 +152,32 @@ window.selectPose=function(id){
 function applyPose(poseDef){
  if(!model)return;
  // Reset all bones
- Object.values(bones).forEach(b=>{
-  b.quaternion.identity();
-  b.position.set(b.userData?.restPos?.x||0, b.userData?.restPos?.y||0, b.userData?.restPos?.z||0);
- });
- // Apply specified rotations
- if(!poseDef||!poseDef.bones)return;
- Object.entries(poseDef.bones).forEach(([name,rots])=>{
-  let b=bones[name];if(!b)return;
-  let e=new THREE.Euler(rots.x||0, rots.y||0, rots.z||0);
-  b.quaternion.setFromEuler(e);
+ Object.values(bones).forEach(b=>{b.quaternion.identity();if(b.userData?.restPos)b.position.copy(b.userData.restPos)});
+ if(!poseDef||!poseDef.joints)return;
+ let j=poseDef.joints;
+
+ // For each joint, rotate the corresponding bone toward target
+ Object.entries(jointToBone).forEach(([jointName,boneName])=>{
+  if(!j[jointName])return;
+  let bone=bones[boneName];if(!bone||!bone.parent||!bone.parent.isBone)return;
+  let target=new THREE.Vector3(
+   j[jointName][0]*boneScale,
+   -j[jointName][1]*boneScale+boneYOffset,
+   j[jointName][2]*boneScale
+  );
+  bone.parent.updateMatrixWorld();
+  let pw=new THREE.Vector3().setFromMatrixPosition(bone.parent.matrixWorld);
+  let dir=target.clone().sub(pw);
+  let dist=dir.length();if(dist<.001)return;
+  let restDir=bone.userData?.restPos?bone.userData.restPos.clone().normalize():new THREE.Vector3(0,-1,0);
+  let targetDir=dir.normalize();
+  bone.quaternion.setFromUnitVectors(restDir,targetDir);
  });
 }
 
 // Reset to T-pose
 window.resetPose=function(){
- applyPose({bones:{}});
+ applyPose({joints:{}});
  poseBar.querySelectorAll('.pose-card').forEach(c=>c.classList.remove('active'));
  currentPose=null;
 };
