@@ -119,10 +119,7 @@ async function loadPoses(){
   let r=await fetch('models/poses.json');
   poseData=await r.json();
   poses=poseData.poses;
-  poseOrder=poseData.order;
-  jointToBone=poseData.jointToBone||{};
-  boneScale=poseData.boneScale||2.5;
-  boneYOffset=poseData.boneYOffset||0.15;
+  poseOrder=poseData.choosePoses||[];
   buildPoseBar();
   if(poseOrder.length>0)selectPose(poseOrder[0]);
  }catch(e){console.warn('poses load error',e)}
@@ -151,38 +148,19 @@ window.selectPose=function(id){
 // Apply bone rotations from pose definition
 function applyPose(poseDef){
  if(!model)return;
- // Reset all bones
+ // Reset all bones to identity
  Object.values(bones).forEach(b=>{b.quaternion.identity();if(b.userData?.restPos)b.position.copy(b.userData.restPos)});
- if(!poseDef||!poseDef.joints)return;
- let j=poseDef.joints;
-
- // For each joint, rotate the corresponding bone toward target
- Object.entries(jointToBone).forEach(([jointName,boneName])=>{
-  if(!j[jointName])return;
-  let bone=bones[boneName];if(!bone||!bone.parent||!bone.parent.isBone)return;
-  let target=new THREE.Vector3(
-   j[jointName][0]*boneScale,
-   -j[jointName][1]*boneScale+boneYOffset,
-   j[jointName][2]*boneScale
-  );
-  bone.parent.updateMatrixWorld();
-  // Parent world position
-  let pw=new THREE.Vector3().setFromMatrixPosition(bone.parent.matrixWorld);
-  // Direction from parent to target (world space)
-  let worldDir=target.clone().sub(pw);
-  let dist=worldDir.length();if(dist<.001)return;
-  // Convert to parent local space
-  let localDir=worldDir.clone().applyQuaternion(bone.parent.quaternion.clone().invert()).normalize();
-  // Bone's rest direction in local space  
-  let restDir=bone.userData?.restPos?bone.userData.restPos.clone().normalize():new THREE.Vector3(0,0,1);
-  // Rotate rest to target
-  bone.quaternion.setFromUnitVectors(restDir,localDir);
+ if(!poseDef||!poseDef.bones)return;
+ Object.entries(poseDef.bones).forEach(([name,rot])=>{
+  let b=bones[name];if(!b)return;
+  let e=new THREE.Euler(rot.x||0, rot.y||0, rot.z||0);
+  b.quaternion.setFromEuler(e);
  });
 }
 
 // Reset to T-pose
 window.resetPose=function(){
- applyPose({joints:{}});
+ applyPose({bones:{}});
  poseBar.querySelectorAll('.pose-card').forEach(c=>c.classList.remove('active'));
  currentPose=null;
 };
