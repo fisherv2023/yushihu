@@ -33,15 +33,14 @@ fbxInput.addEventListener('change',async e=>{
     action.stop();
    }
    let exporter=new GLTFExporter();
-   exporter.parse(fbx, result=>{
-    let blob=new Blob([result],{type:'application/octet-stream'});
+   let result=await exporter.parseAsync(fbx,{binary:true});
+   let blob=new Blob([result],{type:'application/octet-stream'});
     let a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
     a.download=poseName+'.glb';
     a.click();
     out.textContent+='  ✓ Saved as '+poseName+'.glb ('+(result.byteLength/1024).toFixed(1)+'KB)\n';
     out.textContent+='  → Move this file to models/poses/ folder\n\n';
-   }, err=>{out.textContent+='  ✗ Export error: '+err+'\n'});
   }catch(err){out.textContent+='  ✗: '+err.message+'\n'}
   URL.revokeObjectURL(url);
  }
