@@ -24,13 +24,32 @@ fbxInput.addEventListener('change',async e=>{
   let url=URL.createObjectURL(f);
   try{
    let fbx=await new FBXLoader().loadAsync(url);
-   let mixer=new THREE.AnimationMixer(fbx);
-   if(fbx.animations&&fbx.animations.length>0){
-    let action=mixer.clipAction(fbx.animations[0]);
-    action.play();
-    mixer.setTime(0.5);
-    mixer.update(0);
-    action.stop();
+   // Manually apply first frame of animation to bones
+   let clips=fbx.animations||[];
+   if(clips.length>0){
+    // Build bone lookup
+    let boneMap={};
+    fbx.traverse(o=>{if(o.isBone)boneMap[o.name]=o});
+    let clip=clips[0];
+    clip.tracks.forEach(track=>{
+     let name=track.name.replace('.quaternion','').replace('.position','');
+     let bone=boneMap[name];if(!bone)return;
+     // Find keyframe at ~0.5 seconds
+     let qi=0;
+     for(let i=0;i<track.times.length;i++){if(track.times[i]>=0.5){qi=i;break}}
+     if(track.name.includes('quaternion')){
+      let vals=track.values;
+      if(qi*4+3<vals.length){
+       bone.quaternion.set(vals[qi*4],vals[qi*4+1],vals[qi*4+2],vals[qi*4+3]);
+      }
+     }
+     if(track.name.includes('.position')){
+      let vals=track.values;
+      if(qi*3+2<vals.length){
+       bone.position.set(vals[qi*3],vals[qi*3+1],vals[qi*3+2]);
+      }
+     }
+    });
    }
    let exporter=new GLTFExporter();
    let result=await exporter.parseAsync(fbx,{binary:true});
