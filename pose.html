@@ -13,16 +13,24 @@ canvas{display:block}
 .top-bar{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))}
 .top-bar span{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;letter-spacing:.15em}
 .top-bar button{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;cursor:pointer;background:none;border:none;padding:4px 8px;letter-spacing:.1em}
-.pose-bar{position:fixed;bottom:120px;left:0;right:0;z-index:10;overflow-x:auto;overflow-y:hidden;white-space:nowrap;padding:0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.pose-bar::-webkit-scrollbar{display:none}
-.pose-card{display:inline-block;margin:0 4px;padding:10px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;transition:all .2s;letter-spacing:.05em;text-align:center;min-width:72px}
-.pose-card.active{border-color:rgba(255,255,255,.6);color:#fff;background:rgba(255,255,255,.12)}
-.pose-card .emoji{font-size:22px;display:block;margin-bottom:2px}
-.pose-card .lbl{font-size:11px;opacity:.8}
+
+/* Animation selector */
+.anim-bar{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:6px}
+.anim-tab{padding:6px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.4);font-size:11px;cursor:pointer;letter-spacing:.05em;transition:.2s}
+.anim-tab.active{border-color:rgba(255,255,255,.5);color:#fff}
+
+/* Timeline */
+.timeline{position:fixed;bottom:120px;left:16px;right:16px;z-index:10;display:flex;align-items:center;gap:10px}
+.timeline input[type=range]{flex:1;-webkit-appearance:none;height:4px;background:rgba(255,255,255,.2);border-radius:2px;outline:none}
+.timeline input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;cursor:pointer}
+.timeline .time-label{color:rgba(255,255,255,.4);font-size:11px;min-width:40px;text-align:center}
+
+/* Bottom bar */
 .bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:flex;justify-content:center;align-items:center;gap:12px;padding:0 16px}
-.exit-btn{padding:6px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;letter-spacing:.05em;user-select:none;-webkit-user-select:none}
 .aux-btn{padding:6px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;letter-spacing:.05em;user-select:none;-webkit-user-select:none;transition:all .2s}
 .aux-btn:active{background:rgba(255,255,255,.1)}
+.aux-btn.primary{border-color:rgba(255,255,255,.5);color:#fff}
+
 #loading{position:fixed;inset:0;z-index:5;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;flex-direction:column}
 #loading .sp{width:28px;height:28px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -32,10 +40,15 @@ canvas{display:block}
 <body>
 <div id="loading"><div class="sp"></div><div class="txt">Loading...</div></div>
 <div class="top-bar"><span>POSE</span><button onclick="history.back()">EXIT</button></div>
-<div class="pose-bar" id="poseBar"></div>
+<div class="anim-bar" id="animBar"></div>
+<div class="timeline">
+  <span class="time-label" id="timeLabel">0.0s</span>
+  <input type="range" id="timeline" min="0" max="100" value="0" step="1">
+  <span class="time-label" id="durLabel">0.0s</span>
+</div>
 <div class="bottom-bar">
-  <button class="exit-btn" onclick="history.back()">EXIT</button>
-  <button class="aux-btn" onclick="saveImg()">SAVE</button>
+  <button class="aux-btn" onclick="history.back()">EXIT</button>
+  <button class="aux-btn primary" onclick="saveImg()">SAVE</button>
 </div>
 
 <script type="importmap">
@@ -45,16 +58,23 @@ canvas{display:block}
 <script type="module">
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
 
 const loading=document.getElementById('loading');
 const loadingTxt=loading.querySelector('.txt');
-const poseBar=document.getElementById('poseBar');
+const animBar=document.getElementById('animBar');
+const timeline=document.getElementById('timeline');
+const timeLabel=document.getElementById('timeLabel');
+const durLabel=document.getElementById('durLabel');
 
-let scene,camera,renderer,controls,currentModel=null;
-let poses=[]; // [{name, label, emoji, file}]
+let scene,camera,renderer,controls,currentModel=null,mixer=null,currentClip=null;
+const ANIMS=[
+  {name:'Crouching',file:'models/poses/Crouching.fbx'},
+  {name:'Sitting',file:'models/poses/Sitting_Gun_Motion.fbx'},
+  {name:'Standing',file:'models/poses/Standing_Idle.fbx'},
+];
 
-// Init Three.js
+// Init scene
 scene=new THREE.Scene();scene.background=new THREE.Color(0x0a0a0f);
 camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.01,20);
 camera.position.set(0,1.2,3);camera.lookAt(0,.6,0);
@@ -66,67 +86,59 @@ controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=.12;
 controls.target.set(0,.6,0);controls.update();
 scene.add(new THREE.AmbientLight(0xffffff,.7));
-let dl=new THREE.DirectionalLight(0xffffff,.6);dl.position.set(1,3,2);scene.add(dl);
+let dl=new THREE.DirectionalLight(0xffffff,.5);dl.position.set(1,3,2);scene.add(dl);
 scene.add(new THREE.GridHelper(3,30,0x222,0x111).translateY(-.7));
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
-function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);}
+function animate(){requestAnimationFrame(animate);controls.update();if(mixer)mixer.update(0.016);renderer.render(scene,camera);}
 animate();
 
 window.saveImg=function(){
  let a=document.createElement('a');a.download='pose.png';a.href=renderer.domElement.toDataURL('image/png');a.click();
 };
 
-// Load pose definitions
-async function loadPoses(){
- try{
-  let r=await fetch('models/poses/index.json');
-  let data=await r.json();
-  poses=data.poses||data;
-  buildPoseBar();
-  if(poses.length>0)loadPose(poses[0]);
- }catch(e){
-  // Fallback: hardcoded if no index.json
-  poses=[{name:'standing_idle',label:'Standing',emoji:'🧍',file:'models/poses/standing_idle.glb'}];
-  buildPoseBar();
-  loadPose(poses[0]);
- }
-}
+// Build animation buttons
+animBar.innerHTML=ANIMS.map((a,i)=>`<button class="anim-tab${i===0?' active':''}" data-idx="${i}" onclick="selectAnim(${i})">${a.name}</button>`).join('');
 
-function buildPoseBar(){
- poseBar.innerHTML=poses.map((p,i)=>`<div class="pose-card" data-idx="${i}" onclick="selectPose(${i})">
-  <span class="emoji">${p.emoji||'📦'}</span>
-  <span class="lbl">${p.label||p.name}</span>
- </div>`).join('');
-}
-
-window.selectPose=function(idx){
- poseBar.querySelectorAll('.pose-card').forEach(c=>c.classList.remove('active'));
- poseBar.querySelector(`[data-idx="${idx}"]`)?.classList.add('active');
- loadPose(poses[idx]);
-};
-
-async function loadPose(pose){
+window.selectAnim=async function(idx){
+ animBar.querySelectorAll('.anim-tab').forEach(t=>t.classList.remove('active'));
+ animBar.querySelector(`[data-idx="${idx}"]`)?.classList.add('active');
  loading.style.display='flex';
- loadingTxt.textContent='Loading: '+pose.label;
- if(currentModel){scene.remove(currentModel);currentModel=null}
+ loadingTxt.textContent='Loading: '+ANIMS[idx].name;
+ if(currentModel){scene.remove(currentModel);currentModel=null;mixer=null}
  try{
-  let gltf=await new GLTFLoader().loadAsync(pose.file);
-  currentModel=gltf.scene;
+  let fbx=await new FBXLoader().loadAsync(ANIMS[idx].file);
+  currentModel=fbx;
   let box=new THREE.Box3().setFromObject(currentModel);
   let size=box.getSize(new THREE.Vector3());
   let center=box.getCenter(new THREE.Vector3());
   currentModel.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));
   currentModel.position.y=-center.y*currentModel.scale.y;
   scene.add(currentModel);
+  if(fbx.animations&&fbx.animations.length>0){
+   mixer=new THREE.AnimationMixer(currentModel);
+   currentClip=fbx.animations[0];
+   let action=mixer.clipAction(currentClip);
+   action.play();
+   timeline.max=Math.round(currentClip.duration*100);
+   timeline.value=0;
+   durLabel.textContent=currentClip.duration.toFixed(1)+'s';
+   timeLabel.textContent='0.0s';
+   mixer.setTime(0);
+  }
   loading.style.display='none';
- }catch(e){
-  loadingTxt.textContent='Error: '+e.message;
-  console.warn(e);
- }
-}
+ }catch(e){loadingTxt.textContent='Error: '+e.message;console.warn(e)}
+};
 
-loadPoses();
+timeline.addEventListener('input',()=>{
+ if(!mixer||!currentClip)return;
+ let t=+timeline.value/100;
+ mixer.setTime(t);
+ timeLabel.textContent=t.toFixed(1)+'s';
+});
+
+// Load first animation
+selectAnim(0);
 </script>
 </body>
 </html>
