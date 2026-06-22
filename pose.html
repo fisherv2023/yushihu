@@ -140,12 +140,12 @@ timeline.addEventListener('input',()=>{
  paused=true;
  let t=+timeline.value/100;
  mixer.setTime(t);
+ mixer.update(0); // apply pose at this time
  timeLabel.textContent=t.toFixed(1)+'s';
 });
-timeline.addEventListener('change',()=>{
- // Resume playback from slider position
- paused=false;
-});
+timeline.addEventListener('change',()=>{paused=false});
+timeline.addEventListener('touchend',()=>{paused=false});
+timeline.addEventListener('pointerup',()=>{paused=false});
 
 // Load first animation
 selectAnim(0);
