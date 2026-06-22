@@ -148,13 +148,22 @@ window.selectPose=function(id){
 // Apply bone rotations from pose definition
 function applyPose(poseDef){
  if(!model)return;
- // Reset all bones to identity
- Object.values(bones).forEach(b=>{b.quaternion.identity();if(b.userData?.restPos)b.position.copy(b.userData.restPos)});
+ // Reset all bones to rest pose
+ Object.values(bones).forEach(b=>{
+  if(b.userData?.restQuat)b.quaternion.copy(b.userData.restQuat);
+  else b.quaternion.identity();
+  if(b.userData?.restPos)b.position.copy(b.userData.restPos);
+ });
  if(!poseDef||!poseDef.bones)return;
  Object.entries(poseDef.bones).forEach(([name,rot])=>{
   let b=bones[name];if(!b)return;
-  let e=new THREE.Euler(rot.x||0, rot.y||0, rot.z||0, 'YXZ');
-  b.quaternion.setFromEuler(e);
+  // Reset to rest first, then apply
+  if(b.userData?.restQuat)b.quaternion.copy(b.userData.restQuat);
+  else b.quaternion.identity();
+  let e=new THREE.Euler(rot.x||0, rot.y||0, rot.z||0);
+  let animQ=new THREE.Quaternion().setFromEuler(e);
+  // Compose: rest * animation
+  b.quaternion.multiply(animQ);
  });
 }
 
@@ -186,7 +195,7 @@ async function loadModel(modelName){
   model.traverse(o=>{
    if(o.isBone){
     bones[o.name]=o;
-    o.userData={restPos:o.position.clone(),restQuat:o.quaternion.clone()};
+    o.userData={restQuat:o.quaternion.clone(),restPos:o.position.clone()};
    }
   });
   let box=new THREE.Box3().setFromObject(model);
