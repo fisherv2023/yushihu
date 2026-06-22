@@ -8,64 +8,34 @@
 <title>Pose to 3D</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,sans-serif;touch-action:pan-x pan-y pinch-zoom}
+body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
 canvas{display:block}
-#overlay{position:fixed;inset:0;z-index:2;pointer-events:none}
-#overlay canvas{pointer-events:auto}
-
-/* Top bar */
 .top-bar{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))}
 .top-bar span{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;letter-spacing:.15em}
 .top-bar button{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;cursor:pointer;background:none;border:none;padding:4px 8px;letter-spacing:.1em}
-
-/* Pose selector bar */
 .pose-bar{position:fixed;bottom:120px;left:0;right:0;z-index:10;overflow-x:auto;overflow-y:hidden;white-space:nowrap;padding:0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .pose-bar::-webkit-scrollbar{display:none}
 .pose-card{display:inline-block;margin:0 4px;padding:10px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;transition:all .2s;letter-spacing:.05em;text-align:center;min-width:72px}
 .pose-card.active{border-color:rgba(255,255,255,.6);color:#fff;background:rgba(255,255,255,.12)}
 .pose-card .emoji{font-size:22px;display:block;margin-bottom:2px}
 .pose-card .lbl{font-size:11px;opacity:.8}
-
-/* Bottom bar */
 .bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:flex;justify-content:center;align-items:center;gap:12px;padding:0 16px}
 .exit-btn{padding:6px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;letter-spacing:.05em;user-select:none;-webkit-user-select:none}
 .aux-btn{padding:6px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;letter-spacing:.05em;user-select:none;-webkit-user-select:none;transition:all .2s}
 .aux-btn:active{background:rgba(255,255,255,.1)}
-
-/* Loading */
 #loading{position:fixed;inset:0;z-index:5;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;flex-direction:column}
 #loading .sp{width:28px;height:28px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #loading .txt{color:#fff;margin-top:14px;font-size:13px;letter-spacing:.1em}
-
-/* Model selector */
-.model-tabs{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:6px}
-.model-tab{padding:6px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.4);font-size:11px;cursor:pointer;letter-spacing:.05em;transition:.2s}
-.model-tab.active{border-color:rgba(255,255,255,.5);color:#fff}
 </style>
 </head>
 <body>
-
-<div id="overlay"></div>
-
-<div id="loading"><div class="sp"></div><div class="txt">Loading model...</div></div>
-
-<div class="top-bar">
-  <span>POSE</span>
-  <button onclick="history.back()">EXIT</button>
-</div>
-
-<div class="model-tabs">
-  <button class="model-tab active" data-model="xbot">FEMALE</button>
-  <button class="model-tab" data-model="ybot">MALE</button>
-</div>
-
+<div id="loading"><div class="sp"></div><div class="txt">Loading...</div></div>
+<div class="top-bar"><span>POSE</span><button onclick="history.back()">EXIT</button></div>
 <div class="pose-bar" id="poseBar"></div>
-
 <div class="bottom-bar">
   <button class="exit-btn" onclick="history.back()">EXIT</button>
-  <button class="aux-btn" onclick="resetPose()">RESET</button>
-  <button class="aux-btn" onclick="save()">SAVE</button>
+  <button class="aux-btn" onclick="saveImg()">SAVE</button>
 </div>
 
 <script type="importmap">
@@ -77,13 +47,12 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
-// DOM
-const overlay=document.getElementById('overlay');
 const loading=document.getElementById('loading');
-const poseBar=document.getElementById('poseBar');
 const loadingTxt=loading.querySelector('.txt');
+const poseBar=document.getElementById('poseBar');
 
-let scene,camera,renderer,controls,model=null,bones={},poses={},poseOrder=[],jointToBone={},boneScale=2.5,boneYOffset=0.15,currentPose=null,poseData=null;
+let scene,camera,renderer,controls,currentModel=null;
+let poses=[]; // [{name, label, emoji, file}]
 
 // Init Three.js
 scene=new THREE.Scene();scene.background=new THREE.Color(0x0a0a0f);
@@ -92,134 +61,72 @@ camera.position.set(0,1.2,3);camera.lookAt(0,.6,0);
 renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth,innerHeight);
-overlay.appendChild(renderer.domElement);
+document.body.appendChild(renderer.domElement);
 controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=.12;
 controls.target.set(0,.6,0);controls.update();
 scene.add(new THREE.AmbientLight(0xffffff,.7));
 let dl=new THREE.DirectionalLight(0xffffff,.6);dl.position.set(1,3,2);scene.add(dl);
 scene.add(new THREE.GridHelper(3,30,0x222,0x111).translateY(-.7));
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
-window.addEventListener('resize',()=>{
- camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
- renderer.setSize(innerWidth,innerHeight);
-});
-
-// Animation loop
-function animate(){
- requestAnimationFrame(animate);
- controls.update();
- renderer.render(scene,camera);
-}
+function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);}
 animate();
 
-// Load poses JSON
+window.saveImg=function(){
+ let a=document.createElement('a');a.download='pose.png';a.href=renderer.domElement.toDataURL('image/png');a.click();
+};
+
+// Load pose definitions
 async function loadPoses(){
  try{
-  let r=await fetch('models/poses.json');
-  poseData=await r.json();
-  poses=poseData.poses;
-  poseOrder=poseData.choosePoses||[];
+  let r=await fetch('models/poses/index.json');
+  let data=await r.json();
+  poses=data.poses||data;
   buildPoseBar();
-  if(poseOrder.length>0)selectPose(poseOrder[0]);
- }catch(e){console.warn('poses load error',e)}
+  if(poses.length>0)loadPose(poses[0]);
+ }catch(e){
+  // Fallback: hardcoded if no index.json
+  poses=[{name:'standing_idle',label:'Standing',emoji:'🧍',file:'models/poses/standing_idle.glb'}];
+  buildPoseBar();
+  loadPose(poses[0]);
+ }
 }
 
-// Build pose selector bar
 function buildPoseBar(){
- poseBar.innerHTML=poseOrder.map(id=>{
-  let p=poses[id];
-  return `<div class=\"pose-card\" data-pose=\"${id}\" onclick=\"selectPose('${id}')\">
-   <span class=\"emoji\">${p.emoji}</span>
-   <span class=\"lbl\">${p.label}</span>
-  </div>`;
- }).join('');
+ poseBar.innerHTML=poses.map((p,i)=>`<div class="pose-card" data-idx="${i}" onclick="selectPose(${i})">
+  <span class="emoji">${p.emoji||'📦'}</span>
+  <span class="lbl">${p.label||p.name}</span>
+ </div>`).join('');
 }
 
-// Select and apply a pose
-window.selectPose=function(id){
- currentPose=id;
+window.selectPose=function(idx){
  poseBar.querySelectorAll('.pose-card').forEach(c=>c.classList.remove('active'));
- let card=poseBar.querySelector(`[data-pose=\"${id}\"]`);
- if(card)card.classList.add('active');
- applyPose(poses[id]);
+ poseBar.querySelector(`[data-idx="${idx}"]`)?.classList.add('active');
+ loadPose(poses[idx]);
 };
 
-// Apply bone rotations from pose definition
-function applyPose(poseDef){
- if(!model)return;
- // Reset all bones to rest pose
- Object.values(bones).forEach(b=>{
-  if(b.userData?.restQuat)b.quaternion.copy(b.userData.restQuat);
-  else b.quaternion.identity();
-  if(b.userData?.restPos)b.position.copy(b.userData.restPos);
- });
- if(!poseDef||!poseDef.bones)return;
- Object.entries(poseDef.bones).forEach(([name,rot])=>{
-  let b=bones[name];if(!b)return;
-  if(rot.w!==undefined)b.quaternion.set(rot.x||0, rot.y||0, rot.z||0, rot.w||1);
-  else b.quaternion.setFromEuler(new THREE.Euler(rot.x||0, rot.y||0, rot.z||0));
- });
-}
-
-// Reset to T-pose
-window.resetPose=function(){
- applyPose({bones:{}});
- poseBar.querySelectorAll('.pose-card').forEach(c=>c.classList.remove('active'));
- currentPose=null;
-};
-
-// Save screenshot
-window.save=function(){
- let a=document.createElement('a');
- a.download='pose.png';
- a.href=renderer.domElement.toDataURL('image/png');
- a.click();
-};
-
-// Load model
-async function loadModel(modelName){
+async function loadPose(pose){
  loading.style.display='flex';
- loadingTxt.textContent='Loading '+modelName+'...';
- if(model){scene.remove(model);model=null;bones={}}
+ loadingTxt.textContent='Loading: '+pose.label;
+ if(currentModel){scene.remove(currentModel);currentModel=null}
  try{
-  let loader=new GLTFLoader();
-  let gltf=await loader.loadAsync('models/'+modelName+'.glb');
-  model=gltf.scene;
-  bones={};
-  model.traverse(o=>{
-   if(o.isBone){
-    bones[o.name]=o;
-    o.userData={restQuat:o.quaternion.clone(),restPos:o.position.clone()};
-   }
-  });
-  let box=new THREE.Box3().setFromObject(model);
+  let gltf=await new GLTFLoader().loadAsync(pose.file);
+  currentModel=gltf.scene;
+  let box=new THREE.Box3().setFromObject(currentModel);
   let size=box.getSize(new THREE.Vector3());
   let center=box.getCenter(new THREE.Vector3());
-  model.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));
-  model.position.y=-center.y*model.scale.y;
-  scene.add(model);
+  currentModel.scale.setScalar(1.8/Math.max(size.x,size.y,size.z));
+  currentModel.position.y=-center.y*currentModel.scale.y;
+  scene.add(currentModel);
   loading.style.display='none';
-  console.log(modelName,'loaded. Bones:',Object.keys(bones).length);
-  if(currentPose&&poses[currentPose])applyPose(poses[currentPose]);
  }catch(e){
-  loadingTxt.textContent='Error loading model';
+  loadingTxt.textContent='Error: '+e.message;
   console.warn(e);
  }
 }
 
-// Model switching
-document.querySelectorAll('.model-tab').forEach(tab=>{
- tab.addEventListener('click',()=>{
-  document.querySelectorAll('.model-tab').forEach(t=>t.classList.remove('active'));
-  tab.classList.add('active');
-  loadModel(tab.dataset.model);
- });
-});
-
-// Init
 loadPoses();
-loadModel('xbot');
 </script>
 </body>
 </html>
