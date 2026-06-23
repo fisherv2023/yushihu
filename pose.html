@@ -149,6 +149,7 @@ async function loadAnim(idx){
 }
 
 function setupAnim(model,animationClip){
+ console.log('Clip:',animationClip?.name||'none',animationClip?.duration||0);
  if(!animationClip)return;
  mixer=new THREE.AnimationMixer(model);
  clip=animationClip;
