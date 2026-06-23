@@ -46,6 +46,7 @@ canvas{display:block}
     <svg id="pi" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
     <svg id="pl" viewBox="0 0 24 24" style="display:none"><polygon points="6,3 20,12 6,21"/></svg>
   </button>
+  <button class="btn" id="bgBtn" onclick="cycleBg()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></button>
   <button class="btn fill" onclick="sv()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
 </div>
 
@@ -88,7 +89,10 @@ window.sl=async function(i){
   if(fbx.animations?.length>0){
    mx=new THREE.AnimationMixer(md);cp=fbx.animations[0];
    let a=mx.clipAction(cp);a.play();ps=false;
-   ti.max=Math.round(cp.duration*100);ti.value=0;td.textContent=cp.duration.toFixed(1)+'s';tl.textContent='0.0s';
+   ti.max=Math.round(cp.duration*100);
+   let st=Math.min(1,cp.duration*.2);
+   ti.value=Math.round(st*100);mx.setTime(st);mx.update(0);
+   td.textContent=cp.duration.toFixed(1)+'s';tl.textContent=st.toFixed(1)+'s';
    document.getElementById('pi').style.display='';document.getElementById('pl').style.display='none';
   }
   loading.style.display='none';
@@ -97,6 +101,23 @@ window.sl=async function(i){
 
 ti.addEventListener('input',()=>{if(!mx||!cp)return;ps=true;document.getElementById('pi').style.display='none';document.getElementById('pl').style.display='';mx.setTime(+ti.value/100);mx.update(0);tl.textContent=(+ti.value/100).toFixed(1)+'s'});
 window.tp=function(){ps=!ps;document.getElementById('pi').style.display=ps?'none':'';document.getElementById('pl').style.display=ps?'':'none'};
+
+let bgIdx=0;
+const BGS=['#0a0a0f','#444','#f0f0f0'];
+window.cycleBg=function(){bgIdx=(bgIdx+1)%3;sc.background=new THREE.Color(BGS[bgIdx]);document.getElementById('bgBtn').classList.toggle('fill',bgIdx>0)};
+
+// Double-tap hide UI
+let lastTap=0;
+document.addEventListener('click',e=>{
+ if(e.target.closest('.btn,.anim-tab,#timeline'))return;
+ let now=Date.now();
+ if(now-lastTap<300){
+  let els=[document.querySelector('.top-bar'),ab,document.querySelector('.timeline'),document.querySelector('.bottom-bar')];
+  let hid=els[0].style.display==='none';
+  els.forEach(el=>el.style.display=hid?'':'none');
+ }
+ lastTap=now;
+});
 
 sl(0);
 </script>
