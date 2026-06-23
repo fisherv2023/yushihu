@@ -154,8 +154,12 @@ function setupAnim(model,animationClip){
  mixer=new THREE.AnimationMixer(model);
  clip=animationClip;
  let action=mixer.clipAction(clip);action.play();
- timeline.max=Math.round(clip.duration*100);timeline.value=0;
- durLabel.textContent=clip.duration.toFixed(1)+'s';timeLabel.textContent='0.0s';
+ timeline.max=Math.round(clip.duration*100);
+ let startT=Math.min(1,clip.duration*.2);
+ timeline.value=Math.round(startT*100);
+ mixer.setTime(startT);mixer.update(0);
+ durLabel.textContent=clip.duration.toFixed(1)+'s';
+ timeLabel.textContent=startT.toFixed(1)+'s';
  paused=false;
  document.getElementById('pauseIcon').style.display='';
  document.getElementById('playIcon').style.display='none';
