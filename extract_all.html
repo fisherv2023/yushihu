@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Bulk Pose Extractor</title></head><body>
+<h2>Bulk Pose Extractor</h2>
+<p>Loads xbot.glb + each FBX animation → extracts quaternions at t=0.5s</p>
+<pre id="log" style="background:#111;color:#0f0;padding:10px;font:12px monospace;white-space:pre-wrap;max-height:80vh;overflow:auto"></pre>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+
+let log=document.getElementById('log');
+let allPoses={};
+let base='models/poses/';
+let anims=['Standing_Idle','Sitting_Gun_Motion','Kneeling_Down','Crouching','Walking','Running','Fast_Run','Hip_Hop_Dancing'];
+let labels=['Standing','Sitting','Kneeling','Crouching','Walking','Running','Fast Run','Dancing'];
+let emojis=['🧍','🪑','🙇','🧎','🚶','🏃','💨','💃'];
+
+// Load base xbot.glb
+log.textContent='Loading xbot.glb...\n';
+let gltf=await new GLTFLoader().loadAsync('models/xbot.glb');
+let scene=gltf.scene;
+let bones={};
+scene.traverse(o=>{if(o.isBone)bones[o.name]=o});
+log.textContent+='Base model: '+Object.keys(bones).length+' bones\n\n';
+
+async function extract(fname,label,emoji,idx){
+ log.textContent+='Processing: '+fname+'\n';
+ try{
+  let fbx=await new FBXLoader().loadAsync(base+fname+'.fbx');
+  let clips=fbx.animations||[];
+  if(clips.length===0){log.textContent+='  ✗ No animation clips\n';return}
+  
+  let mixer=new THREE.AnimationMixer(scene);
+  let action=mixer.clipAction(clips[0]);
+  action.play();
+  let t=Math.min(clips[0].duration*0.3,1);
+  mixer.setTime(t);mixer.update(0);
+  
+  let pose={};
+  let count=0;
+  Object.entries(bones).forEach(([name,bone])=>{
+   let q=bone.quaternion;
+   if(q.x!==0||q.y!==0||q.z!==0||q.w!==1){
+    pose[name]={w:+q.w.toFixed(6),x:+q.x.toFixed(6),y:+q.y.toFixed(6),z:+q.z.toFixed(6)};
+    count++;
+   }
+  });
+  action.stop();
+  allPoses[fname.replace(/_/g,' ').toLowerCase()]={
+   label:label,emoji:emoji,key:fname.replace(/_/g,' ').toLowerCase(),
+   bones:pose
+  };
+  log.textContent+='  ✓ '+count+' non-identity bones\n';
+ }catch(e){log.textContent+='  ✗ '+e.message+'\n'}
+}
+
+for(let i=0;i<anims.length;i++) await extract(anims[i],labels[i],emojis[i],i);
+
+// Output as downloadable JSON
+let json=JSON.stringify({poses:allPoses,order:anims.map(a=>a.replace(/_/g,' ').toLowerCase()),defaultPose:anims[0].replace(/_/g,' ').toLowerCase()});
+let blob=new Blob([json],{type:'application/json'});
+let a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download='poses.json';
+a.click();
+log.textContent+='\n✓ poses.json downloaded! ('+(json.length/1024).toFixed(1)+'KB)\n';
+</script>
+</body></html>
