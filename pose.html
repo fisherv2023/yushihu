@@ -26,10 +26,11 @@ canvas{display:block}
 .timeline .time-label{color:rgba(255,255,255,.4);font-size:11px;min-width:40px;text-align:center}
 
 /* Bottom bar */
-.bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:flex;justify-content:center;align-items:center;gap:12px;padding:0 16px}
-.aux-btn{padding:6px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;letter-spacing:.05em;user-select:none;-webkit-user-select:none;transition:all .2s}
+.bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:0 24px}
+.aux-btn{width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;letter-spacing:.05em;user-select:none;-webkit-user-select:none;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.aux-btn svg{width:16px;height:16px;fill:#fff}
 .aux-btn:active{background:rgba(255,255,255,.1)}
-.aux-btn.primary{border-color:rgba(255,255,255,.5);color:#fff}
+.aux-btn.primary{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4)}
 
 #loading{position:fixed;inset:0;z-index:5;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;flex-direction:column}
 #loading .sp{width:28px;height:28px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
@@ -47,9 +48,16 @@ canvas{display:block}
   <span class="time-label" id="durLabel">0.0s</span>
 </div>
 <div class="bottom-bar">
-  <button class="aux-btn" onclick="history.back()">EXIT</button>
-  <button class="aux-btn" id="playBtn" onclick="togglePlay()">⏸</button>
-  <button class="aux-btn primary" onclick="saveImg()">SAVE</button>
+  <button class="aux-btn" onclick="history.back()">
+    <svg viewBox="0 0 24 24"><path d="M19 12H5m7-7l-7 7 7 7"/></svg>
+  </button>
+  <button class="aux-btn primary" id="playBtn" onclick="togglePlay()">
+    <svg id="pauseIcon" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+    <svg id="playIcon" viewBox="0 0 24 24" style="display:none"><polygon points="6,3 20,12 6,21"/></svg>
+  </button>
+  <button class="aux-btn" onclick="saveImg()">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  </button>
 </div>
 
 <script type="importmap">
@@ -96,7 +104,7 @@ function animate(){requestAnimationFrame(animate);controls.update();if(mixer&&!p
 animate();
 
 window.saveImg=function(){
- paused=true;document.getElementById('playBtn').textContent='▶';
+ paused=true;document.getElementById('pauseIcon').style.display='none';document.getElementById('playIcon').style.display='';
  renderer.render(scene,camera);
  let a=document.createElement('a');a.download='pose.png';a.href=renderer.domElement.toDataURL('image/png');a.click();
 };
@@ -140,7 +148,7 @@ window.selectAnim=async function(idx){
 
 timeline.addEventListener('input',()=>{
  if(!mixer||!currentClip)return;
- paused=true;document.getElementById('playBtn').textContent='▶';
+ paused=true;document.getElementById('pauseIcon').style.display='none';document.getElementById('playIcon').style.display='';
  let t=+timeline.value/100;
  mixer.setTime(t);
  mixer.update(0);
@@ -148,7 +156,8 @@ timeline.addEventListener('input',()=>{
 });
 window.togglePlay=function(){
  paused=!paused;
- document.getElementById('playBtn').textContent=paused?'▶':'⏸';
+ document.getElementById('pauseIcon').style.display=paused?'none':'';
+ document.getElementById('playIcon').style.display=paused?'':'none';
 };
 
 // Load first animation
