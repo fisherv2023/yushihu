@@ -121,18 +121,10 @@ window.addEventListener('resize',()=>{ca.aspect=innerWidth/innerHeight;ca.update
 function anim(){requestAnimationFrame(anim);co.update();if(mixer&&!paused)mixer.update(.016);re.render(sc,ca)}
 anim();
 
-// Cache for loaded models
-const modelCache={};
 async function loadAnim(idx){
  let a=ANIMS[idx];if(!a)return;
  loading.style.display='flex';loadingTxt.textContent=a.emoji+' '+a.name;
- if(md){sc.remove(md);md=null;mixer=null}
- if(modelCache[a.file]){
-  md=modelCache[a.file].clone();
-  sc.add(md);
-  setupAnim(md,modelCache[a.file+'_clip']);
-  loading.style.display='none';return;
- }
+ if(md){sc.remove(md);md=null;mixer=null;clip=null}
  try{
   let fbx=await new FBXLoader().loadAsync(a.file);
   md=fbx;
@@ -141,8 +133,6 @@ async function loadAnim(idx){
   md.scale.setScalar(1.5/Math.max(s.x,s.y,s.z));
   md.position.y=-c.y*md.scale.y;
   sc.add(md);
-  // Cache clone
-  modelCache[a.file]=md.clone();
   setupAnim(md,fbx.animations?.[0]);
   loading.style.display='none';
  }catch(e){loadingTxt.textContent='Error: '+e.message}
