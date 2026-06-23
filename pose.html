@@ -40,10 +40,12 @@ canvas{display:block}
 #loading .sp{width:28px;height:28px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #loading .txt{color:#fff;margin-top:14px;font-size:13px;letter-spacing:.1em}
+#loading .bar-wrap{width:160px;height:3px;margin-top:10px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+#loading .bar-fill{height:100%;background:#fff;border-radius:2px;width:0;transition:width .3s}
 </style>
 </head>
 <body>
-<div id="loading"><div class="sp"></div><div class="txt">Loading model...</div></div>
+<div id="loading"><div class="sp"></div><div class="txt">Loading model...</div><div class="bar-wrap"><div class="bar-fill" id="barFill"></div></div></div>
 <div class="top-bar"><span>POSE</span></div>
 <div class="timeline">
   <span class="t-label" id="tl">0.0s</span>
@@ -79,10 +81,17 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
 
-const loading=document.getElementById('loading'),lt=loading.querySelector('.txt');
+const loading=document.getElementById('loading'),lt=loading.querySelector('.txt'),barFill=document.getElementById('barFill');
 const menuBtn=document.getElementById('menuBtn'),menuDrop=document.getElementById('menuDrop');
 const ti=document.getElementById('timeline'),tl=document.getElementById('tl'),td=document.getElementById('td');
 let sc,ca,re,co,md=null,mx=null,cp=null,ps=false;
+
+// LoadingManager for progress bar
+let progressInterval=null;
+const loadMgr=new THREE.LoadingManager();
+loadMgr.onStart=()=>{barFill.style.width='0%';barFill.style.transition='none';progressInterval=setInterval(()=>{let w=parseFloat(barFill.style.width);if(w<90)barFill.style.width=(w+2)+'%'},100)};
+loadMgr.onLoad=()=>{barFill.style.width='100%';barFill.style.transition='width .3s';clearInterval(progressInterval);setTimeout(()=>loading.style.display='none',200)};
+loadMgr.onError=()=>{clearInterval(progressInterval)};
 
 const ANIMS=[['Standing','models/poses/Standing_Idle.fbx'],['Sitting','models/poses/Sitting_Gun_Motion.fbx'],['Kneeling','models/poses/Kneeling_Down.fbx'],['Crouching','models/poses/Crouching.fbx'],['Walking','models/poses/Walking.fbx'],['Dancing','models/poses/Hip_Hop_Dancing.fbx']];
 
@@ -105,10 +114,10 @@ window.sl=async function(i){
  menuDrop.querySelectorAll('.menu-item').forEach(e=>e.classList.remove('active'));
  menuDrop.querySelector(`[data-idx="${i}"]`)?.classList.add('active');
  menuDrop.classList.remove('show');
- loading.style.display='flex';lt.textContent=ANIMS[i][0];
+ loading.style.display='flex';lt.textContent=ANIMS[i][0];barFill.style.width='2%';
  if(md){sc.remove(md);md=null;mx=null;cp=null}
  try{
-  let fbx=await new FBXLoader().loadAsync(ANIMS[i][1]);
+  let fbx=await new FBXLoader(loadMgr).loadAsync(ANIMS[i][1]);
   md=fbx;let b=new THREE.Box3().setFromObject(md),s=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());
   md.scale.setScalar(1.5/Math.max(s.x,s.y,s.z));md.position.y=-c.y*md.scale.y;sc.add(md);
   if(fbx.animations?.length>0){
