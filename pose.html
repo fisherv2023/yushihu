@@ -91,14 +91,17 @@ loadMgr.onStart=()=>{barFill.style.width='0%';barFill.style.transition='none';pr
 loadMgr.onLoad=()=>{barFill.style.width='100%';barFill.style.transition='width .3s';clearInterval(progressInterval);setTimeout(()=>loading.style.display='none',200)};
 loadMgr.onError=()=>{clearInterval(progressInterval)};
 
-const ANIMS=[['Standing','models/poses/Standing_Idle.fbx'],['Sitting','models/poses/Sitting_Gun_Motion.fbx'],['Kneeling','models/poses/Kneeling_Down.fbx'],['Crouching','models/poses/Crouching.fbx'],['Walking','models/poses/Walking.fbx'],['Dancing','models/poses/Hip_Hop_Dancing.fbx']];
+const ANIMS=[['Standing','models/poses/Standing_Idle.fbx'],['Sitting','models/poses/Sitting_Gun_Motion.fbx'],['Kneeling','models/poses/Kneeling_Down.fbx'],['Crouching','models/poses/Crouching.fbx'],['Walking','models/poses/Walking.fbx'],['Breakdance','models/poses/Breakdance.fbx'],['Golf','models/poses/Golf.fbx'],['Kick','models/poses/Kick.fbx'],['Lying','models/poses/Lying.fbx'],['Salute','models/poses/Salute.fbx'],['Standing Up','models/poses/Standing_Up.fbx'],['Dancing','models/poses/Hip_Hop_Dancing.fbx']];
 
 sc=new THREE.Scene();sc.background=new THREE.Color(0x0a0a0f);
 ca=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.01,20);ca.position.set(0,1,3.5);ca.lookAt(0,.5,0);
 re=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
 re.setPixelRatio(Math.min(devicePixelRatio,2));re.setSize(innerWidth,innerHeight);document.body.appendChild(re.domElement);
 co=new OrbitControls(ca,re.domElement);co.enableDamping=true;co.dampingFactor=.12;co.target.set(0,.5,0);co.minDistance=1.5;co.maxDistance=6;co.update();
-sc.add(new THREE.AmbientLight(0xffffff,.7));let dl=new THREE.DirectionalLight(0xffffff,.5);dl.position.set(1,3,2);sc.add(dl);
+sc.add(new THREE.AmbientLight(0xffffff,.5));
+let key=new THREE.DirectionalLight(0xffeedd,.9);key.position.set(2,3,2);sc.add(key);
+let rim=new THREE.DirectionalLight(0xccddff,.4);rim.position.set(-1,1,-1);sc.add(rim);
+let fill=new THREE.DirectionalLight(0xffffff,.3);fill.position.set(0,1,1);sc.add(fill);
 window.addEventListener('resize',()=>{ca.aspect=innerWidth/innerHeight;ca.updateProjectionMatrix();re.setSize(innerWidth,innerHeight)});
 function an(){requestAnimationFrame(an);co.update();if(mx&&!ps)mx.update(.016);re.render(sc,ca)}an();
 window.sv=function(){let a=document.createElement('a');a.download='pose.png';a.href=re.domElement.toDataURL('image/png');a.click()};
