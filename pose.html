@@ -27,10 +27,10 @@ canvas{display:block}
 .timeline .t-label{color:rgba(255,255,255,.4);font-size:11px;min-width:40px;text-align:center}
 
 /* Bottom bar - 2:1:2 ratio with center fixed */
-.bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:grid;grid-template-columns:2fr 1fr 2fr;align-items:center;padding:0 16px}
-.bar-l{display:flex;justify-content:flex-end;gap:8px}
-.bar-c{display:flex;justify-content:center}
-.bar-r{display:flex;justify-content:flex-start;gap:8px}
+.bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:grid;grid-template-columns:1fr auto auto auto 1fr;align-items:center;padding:0 24px;gap:6px}
+.bar-l{display:flex;justify-content:flex-end;gap:6px}
+.bar-c{display:flex;justify-content:center;gap:6px}
+.bar-r{display:flex;justify-content:flex-start;gap:6px}
 .btn{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s}
 .btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2}
 .btn.fill svg{fill:#fff}
