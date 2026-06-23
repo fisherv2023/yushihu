@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Batch FBX→GLB</title></head><body>
-<h2>Batch FBX → GLB Converter</h2>
-<p>Converts all FBX in models/poses/ to smaller GLB files</p>
+<html><head><meta charset="UTF-8"><title>Batch FBX→GLB v2</title></head><body>
+<h2>Batch FBX → GLB Converter v2</h2>
+<p>Converts all FBX files, baking animation at 0.5s into GLB</p>
 <pre id="log" style="background:#111;color:#0f0;padding:10px;font:12px monospace;white-space:pre-wrap;max-height:80vh;overflow:auto"></pre>
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
@@ -12,36 +12,55 @@ import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 
 let log=document.getElementById('log');
-let files=[
-  'Crouching.fbx','Fast_Run.fbx','Hip_Hop_Dancing.fbx','Kneeling_Down.fbx',
-  'Running.fbx','Sitting_Gun_Motion.fbx','Standing_Idle.fbx','Walking.fbx'
-];
+let files={
+  'standing_idle':'Standing_Idle.fbx',
+  'sitting_gun_motion':'Sitting_Gun_Motion.fbx',
+  'kneeling_down':'Kneeling_Down.fbx',
+  'crouching':'Crouching.fbx',
+  'walking':'Walking.fbx',
+  'running':'Running.fbx',
+  'fast_run':'Fast_Run.fbx',
+  'hip_hop_dancing':'Hip_Hop_Dancing.fbx',
+};
 let base='models/poses/';
 
-async function convert(fname){
+async function convert(name, fname){
  log.textContent+='Converting: '+fname+'\n';
  try{
   let fbx=await new FBXLoader().loadAsync(base+fname);
   let clips=fbx.animations||[];
+  
+  // Manually apply animation to bones at t=0.5
   if(clips.length>0){
-   let mixer=new THREE.AnimationMixer(fbx);
-   let action=mixer.clipAction(clips[0]);action.play();
-   let t=Math.min(clips[0].duration*0.3,1);
-   mixer.setTime(t);mixer.update(0);
+   let boneMap={};
+   fbx.traverse(o=>{if(o.isBone)boneMap[o.name]=o});
+   clips[0].tracks.forEach(track=>{
+    let bname=track.name.replace('.quaternion','').replace('.position','');
+    let bone=boneMap[bname];if(!bone)return;
+    let qi=0;
+    for(let i=0;i<track.times.length;i++){if(track.times[i]>=0.5){qi=i;break}}
+    if(track.name.includes('quaternion')&&qi*4+3<track.values.length){
+     bone.quaternion.set(track.values[qi*4],track.values[qi*4+1],track.values[qi*4+2],track.values[qi*4+3]);
+    }
+    if(track.name.includes('position')&&qi*3+2<track.values.length){
+     bone.position.set(track.values[qi*3],track.values[qi*3+1],track.values[qi*3+2]);
+    }
+   });
   }
+
   let exporter=new GLTFExporter();
   let result=await exporter.parseAsync(fbx,{binary:true});
   let blob=new Blob([result],{type:'application/octet-stream'});
   let a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=fname.replace('.fbx','.glb');
+  a.download=name+'.glb';
   a.click();
-  log.textContent+='  ✓ '+(result.byteLength/1024).toFixed(0)+'KB GLB\n';
-  await new Promise(r=>setTimeout(r,1000)); // delay between downloads
+  log.textContent+='  ✓ '+(result.byteLength/1024).toFixed(0)+'KB\n';
+  await new Promise(r=>setTimeout(r,1500));
  }catch(e){log.textContent+='  ✗ '+e.message+'\n'}
 }
 
-for(let f of files) await convert(f);
+for(let [name,fname] of Object.entries(files)) await convert(name,fname);
 log.textContent+='\nDone! Move all .glb files to models/poses/ folder.';
 </script>
 </body></html>

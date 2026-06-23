@@ -14,12 +14,8 @@ canvas{display:block}
 .top-bar span{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;letter-spacing:.15em}
 .anim-bar{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:6px;overflow-x:auto;max-width:90vw;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .anim-bar::-webkit-scrollbar{display:none}
-.anim-tab{padding:6px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);color:rgba(255,255,255,.4);font-size:11px;cursor:pointer;letter-spacing:.05em;transition:.2s;white-space:nowrap;flex-shrink:0}
-.anim-tab.active{border-color:rgba(255,255,255,.5);color:#fff}
-.timeline{position:fixed;bottom:120px;left:16px;right:16px;z-index:10;display:flex;align-items:center;gap:10px}
-.timeline input[type=range]{flex:1;-webkit-appearance:none;height:4px;background:rgba(255,255,255,.2);border-radius:2px}
-.timeline input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#fff}
-.timeline .t-label{color:rgba(255,255,255,.4);font-size:11px;min-width:40px;text-align:center}
+.anim-tab{padding:6px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);color:rgba(255,255,255,.4);font-size:12px;cursor:pointer;transition:.2s;white-space:nowrap;flex-shrink:0}
+.anim-tab.active{border-color:rgba(255,255,255,.5);color:#fff;background:rgba(255,255,255,.12)}
 .bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:0 24px}
 .btn{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s}
 .btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2}
@@ -35,11 +31,6 @@ canvas{display:block}
 <div id="loading"><div class="sp"></div><div class="txt">Loading model...</div></div>
 <div class="top-bar"><span>POSE</span></div>
 <div class="anim-bar" id="animBar"></div>
-<div class="timeline">
-  <span class="t-label">0.0s</span>
-  <input type="range" id="timeline" min="0" max="100" value="0" step="1">
-  <span class="t-label">0.0s</span>
-</div>
 <div class="bottom-bar">
   <button class="btn" onclick="history.back()"><svg viewBox="0 0 24 24"><path d="M19 12H5m7-7l-7 7 7 7"/></svg></button>
   <button class="btn fill" onclick="saveImg()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
@@ -53,15 +44,23 @@ canvas{display:block}
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
 
 const loading=document.getElementById('loading'),loadingTxt=loading.querySelector('.txt');
 const animBar=document.getElementById('animBar');
 
-let sc,ca,re,co,model=null,bones={},poseData=null,currentAnim=null;
-let mixerFBX=null,clipFBX=null,paused=false,hasPose=false;
+let sc,ca,re,co,md=null;
+const ANIMS=[
+ {name:'Standing',file:'models/poses/standing_idle.glb'},
+ {name:'Sitting',file:'models/poses/sitting_gun_motion.glb'},
+ {name:'Kneeling',file:'models/poses/kneeling_down.glb'},
+ {name:'Crouching',file:'models/poses/crouching.glb'},
+ {name:'Walking',file:'models/poses/walking.glb'},
+ {name:'Running',file:'models/poses/running.glb'},
+ {name:'Fast Run',file:'models/poses/fast_run.glb'},
+ {name:'Dancing',file:'models/poses/hip_hop_dancing.glb'},
+];
 
-// Init scene
+// Scene
 sc=new THREE.Scene();sc.background=new THREE.Color(0x0a0a0f);
 ca=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.01,20);
 ca.position.set(0,1,3.5);ca.lookAt(0,.5,0);
@@ -74,93 +73,32 @@ co.minDistance=1.5;co.maxDistance=6;co.update();
 sc.add(new THREE.AmbientLight(0xffffff,.7));
 let dl=new THREE.DirectionalLight(0xffffff,.5);dl.position.set(1,3,2);sc.add(dl);
 window.addEventListener('resize',()=>{ca.aspect=innerWidth/innerHeight;ca.updateProjectionMatrix();re.setSize(innerWidth,innerHeight)});
-
-function anim(){requestAnimationFrame(anim);co.update();if(mixerFBX&&!paused)mixerFBX.update(.016);re.render(sc,ca)}
-anim();
+function anim(){requestAnimationFrame(anim);co.update();re.render(sc,ca)}anim();
 
 window.saveImg=function(){
  let a=document.createElement('a');a.download='pose.png';a.href=re.domElement.toDataURL('image/png');a.click();
 };
 
-// Load base model + pose data
-async function init(){
- try{
-  // Load xbot.glb
-  let gltf=await new GLTFLoader().loadAsync('models/xbot.glb');
-  model=gltf.scene;
-  model.traverse(o=>{if(o.isBone){bones[o.name]=o;o.userData={restQ:o.quaternion.clone(),restP:o.position.clone()}}});
-  let box=new THREE.Box3().setFromObject(model);
-  let s=box.getSize(new THREE.Vector3()),c=box.getCenter(new THREE.Vector3());
-  model.scale.setScalar(1.5/Math.max(s.x,s.y,s.z));
-  model.position.y=-c.y*model.scale.y;
-  sc.add(model);
-  console.log('Model loaded:',Object.keys(bones).length,'bones');
+animBar.innerHTML=ANIMS.map((a,i)=>`<button class="anim-tab${i===0?' active':''}" data-idx="${i}" onclick="sel(${i})">${a.name}</button>`).join('');
 
-  // Load pose data
-  let r=await fetch('models/poses/quats.json');
-  poseData=await r.json();
-  hasPose=true;
-
-  // Build UI
-  let order=poseData.order||Object.keys(poseData.poses);
-  animBar.innerHTML=order.map((k,i)=>`<button class="anim-tab${i===0?' active':''}" data-idx="${i}" data-key="${k}" onclick="sel('${k}')">${poseData.poses[k].emoji||''} ${poseData.poses[k].label||k}</button>`).join('');
-  loading.style.display='none';
-
-  // Apply first pose
-  if(order.length>0)sel(order[0]);
- }catch(e){loadingTxt.textContent='Error: '+e.message;console.warn(e)}
-}
-
-window.sel=function(key){
+window.sel=async function(idx){
  animBar.querySelectorAll('.anim-tab').forEach(e=>e.classList.remove('active'));
- animBar.querySelector(`[data-key="${key}"]`)?.classList.add('active');
- currentAnim=key;
- applyPose(poseData.poses[key]);
-};
-
-function applyPose(pose){
- if(!model||!pose||!pose.bones)return;
- // Reset all bones
- Object.values(bones).forEach(b=>{
-  if(b.userData?.restQ)b.quaternion.copy(b.userData.restQ);
-  else b.quaternion.identity();
-  if(b.userData?.restP)b.position.copy(b.userData.restP);
- });
- // Apply pose quaternions
- Object.entries(pose.bones).forEach(([name,q])=>{
-  let b=bones[name];if(!b)return;
-  b.quaternion.set(q.x||0,q.y||0,q.z||0,q.w||1);
- });
-}
-
-// Fallback: load FBX for timeline scrub
-window.loadFBX=async function(path){
- mixerFBX=null;clipFBX=null;
+ animBar.querySelector(`[data-idx="${idx}"]`)?.classList.add('active');
+ loading.style.display='flex';loadingTxt.textContent=ANIMS[idx].name;
+ if(md){sc.remove(md);md=null}
  try{
-  let fbx=await new FBXLoader().loadAsync(path);
-  if(model){sc.remove(model);model=fbx}
-  let box=new THREE.Box3().setFromObject(model);
+  let gltf=await new GLTFLoader().loadAsync(ANIMS[idx].file);
+  md=gltf.scene;
+  let box=new THREE.Box3().setFromObject(md);
   let s=box.getSize(new THREE.Vector3()),c=box.getCenter(new THREE.Vector3());
-  model.scale.setScalar(1.5/Math.max(s.x,s.y,s.z));
-  model.position.y=-c.y*model.scale.y;
-  sc.add(model);
-  if(fbx.animations?.length>0){
-   mixerFBX=new THREE.AnimationMixer(model);
-   clipFBX=fbx.animations[0];
-   let action=mixerFBX.clipAction(clipFBX);action.play();paused=true;
-   document.getElementById('timeline').max=Math.round(clipFBX.duration*100);
-   document.getElementById('timeline').value=0;
-  }
- }catch(e){console.warn(e)}
+  md.scale.setScalar(1.5/Math.max(s.x,s.y,s.z));
+  md.position.y=-c.y*md.scale.y;
+  sc.add(md);
+  loading.style.display='none';
+ }catch(e){loadingTxt.textContent='Error: '+e.message}
 };
 
-document.getElementById('timeline').addEventListener('input',function(){
- if(!mixerFBX||!clipFBX)return;
- paused=true;
- mixerFBX.setTime(+this.value/100);mixerFBX.update(0);
-});
-
-init();
+sel(0);
 </script>
 </body>
 </html>
