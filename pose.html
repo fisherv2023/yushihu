@@ -78,9 +78,14 @@ const durLabel=document.getElementById('durLabel');
 
 let scene,camera,renderer,controls,currentModel=null,mixer=null,currentClip=null,paused=false;
 const ANIMS=[
-  {name:'Crouching',file:'models/poses/Crouching.fbx'},
-  {name:'Sitting',file:'models/poses/Sitting_Gun_Motion.fbx'},
-  {name:'Standing',file:'models/poses/Standing_Idle.fbx'},
+  {name:'Standing',emoji:'🧍',file:'models/poses/Standing_Idle.fbx'},
+  {name:'Sitting',emoji:'🪑',file:'models/poses/Sitting_Gun_Motion.fbx'},
+  {name:'Kneeling',emoji:'🙇',file:'models/poses/Kneeling_Down.fbx'},
+  {name:'Crouching',emoji:'🧎',file:'models/poses/Crouching.fbx'},
+  {name:'Walking',emoji:'🚶',file:'models/poses/Walking.fbx'},
+  {name:'Running',emoji:'🏃',file:'models/poses/Running.fbx'},
+  {name:'Fast Run',emoji:'💨',file:'models/poses/Fast_Run.fbx'},
+  {name:'Dancing',emoji:'💃',file:'models/poses/Hip_Hop_Dancing.fbx'},
 ];
 
 // Init scene
@@ -110,7 +115,7 @@ window.saveImg=function(){
 };
 
 // Build animation buttons
-animBar.innerHTML=ANIMS.map((a,i)=>`<button class="anim-tab${i===0?' active':''}" data-idx="${i}" onclick="selectAnim(${i})">${a.name}</button>`).join('');
+animBar.innerHTML=ANIMS.map((a,i)=>`<button class="anim-tab${i===0?' active':''}" data-idx="${i}" onclick="selectAnim(${i})">${a.emoji} ${a.name}</button>`).join('');
 
 window.selectAnim=async function(idx){
  animBar.querySelectorAll('.anim-tab').forEach(t=>t.classList.remove('active'));
