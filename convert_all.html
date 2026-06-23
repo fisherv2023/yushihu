@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Batch FBX→GLB</title></head><body>
+<h2>Batch FBX → GLB Converter</h2>
+<p>Converts all FBX in models/poses/ to smaller GLB files</p>
+<pre id="log" style="background:#111;color:#0f0;padding:10px;font:12px monospace;white-space:pre-wrap;max-height:80vh;overflow:auto"></pre>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+
+let log=document.getElementById('log');
+let files=[
+  'Crouching.fbx','Fast_Run.fbx','Hip_Hop_Dancing.fbx','Kneeling_Down.fbx',
+  'Running.fbx','Sitting_Gun_Motion.fbx','Standing_Idle.fbx','Walking.fbx'
+];
+let base='models/poses/';
+
+async function convert(fname){
+ log.textContent+='Converting: '+fname+'\n';
+ try{
+  let fbx=await new FBXLoader().loadAsync(base+fname);
+  let clips=fbx.animations||[];
+  if(clips.length>0){
+   let mixer=new THREE.AnimationMixer(fbx);
+   let action=mixer.clipAction(clips[0]);action.play();
+   let t=Math.min(clips[0].duration*0.3,1);
+   mixer.setTime(t);mixer.update(0);
+  }
+  let exporter=new GLTFExporter();
+  let result=await exporter.parseAsync(fbx,{binary:true});
+  let blob=new Blob([result],{type:'application/octet-stream'});
+  let a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=fname.replace('.fbx','.glb');
+  a.click();
+  log.textContent+='  ✓ '+(result.byteLength/1024).toFixed(0)+'KB GLB\n';
+  await new Promise(r=>setTimeout(r,1000)); // delay between downloads
+ }catch(e){log.textContent+='  ✗ '+e.message+'\n'}
+}
+
+for(let f of files) await convert(f);
+log.textContent+='\nDone! Move all .glb files to models/poses/ folder.';
+</script>
+</body></html>
