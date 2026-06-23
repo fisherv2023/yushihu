@@ -69,6 +69,8 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
 
+const VER='?v=3'; // bump this when changing files
+
 const loading=document.getElementById('loading');
 const loadingTxt=loading.querySelector('.txt');
 const animBar=document.getElementById('animBar');
@@ -78,9 +80,14 @@ const durLabel=document.getElementById('durLabel');
 
 let scene,camera,renderer,controls,currentModel=null,mixer=null,currentClip=null,paused=false;
 const ANIMS=[
-  {name:'Crouching',file:'models/poses/Crouching.fbx'},
-  {name:'Sitting',file:'models/poses/Sitting_Gun_Motion.fbx'},
   {name:'Standing',file:'models/poses/Standing_Idle.fbx'},
+  {name:'Sitting',file:'models/poses/Sitting_Gun_Motion.fbx'},
+  {name:'Kneeling',file:'models/poses/Kneeling_Down.fbx'},
+  {name:'Crouching',file:'models/poses/Crouching.fbx'},
+  {name:'Walking',file:'models/poses/Walking.fbx'},
+  {name:'Running',file:'models/poses/Running.fbx'},
+  {name:'Fast Run',file:'models/poses/Fast_Run.fbx'},
+  {name:'Dancing',file:'models/poses/Hip_Hop_Dancing.fbx'},
 ];
 
 // Init scene
@@ -119,7 +126,7 @@ window.selectAnim=async function(idx){
  loadingTxt.textContent='Loading: '+ANIMS[idx].name;
  if(currentModel){scene.remove(currentModel);currentModel=null;mixer=null}
  try{
-  let fbx=await new FBXLoader().loadAsync(ANIMS[idx].file);
+  let fbx=await new FBXLoader().loadAsync(ANIMS[idx].file+VER);
   currentModel=fbx;
   let box=new THREE.Box3().setFromObject(currentModel);
   let size=box.getSize(new THREE.Vector3());
