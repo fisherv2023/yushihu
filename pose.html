@@ -37,15 +37,13 @@ canvas{display:block}
 .btn:active{background:rgba(255,255,255,.1)}
 
 #loading{position:fixed;inset:0;z-index:5;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;flex-direction:column}
-#loading .sp{width:28px;height:28px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-#loading .txt{color:#fff;margin-top:14px;font-size:13px;letter-spacing:.1em}
-#loading .bar-wrap{width:160px;height:3px;margin-top:10px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+#loading .txt{color:#fff;font-size:13px;letter-spacing:.1em;margin-bottom:10px}
+#loading .bar-wrap{width:160px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
 #loading .bar-fill{height:100%;background:#fff;border-radius:2px;width:0;transition:width .3s}
 </style>
 </head>
 <body>
-<div id="loading"><div class="sp"></div><div class="txt">Loading model...</div><div class="bar-wrap"><div class="bar-fill" id="barFill"></div></div></div>
+<div id="loading"><div class="txt">Loading model...</div><div class="bar-wrap"><div class="bar-fill" id="barFill"></div></div></div>
 <div class="top-bar"><span>POSE</span></div>
 <div class="timeline">
   <span class="t-label" id="tl">0.0s</span>
