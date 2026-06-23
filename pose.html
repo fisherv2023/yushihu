@@ -7,38 +7,30 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Pose to 3D</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,sans-serif;touch-action:pan-x pan-y pinch-zoom}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
 canvas{display:block}
+.top-bar{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))}
+.top-bar span{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;letter-spacing:.15em}
+.top-bar button{color:rgba(255,255,255,.5);font-size:13px;font-weight:500;cursor:pointer;background:none;border:none;padding:4px 8px;letter-spacing:.1em}
 
-/* POSE title */
-.pose-title{position:fixed;top:12px;left:16px;z-index:10;color:rgba(255,255,255,.5);font-size:13px;font-weight:500;letter-spacing:.15em;padding-top:env(safe-area-inset-top)}
-
-/* Foldable sidebar */
-.sidebar{position:fixed;top:44px;left:12px;z-index:10;transition:opacity .3s,transform .3s}
-.sidebar.hidden{opacity:0;pointer-events:none}
-.anim-list{display:flex;flex-direction:column;gap:4px;max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.anim-list::-webkit-scrollbar{display:none}
-.anim-item{padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.4);font-size:12px;cursor:pointer;transition:.2s;white-space:nowrap;text-align:left}
-.anim-item.active{border-color:rgba(255,255,255,.5);color:#fff;background:rgba(255,255,255,.12)}
-.anim-item .cat{font-size:10px;opacity:.5;display:block;margin-bottom:1px}
-.anim-item .name{font-size:12px}
+/* Animation selector */
+.anim-bar{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:6px}
+.anim-tab{padding:6px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.4);font-size:11px;cursor:pointer;letter-spacing:.05em;transition:.2s}
+.anim-tab.active{border-color:rgba(255,255,255,.5);color:#fff}
 
 /* Timeline */
-.timeline{position:fixed;bottom:120px;left:16px;right:16px;z-index:10;display:flex;align-items:center;gap:10px;transition:opacity .3s}
-.timeline.hidden{opacity:0;pointer-events:none}
+.timeline{position:fixed;bottom:120px;left:16px;right:16px;z-index:10;display:flex;align-items:center;gap:10px}
 .timeline input[type=range]{flex:1;-webkit-appearance:none;height:4px;background:rgba(255,255,255,.2);border-radius:2px;outline:none}
 .timeline input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;cursor:pointer}
-.timeline .t-label{color:rgba(255,255,255,.4);font-size:11px;min-width:40px;text-align:center}
+.timeline .time-label{color:rgba(255,255,255,.4);font-size:11px;min-width:40px;text-align:center}
 
 /* Bottom bar */
-.bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:0 24px;transition:opacity .3s}
-.bottom-bar.hidden{opacity:0;pointer-events:none}
-.btn{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center}
-.btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2}
-.btn.fill svg{fill:#fff}
-.btn:active{background:rgba(255,255,255,.1)}
-.btn.on{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4)}
+.bottom-bar{position:fixed;bottom:48px;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:0 24px}
+.aux-btn{width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;letter-spacing:.05em;user-select:none;-webkit-user-select:none;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.aux-btn svg{width:16px;height:16px;fill:#fff}
+.aux-btn:active{background:rgba(255,255,255,.1)}
+.aux-btn.primary{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4)}
 
 #loading{position:fixed;inset:0;z-index:5;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;flex-direction:column}
 #loading .sp{width:28px;height:28px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
@@ -48,31 +40,22 @@ canvas{display:block}
 </head>
 <body>
 <div id="loading"><div class="sp"></div><div class="txt">Loading...</div></div>
-
-<div class="pose-title">POSE</div>
-
-<div class="sidebar" id="sidebar">
-  <div class="anim-list" id="animList"></div>
-</div>
-
-<div class="timeline" id="tl">
-  <span class="t-label" id="timeLabel">0.0s</span>
+<div class="top-bar"><span>POSE</span></div>
+<div class="anim-bar" id="animBar"></div>
+<div class="timeline">
+  <span class="time-label" id="timeLabel">0.0s</span>
   <input type="range" id="timeline" min="0" max="100" value="0" step="1">
-  <span class="t-label" id="durLabel">0.0s</span>
+  <span class="time-label" id="durLabel">0.0s</span>
 </div>
-
-<div class="bottom-bar" id="bbar">
-  <button class="btn" onclick="history.back()">
+<div class="bottom-bar">
+  <button class="aux-btn" onclick="history.back()">
     <svg viewBox="0 0 24 24"><path d="M19 12H5m7-7l-7 7 7 7"/></svg>
   </button>
-  <button class="btn fill" id="playBtn" onclick="togglePlay()">
+  <button class="aux-btn primary" id="playBtn" onclick="togglePlay()">
     <svg id="pauseIcon" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
     <svg id="playIcon" viewBox="0 0 24 24" style="display:none"><polygon points="6,3 20,12 6,21"/></svg>
   </button>
-  <button class="btn" id="bgBtn" onclick="cycleBg()">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
-  </button>
-  <button class="btn" onclick="saveImg()">
+  <button class="aux-btn" onclick="saveImg()">
     <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
   </button>
 </div>
@@ -86,125 +69,99 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
 
-const loading=document.getElementById('loading'),loadingTxt=loading.querySelector('.txt');
-const animList=document.getElementById('animList'),tl=document.getElementById('tl'),bbar=document.getElementById('bbar');
-const timeline=document.getElementById('timeline'),timeLabel=document.getElementById('timeLabel'),durLabel=document.getElementById('durLabel');
+const loading=document.getElementById('loading');
+const loadingTxt=loading.querySelector('.txt');
+const animBar=document.getElementById('animBar');
+const timeline=document.getElementById('timeline');
+const timeLabel=document.getElementById('timeLabel');
+const durLabel=document.getElementById('durLabel');
 
-let sc,ca,re,co,md=null,mixer=null,clip=null,paused=false,bgIdx=0;
-const BGS=['#0a0a0f','#444','#f0f0f0'];
-
+let scene,camera,renderer,controls,currentModel=null,mixer=null,currentClip=null,paused=false;
 const ANIMS=[
- {cat:'Standing',emoji:'🧍',name:'Idle',file:'models/poses/Standing_Idle.fbx'},
- {cat:'Sitting',emoji:'🪑',name:'Seated',file:'models/poses/Sitting_Gun_Motion.fbx'},
- {cat:'Kneeling',emoji:'🙇',name:'Down',file:'models/poses/Kneeling_Down.fbx'},
- {cat:'Crouching',emoji:'🧎',name:'Low',file:'models/poses/Crouching.fbx'},
- {cat:'Walking',emoji:'🚶',name:'Forward',file:'models/poses/Walking.fbx'},
- {cat:'Running',emoji:'🏃',name:'Jog',file:'models/poses/Running.fbx'},
- {cat:'Running',emoji:'💨',name:'Fast',file:'models/poses/Fast_Run.fbx'},
- {cat:'Gesture',emoji:'💃',name:'Dance',file:'models/poses/Hip_Hop_Dancing.fbx'},
+  {name:'Crouching',file:'models/poses/Crouching.fbx'},
+  {name:'Sitting',file:'models/poses/Sitting_Gun_Motion.fbx'},
+  {name:'Standing',file:'models/poses/Standing_Idle.fbx'},
 ];
 
-// Scene
-sc=new THREE.Scene();sc.background=new THREE.Color(BGS[0]);
-ca=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.01,20);
-ca.position.set(0,1,3.5);ca.lookAt(0,.5,0);
-re=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
-re.setPixelRatio(Math.min(devicePixelRatio,2));re.setSize(innerWidth,innerHeight);
-document.body.appendChild(re.domElement);
-co=new OrbitControls(ca,re.domElement);
-co.enableDamping=true;co.dampingFactor=.12;co.target.set(0,.5,0);
-co.minDistance=1.5;co.maxDistance=6;co.update();
-sc.add(new THREE.AmbientLight(0xffffff,.7));
-let dl=new THREE.DirectionalLight(0xffffff,.5);dl.position.set(1,3,2);sc.add(dl);
-window.addEventListener('resize',()=>{ca.aspect=innerWidth/innerHeight;ca.updateProjectionMatrix();re.setSize(innerWidth,innerHeight)});
+// Init scene
+scene=new THREE.Scene();scene.background=new THREE.Color(0x0a0a0f);
+camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.01,20);
+camera.position.set(0,1.0,3.5);camera.lookAt(0,.5,0);
+renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+document.body.appendChild(renderer.domElement);
+controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=.12;
+controls.target.set(0,.5,0);
+controls.minDistance=1.5;controls.maxDistance=6;
+controls.update();
+scene.add(new THREE.AmbientLight(0xffffff,.7));
+let dl=new THREE.DirectionalLight(0xffffff,.5);dl.position.set(1,3,2);scene.add(dl);
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
-function anim(){requestAnimationFrame(anim);co.update();if(mixer&&!paused)mixer.update(.016);re.render(sc,ca)}
-anim();
+function animate(){requestAnimationFrame(animate);controls.update();if(mixer&&!paused)mixer.update(0.016);renderer.render(scene,camera);}
+animate();
 
-async function loadAnim(idx){
- let a=ANIMS[idx];if(!a)return;
- loading.style.display='flex';loadingTxt.textContent=a.emoji+' '+a.name;
- if(md){sc.remove(md);md=null;mixer=null;clip=null}
- try{
-  let fbx=await new FBXLoader().loadAsync(a.file);
-  md=fbx;
-  let box=new THREE.Box3().setFromObject(md);
-  let s=box.getSize(new THREE.Vector3()),c=box.getCenter(new THREE.Vector3());
-  md.scale.setScalar(1.5/Math.max(s.x,s.y,s.z));
-  md.position.y=-c.y*md.scale.y;
-  sc.add(md);
-  setupAnim(md,fbx.animations?.[0]);
-  loading.style.display='none';
- }catch(e){loadingTxt.textContent='Error: '+e.message}
-}
-
-function setupAnim(model,animationClip){
- console.log('Clip:',animationClip?.name||'none',animationClip?.duration||0);
- if(!animationClip)return;
- mixer=new THREE.AnimationMixer(model);
- clip=animationClip;
- let action=mixer.clipAction(clip);action.play();
- timeline.max=Math.round(clip.duration*100);
- let startT=Math.min(1,clip.duration*.2);
- timeline.value=Math.round(startT*100);
- mixer.setTime(startT);mixer.update(0);
- durLabel.textContent=clip.duration.toFixed(1)+'s';
- timeLabel.textContent=startT.toFixed(1)+'s';
- paused=false;
- document.getElementById('pauseIcon').style.display='';
- document.getElementById('playIcon').style.display='none';
-}
-
-animList.innerHTML=ANIMS.map((a,i)=>`<div class="anim-item${i===0?' active':''}" data-idx="${i}" onclick="sel(${i})">
- <span class="cat">${a.cat}</span>
- <span class="name">${a.emoji} ${a.name}</span>
-</div>`).join('');
-
-window.sel=function(i){
- animList.querySelectorAll('.anim-item').forEach(e=>e.classList.remove('active'));
- animList.querySelector(`[data-idx="${i}"]`)?.classList.add('active');
- loadAnim(i);
+window.saveImg=function(){
+ paused=true;document.getElementById('pauseIcon').style.display='none';document.getElementById('playIcon').style.display='';
+ renderer.render(scene,camera);
+ let a=document.createElement('a');a.download='pose.png';a.href=renderer.domElement.toDataURL('image/png');a.click();
 };
 
+// Build animation buttons
+animBar.innerHTML=ANIMS.map((a,i)=>`<button class="anim-tab${i===0?' active':''}" data-idx="${i}" onclick="selectAnim(${i})">${a.name}</button>`).join('');
+
+window.selectAnim=async function(idx){
+ animBar.querySelectorAll('.anim-tab').forEach(t=>t.classList.remove('active'));
+ animBar.querySelector(`[data-idx="${idx}"]`)?.classList.add('active');
+ loading.style.display='flex';
+ loadingTxt.textContent='Loading: '+ANIMS[idx].name;
+ if(currentModel){scene.remove(currentModel);currentModel=null;mixer=null}
+ try{
+  let fbx=await new FBXLoader().loadAsync(ANIMS[idx].file);
+  currentModel=fbx;
+  let box=new THREE.Box3().setFromObject(currentModel);
+  let size=box.getSize(new THREE.Vector3());
+  let center=box.getCenter(new THREE.Vector3());
+  currentModel.scale.setScalar(1.5/Math.max(size.x,size.y,size.z));
+  currentModel.position.y=-center.y*currentModel.scale.y;
+  scene.add(currentModel);
+  // Check if model has visible meshes
+  let meshCount=0;currentModel.traverse(o=>{if(o.isMesh)meshCount++});
+  if(meshCount===0){loadingTxt.textContent='Model has no visible geometry';loading.style.display='flex';return}
+  if(fbx.animations&&fbx.animations.length>0){
+   mixer=new THREE.AnimationMixer(currentModel);
+   currentClip=fbx.animations[0];
+   let action=mixer.clipAction(currentClip);
+   action.play();
+   paused=false;
+   timeline.max=Math.round(currentClip.duration*100);
+   timeline.value=0;
+   durLabel.textContent=currentClip.duration.toFixed(1)+'s';
+   timeLabel.textContent='0.0s';
+   mixer.setTime(0);
+  }
+  loading.style.display='none';
+ }catch(e){loadingTxt.textContent='Load error: '+e.message;console.warn(e);loading.style.display='flex'}
+};
+
+timeline.addEventListener('input',()=>{
+ if(!mixer||!currentClip)return;
+ paused=true;document.getElementById('pauseIcon').style.display='none';document.getElementById('playIcon').style.display='';
+ let t=+timeline.value/100;
+ mixer.setTime(t);
+ mixer.update(0);
+ timeLabel.textContent=t.toFixed(1)+'s';
+});
 window.togglePlay=function(){
  paused=!paused;
  document.getElementById('pauseIcon').style.display=paused?'none':'';
  document.getElementById('playIcon').style.display=paused?'':'none';
 };
 
-window.cycleBg=function(){
- bgIdx=(bgIdx+1)%3;sc.background=new THREE.Color(BGS[bgIdx]);
- document.getElementById('bgBtn').classList.toggle('on',bgIdx>0);
-};
-
-window.saveImg=function(){
- paused=true;document.getElementById('pauseIcon').style.display='none';document.getElementById('playIcon').style.display='';
- re.render(sc,ca);
- let a=document.createElement('a');a.download='pose.png';a.href=re.domElement.toDataURL('image/png');a.click();
-};
-
-timeline.addEventListener('input',()=>{
- if(!mixer||!clip)return;
- paused=true;document.getElementById('pauseIcon').style.display='none';document.getElementById('playIcon').style.display='';
- let t=+timeline.value/100;
- mixer.setTime(t);mixer.update(0);
- timeLabel.textContent=t.toFixed(1)+'s';
-});
-
-// Double-tap to hide UI
-let lastTap=0;
-document.addEventListener('click',e=>{
- if(e.target.closest('.btn,.anim-item,.timeline input'))return;
- let now=Date.now();
- if(now-lastTap<300){
-  let hid=!tl.classList.contains('hidden');
-  [tl,bbar,document.getElementById('sidebar')].forEach(el=>el.classList.toggle('hidden',hid));
- }
- lastTap=now;
-});
-
-// Init
-sel(0);
+// Load first animation
+selectAnim(0);
 </script>
 </body>
 </html>
