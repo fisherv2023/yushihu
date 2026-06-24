@@ -135,20 +135,19 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .launcher .e2{animation-delay:.4s}
 .launcher .e3{animation-delay:.6s}
 .launcher .e4{animation:fadeIn .6s ease-out both;animation-delay:.8s}
+.launcher .e5{animation:fadeIn .6s ease-out both;animation-delay:1s}
 @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
-/* Four buttons on o2 (radius=150), cardinal directions: top/right/bottom/left */
-/* Top: x=0, y=-150 */
+/* Five buttons on o2 (radius=150): 4 cardinal + 1 top-right diagonal */
 .launcher .e1{top:calc(50% - 150px - 36px);left:calc(50% - 36px)}
 .launcher .e1 .lbl{left:50%;transform:translateX(-50%)}
-/* Right: x=150, y=0 */
 .launcher .e2{top:calc(50% - 36px);left:calc(50% + 150px - 36px)}
 .launcher .e2 .lbl{left:50%;transform:translateX(-50%)}
-/* Bottom: x=0, y=150 */
 .launcher .e3{top:calc(50% + 150px - 36px);left:calc(50% - 36px)}
 .launcher .e3 .lbl{left:50%;transform:translateX(-50%)}
-/* Left: x=-150, y=0 */
 .launcher .e4{top:calc(50% - 36px);left:calc(50% - 150px - 36px)}
 .launcher .e4 .lbl{left:50%;transform:translateX(-50%)}
+.launcher .e5{top:calc(50% - 106px - 36px);left:calc(50% + 106px - 36px)}
+.launcher .e5 .lbl{left:50%;transform:translateX(-50%)}
 
 /* License overlay */
 .lic-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
@@ -196,10 +195,11 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
   <div class="orbit o1"></div>
   <div class="orbit o2"></div>
   <div class="orbit o3"></div>
-  <div class="ent e1" data-target="shader"><img src="icons/shader.png" alt="Filters"><span class="lbl">FILTERS</span></div>
-  <div class="ent e2" data-target="flow"><img src="icons/flow.png" alt="FLOW"><span class="lbl">INK FLOW</span></div>
-  <div class="ent e3" data-target="expo"><img src="icons/expo.png" alt="EXPO"><span class="lbl">DOUBLE EXPO</span></div>
-  <div class="ent e4" data-target="draw"><img src="icons/draw.png" alt="DRAW"><span class="lbl">DRAW</span></div>
+  <div class="ent e1" data-target="shader"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M20.4668 8.69379L20.7134 8.12811C21.1529 7.11947 21.9445 6.31641 22.9323 5.87708L23.6919 5.53922C24.1027 5.35653 24.1027 4.75881 23.6919 4.57612L22.9748 4.25714C21.9616 3.80651 21.1558 2.97373 20.7238 1.93083L20.4706 1.31953C20.2942 0.89349 19.7058 0.89349 19.5293 1.31953L19.2761 1.93083C18.8442 2.97373 18.0384 3.80651 17.0252 4.25714L16.308 4.57612C15.8973 4.75881 15.8973 5.35653 16.308 5.53922L17.0677 5.87708C18.0555 6.31641 18.8471 7.11947 19.2866 8.12811L19.5331 8.69379C19.7136 9.10792 20.2864 9.10792 20.4668 8.69379ZM12 22C17.5228 22 22 17.5228 22 12C22 11.5972 21.9762 11.2 21.9299 10.8097L19.9437 11.0454C19.9809 11.3584 20 11.677 20 12C20 13.4577 19.6101 14.8243 18.929 16.0013L15.4641 10H17.9295L16.7755 8H12.0003L15.1686 2.51246C14.1729 2.1801 13.1074 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM12.0003 4L8.53606 10.0003L6.39495 6.29181C7.83839 4.87429 9.81744 4 12.0003 4ZM9.69076 12.0003L10.8456 10H13.1547L14.3095 12.0001L13.1548 14H10.8453L9.69076 12.0003ZM12.0001 16L9.85814 19.7101C7.81886 19.1448 6.10694 17.7921 5.07026 16H12.0001ZM12.0001 20L15.4642 14.0001L17.605 17.7082C16.1616 19.1257 14.183 20 12.0001 20ZM5.07102 7.99869L8.53588 14H4.25204C4.08751 13.3608 4 12.6906 4 12C4 10.5423 4.38987 9.17568 5.07102 7.99869Z"></path></svg><span class="lbl">FILTERS</span></div>
+  <div class="ent e2" data-target="flow"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M13.2886 6.21301L18.2278 2.37142C18.6259 2.0618 19.1922 2.09706 19.5488 2.45367L22.543 5.44787C22.8997 5.80448 22.9349 6.37082 22.6253 6.76891L18.7847 11.7068C19.0778 12.8951 19.0836 14.1721 18.7444 15.4379C17.8463 18.7897 14.8142 20.9986 11.5016 20.9986C8 20.9986 3.5 19.4967 1 17.9967C4.97978 14.9967 4.04722 13.1865 4.5 11.4967C5.55843 7.54658 9.34224 5.23935 13.2886 6.21301ZM16.7015 8.09161C16.7673 8.15506 16.8319 8.21964 16.8952 8.28533L18.0297 9.41984L20.5046 6.23786L18.7589 4.4921L15.5769 6.96698L16.7015 8.09161Z"></path></svg><span class="lbl">INK FLOW</span></div>
+  <div class="ent e3" data-target="expo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M21 15V18H24V20H21V23H19V20H16V18H19V15H21ZM21.0082 3C21.556 3 22 3.44495 22 3.9934L22.0007 13.3417C21.3749 13.1204 20.7015 13 20 13V5H4L4.001 19L13.2929 9.70715C13.6528 9.34604 14.22 9.31823 14.6123 9.62322L14.7065 9.70772L18.2521 13.2586C15.791 14.0069 14 16.2943 14 19C14 19.7015 14.1204 20.3749 14.3417 21.0007L2.9918 21C2.44405 21 2 20.5551 2 20.0066V3.9934C2 3.44476 2.45531 3 2.9918 3H21.0082ZM8 7C9.10457 7 10 7.89543 10 9C10 10.1046 9.10457 11 8 11C6.89543 11 6 10.1046 6 9C6 7.89543 6.89543 7 8 7Z"></path></svg><span class="lbl">DOUBLE EXPO</span></div>
+  <div class="ent e4" data-target="draw"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M17.6562 2.10059C18.0467 1.71006 18.6807 1.71006 19.0712 2.10059L21.8994 4.92871C22.2898 5.31916 22.2897 5.95223 21.8994 6.34277L18.2275 10.0137C19.0884 11.1333 19.7705 12.2497 20.2265 13.2861C20.6077 14.1526 20.8537 15.0124 20.8867 15.7979C20.9197 16.5844 20.7382 17.4043 20.1318 18.0107C19.3187 18.8239 18.1403 18.8753 17.0908 18.6602C16.0057 18.4377 14.7879 17.8851 13.5634 17.1104L14.6337 15.4199C15.7389 16.1191 16.7261 16.5441 17.4921 16.7012C18.294 16.8656 18.6148 16.6996 18.7177 16.5967C18.7947 16.5197 18.9074 16.3312 18.8886 15.8818C18.8696 15.4312 18.7177 14.8253 18.3955 14.0928C18.0387 13.2819 17.4993 12.3758 16.8007 11.4404L14.8281 13.4141C14.6405 13.6016 14.3863 13.707 14.1211 13.707H11.2929C10.7406 13.707 10.2929 13.2593 10.2929 12.707V9.87891C10.2929 9.61369 10.3984 9.35941 10.5859 9.17188L12.4423 7.31348C11.4841 6.74889 10.5119 6.37075 9.59567 6.1875C7.88747 5.84607 6.49717 6.1885 5.63571 7.04981C4.7742 7.91131 4.43183 9.30225 4.77341 11.0107C5.11353 12.711 6.11989 14.6051 7.7568 16.2422C9.51458 18 11.565 19.0287 13.3525 19.29L13.0634 21.2686C10.7845 20.9353 8.35452 19.669 6.34274 17.6572C4.46525 15.7797 3.24014 13.5407 2.81247 11.4023C2.38669 9.27248 2.74027 7.11712 4.22165 5.63574C5.70308 4.15446 7.85838 3.80071 9.98824 4.22656C11.2885 4.48662 12.6249 5.04309 13.8955 5.86035L17.6562 2.10059Z"></path></svg><span class="lbl">DRAW</span></div>
+  <div class="ent e5" data-target="pose"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M7.61713 8.71233L10.8222 6.38373C11.174 6.12735 11.6087 5.98543 12.065 6.0008C13.1764 6.02813 14.1524 6.75668 14.4919 7.82036C14.6782 8.40431 14.8481 8.79836 15.0017 9.0025C15.914 10.2155 17.3655 11 19.0002 11V13C16.8255 13 14.8825 12.0083 13.5986 10.4526L12.901 14.4085L14.9621 16.138L17.1853 22.246L15.3059 22.93L13.266 17.3256L9.87576 14.4808C9.32821 14.0382 9.03139 13.3192 9.16231 12.5767L9.67091 9.6923L8.99407 10.1841L6.86706 13.1116L5.24902 11.9361L7.60016 8.7L7.61713 8.71233ZM13.5002 5.5C12.3956 5.5 11.5002 4.60457 11.5002 3.5C11.5002 2.39543 12.3956 1.5 13.5002 1.5C14.6047 1.5 15.5002 2.39543 15.5002 3.5C15.5002 4.60457 14.6047 5.5 13.5002 5.5ZM10.5286 18.6813L7.31465 22.5116L5.78257 21.226L8.75774 17.6803L9.50426 15.5L11.2954 17L10.5286 18.6813Z"></path></svg><span class="lbl">POSE</span></div>
 </div>
 
 <div class="top"><span id="mL">ORIGINAL 4</span></div>
@@ -690,6 +690,7 @@ upd();
 <iframe id="peFlow" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
 <iframe id="peExpo" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
 <iframe id="peDraw" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
+<iframe id="pePose" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
 <div id="peExit" style="display:none;position:fixed;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;padding:6px 14px;border-radius:14px;font-size:12px;font-family:-apple-system,sans-serif;cursor:pointer;border:1px solid rgba(255,255,255,.15)">← EXIT</div>
 <script>
 if('serviceWorker' in navigator && !location.hostname.includes('localhost')){
@@ -964,6 +965,15 @@ document.addEventListener('keydown', function(e){
             }
             if (launcher) launcher.classList.add('hide');
             enterIframeMode('DRAW', drawIframe);
+        } else if (target === 'pose') {
+            // POSE is premium — only pro users can enter
+            if (licMode !== 'pro') {
+              var lo = document.getElementById('licOverlay');
+              if (lo) lo.classList.remove('hidden');
+              return;
+            }
+            if (launcher) launcher.classList.add('hide');
+            enterIframeMode('POSE', poseIframe);
         }
       });
     });
@@ -978,6 +988,7 @@ document.addEventListener('keydown', function(e){
     var flowIframe = document.getElementById('peFlow');
     var expoIframe = document.getElementById('peExpo');
     var drawIframe = document.getElementById('peDraw');
+    var poseIframe = document.getElementById('pePose');
     var exitBtn = document.getElementById('peExit');
     var canvas = document.getElementById('c');
     var mL = document.getElementById('mL');
@@ -1076,6 +1087,7 @@ document.addEventListener('keydown', function(e){
       flowIframe.style.display = 'none'; flowIframe.src = '';
       expoIframe.style.display = 'none'; expoIframe.src = '';
       drawIframe.style.display = 'none'; drawIframe.src = '';
+      poseIframe.style.display = 'none'; poseIframe.src = '';
       exitBtn.style.display = 'none';
       activeMode = null;
       if (mL) mL.textContent = 'ORIGINAL 4';
@@ -1146,6 +1158,10 @@ document.addEventListener('keydown', function(e){
         flowIframe.style.display = 'none'; expoIframe.style.display = 'none';
         drawIframe.src = 'draw.html';
         drawIframe.style.display = 'block';
+      } else if (name === 'POSE') {
+        flowIframe.style.display = 'none'; expoIframe.style.display = 'none'; drawIframe.style.display = 'none';
+        poseIframe.src = 'pose.html';
+        poseIframe.style.display = 'block';
       }
       // Push activation code to iframe
       var lic = localStorage.getItem('pe_license');
