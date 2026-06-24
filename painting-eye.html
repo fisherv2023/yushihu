@@ -142,16 +142,16 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .launcher .e4{animation:fadeIn .6s ease-out both;animation-delay:.8s}
 .launcher .e5{animation:fadeIn .6s ease-out both;animation-delay:1s}
 @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
-/* Five buttons on o2 (radius=150): 4 cardinal + 1 top-right diagonal */
-.launcher .e1{top:calc(50% - 150px - 36px);left:calc(50% - 36px)}
+/* Five buttons on o2 (radius=150): evenly spaced at 72° intervals, starting from top */
+.launcher .e1{top:calc(50% - 186px);left:calc(50% - 36px)}
 .launcher .e1 .lbl{left:50%;transform:translateX(-50%)}
-.launcher .e2{top:calc(50% - 36px);left:calc(50% + 150px - 36px)}
+.launcher .e2{top:calc(50% - 82px);left:calc(50% + 107px)}
 .launcher .e2 .lbl{left:50%;transform:translateX(-50%)}
-.launcher .e3{top:calc(50% + 150px - 36px);left:calc(50% - 36px)}
+.launcher .e3{top:calc(50% + 85px);left:calc(50% + 52px)}
 .launcher .e3 .lbl{left:50%;transform:translateX(-50%)}
-.launcher .e4{top:calc(50% - 36px);left:calc(50% - 150px - 36px)}
+.launcher .e4{top:calc(50% + 85px);left:calc(50% - 124px)}
 .launcher .e4 .lbl{left:50%;transform:translateX(-50%)}
-.launcher .e5{top:calc(50% - 106px - 36px);left:calc(50% + 106px - 36px)}
+.launcher .e5{top:calc(50% - 82px);left:calc(50% - 179px)}
 .launcher .e5 .lbl{left:50%;transform:translateX(-50%)}
 
 /* License overlay */
