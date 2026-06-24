@@ -98,10 +98,10 @@ ca=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.01,20);ca.position.set
 re=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
 re.setPixelRatio(Math.min(devicePixelRatio,2));re.setSize(innerWidth,innerHeight);document.body.appendChild(re.domElement);
 co=new OrbitControls(ca,re.domElement);co.enableDamping=true;co.dampingFactor=.12;co.target.set(0,.5,0);co.minDistance=1.5;co.maxDistance=6;co.update();
-sc.add(new THREE.AmbientLight(0xffffff,.5));
-let key=new THREE.DirectionalLight(0xffeedd,.9);key.position.set(2,3,2);sc.add(key);
-let rim=new THREE.DirectionalLight(0xccddff,.4);rim.position.set(-1,1,-1);sc.add(rim);
-let fill=new THREE.DirectionalLight(0xffffff,.3);fill.position.set(0,1,1);sc.add(fill);
+sc.add(new THREE.AmbientLight(0xffffff,.3));
+let key=new THREE.DirectionalLight(0xffeedd,1.4);key.position.set(3,4,3);sc.add(key);
+let rim=new THREE.DirectionalLight(0xccddff,.7);rim.position.set(-2,1,-2);sc.add(rim);
+let fill=new THREE.DirectionalLight(0xffffff,.5);fill.position.set(0,.5,2);sc.add(fill);
 window.addEventListener('resize',()=>{ca.aspect=innerWidth/innerHeight;ca.updateProjectionMatrix();re.setSize(innerWidth,innerHeight)});
 function an(){requestAnimationFrame(an);co.update();if(mx&&!ps)mx.update(.016);re.render(sc,ca)}an();
 window.sv=function(){let a=document.createElement('a');a.download='pose.png';a.href=re.domElement.toDataURL('image/png');a.click()};
