@@ -81,11 +81,11 @@ import * as THREE from 'three';
    ════════════════════════════════════════════ */
 
 const CFG = {
-  SIM_RES: 96,
-  DYE_MAX: 384,
-  PRESSURE_ITER: 10,
+  SIM_RES: innerWidth < 768 ? 64 : 96,
+  DYE_MAX: innerWidth < 768 ? 256 : 384,
+  PRESSURE_ITER: innerWidth < 768 ? 6 : 10,
   VEL_DISSIPATION: 0.25,
-  CURL: 8,
+  CURL: innerWidth < 768 ? 6 : 8,
   SPLAT_RADIUS: 0.004,
   SPLAT_FORCE: 4000,
   EDGE_DYE: 0.035,         // base edge → dye (× slider 1.0-2.0)
@@ -116,7 +116,15 @@ function inkAbsorption(c, strength) {
 
 // ── Renderer ──
 const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas, preserveDrawingBuffer: true, antialias: false, alpha: false, depth: false, stencil: false });
+var renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, preserveDrawingBuffer: true, antialias: false, alpha: false, depth: false, stencil: false });
+  if (!renderer.getContext()) throw new Error('no context');
+} catch(e) {
+  var errEl = document.getElementById('modeLabel');
+  if (errEl) { errEl.textContent = 'WebGL failed — retry in a moment'; errEl.style.color = '#ff4444'; }
+  throw e;
+}
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.autoClear = false;

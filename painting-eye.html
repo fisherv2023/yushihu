@@ -1018,8 +1018,8 @@ document.addEventListener('keydown', function(e){
       } else {
         window.__peRetryStream = false;
       }
-      if (name === 'FLOW') { expoIframe.style.display = 'none'; flowIframe.src = 'ink-flow.html?embed=1'; flowIframe.style.display = 'block'; }
-      else { flowIframe.style.display = 'none'; expoIframe.src = 'de.html?embed=1'; expoIframe.style.display = 'block'; }
+      if (name === 'FLOW') { expoIframe.style.display = 'none'; flowIframe.src = 'ink-flow.html?embed=1&t=' + Date.now(); flowIframe.style.display = 'block'; }
+      else { flowIframe.style.display = 'none'; expoIframe.src = 'de.html?embed=1&t=' + Date.now(); expoIframe.style.display = 'block'; }
       // Push activation code to iframe after it loads
       var lic = localStorage.getItem('pe_license');
       if (lic) setTimeout(function(){
@@ -1126,6 +1126,17 @@ document.addEventListener('keydown', function(e){
 
     // Enter FLOW/EXPO iframe mode directly (no camera stream exchange needed)
     function enterIframeMode(name, iframe) {
+      // Grab camera stream from painting-eye and pass to iframe
+      var sharedStream = null;
+      var peVid = document.querySelector('video');
+      if (peVid && peVid.srcObject) {
+        var tracks = peVid.srcObject.getVideoTracks();
+        if (tracks.length > 0 && tracks[0].readyState === 'live') {
+          sharedStream = peVid.srcObject;
+        }
+      }
+      if (peVid) { peVid.srcObject = null; }
+      window.__peSharedStream = sharedStream;
       // Hide all painting-eye UI
       var topEl = document.querySelector('.top');
       if (topEl) topEl.style.display = 'none';
@@ -1148,19 +1159,19 @@ document.addEventListener('keydown', function(e){
       }
       if (name === 'FLOW') {
         expoIframe.style.display = 'none'; drawIframe.style.display = 'none';
-        flowIframe.src = 'ink-flow.html?embed=1';
+        flowIframe.src = 'ink-flow.html?embed=1&t=' + Date.now();
         flowIframe.style.display = 'block';
       } else if (name === 'EXPO') {
         flowIframe.style.display = 'none'; drawIframe.style.display = 'none';
-        expoIframe.src = 'de.html?embed=1';
+        expoIframe.src = 'de.html?embed=1&t=' + Date.now();
         expoIframe.style.display = 'block';
       } else if (name === 'DRAW') {
         flowIframe.style.display = 'none'; expoIframe.style.display = 'none';
-        drawIframe.src = 'draw.html';
+        drawIframe.src = 'draw.html?t=' + Date.now();
         drawIframe.style.display = 'block';
       } else if (name === 'POSE') {
         flowIframe.style.display = 'none'; expoIframe.style.display = 'none'; drawIframe.style.display = 'none';
-        poseIframe.src = 'pose.html';
+        poseIframe.src = 'pose.html?t=' + Date.now();
         poseIframe.style.display = 'block';
       }
       // Push activation code to iframe
