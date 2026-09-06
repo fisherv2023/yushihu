@@ -154,26 +154,8 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .launcher .e5{top:calc(50% - 82px);left:calc(50% - 179px)}
 .launcher .e5 .lbl{left:50%;transform:translateX(-50%)}
 
-/* License overlay */
-.lic-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
-.lic-overlay.hidden{display:none}
-.lic-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:32px 20px;max-width:360px;width:100%;text-align:center}
-.lic-card h2{font-size:19px;font-weight:600;margin-bottom:4px}
-.lic-card .byline{font-size:12px;opacity:.45;margin-bottom:20px}
-.lic-card .price{font-size:32px;font-weight:700;margin-bottom:4px}
-.lic-card .price span{font-size:14px;opacity:.5;font-weight:400}
-.lic-card .features{font-size:12px;opacity:.55;margin-bottom:22px;line-height:1.8}
-.lic-card .features b{color:#fff;opacity:.85}
-.lic-btn{display:block;width:100%;padding:14px 0;border-radius:14px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;transition:opacity .2s}
-.lic-btn.buy{background:#fff;color:#111}
-.lic-btn.enter{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15)}
-.lic-btn.free{background:transparent;color:rgba(255,255,255,.35);font-size:12px;font-weight:400}
-.lic-input{width:100%;padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-size:16px;font-family:monospace;text-align:center;letter-spacing:.05em;margin-bottom:10px;outline:none}
-.lic-input::placeholder{color:rgba(255,255,255,.2)}
-.lic-err{color:#ff5c5c;font-size:12px;margin-bottom:8px;display:none}
-.lic-ok{color:#4cff8f;font-size:12px;margin-bottom:8px;display:none}
-.lic-back{font-size:12px;opacity:.4;cursor:pointer;margin-top:8px}
-.lic-key{color:#4cff8f;font-size:13px;font-family:monospace;margin-top:8px;display:none}
+.launcher .sup{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.08em;color:rgba(255,255,255,.45);cursor:pointer;padding:8px 18px;border:1px solid rgba(255,255,255,.14);border-radius:20px;background:rgba(255,255,255,.04);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:color .25s,border-color .25s,background .25s;animation:fadeIn .6s ease-out both;animation-delay:1.25s;white-space:nowrap;user-select:none}
+.launcher .sup:hover{color:#fff;border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.09)}
 </style>
 </head>
 <body>
@@ -201,6 +183,7 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
   <div class="ent e3" data-target="expo"><img src="icons/expo.png" alt="DOUBLE EXPO"><span class="lbl">DOUBLE EXPO</span></div>
   <div class="ent e4" data-target="draw"><img src="icons/draw.png" alt="DRAW"><span class="lbl">DRAW</span></div>
   <div class="ent e5" data-target="pose"><img src="icons/pose.png" alt="POSE"><span class="lbl">POSE</span></div>
+  <div class="sup" id="supBtn" onclick="supportPE()">♥ Support Painting Eye</div>
 </div>
 
 <div class="top"><span id="mL">ORIGINAL 4</span></div>
@@ -655,38 +638,7 @@ document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){mode=(mode+14)%14;
 addEventListener('resize',()=>{r.setSize(innerWidth,innerHeight);u.uRes.value.set(innerWidth,innerHeight);});
 upd();
 </script>
-<!-- License Unlock -->
-<div class="lic-overlay hidden" id="licOverlay">
-  <div class="lic-card" id="licMain">
-    <h2>Painting Eye</h2>
-    <div class="byline">Unlock all 14 artistic filters</div>
-    <div class="price"><span>$</span>2.99</div>
-    <div class="features">One-time purchase — lifetime access<br>Includes: <b>MOSAIC · FLAT · EDGE · TONE</b><br><b>DUO · SWIRL · OIL · DOF</b><br><b>STIPPLE · GLITCH · FISHEYE</b></div>
-    <button class="lic-btn buy" onclick="buyLicense()">Unlock Full Version</button>
-    <button class="lic-btn enter" onclick="showLicInput()">I Have a License Key</button>
-    <button class="lic-btn enter" onclick="showLicRecover()">Recover Lost Key</button>
-    <button class="lic-btn free" onclick="useFree()">Try Free (3 modes)</button>
-  </div>
-  <div class="lic-card" id="licInput" style="display:none">
-    <h2>Enter License Key</h2>
-    <div class="byline">Paste your key below</div>
-    <input class="lic-input" id="keyInput" placeholder="PE-XXXX-XXXX-XXXX" maxlength="19" autocomplete="off">
-    <div class="lic-err" id="licErr">Invalid key. Check and try again.</div>
-    <div class="lic-ok" id="licOk">License activated!</div>
-    <button class="lic-btn buy" onclick="verifyKey()">Activate</button>
-    <div class="lic-back" onclick="showLicMain()">← Back</div>
-  </div>
-  <div class="lic-card" id="licRecover" style="display:none">
-    <h2>Recover Key</h2>
-    <div class="byline">Enter your purchase email</div>
-    <input class="lic-input" id="recEmail" placeholder="you@email.com" autocomplete="email">
-    <div class="lic-err" id="recErr">No license found for this email.</div>
-    <div class="lic-ok" id="recOk">Key sent! Check below.</div>
-    <div class="key" id="recKey" style="display:none"></div>
-    <button class="lic-btn buy" onclick="recoverKey()">Recover</button>
-    <div class="lic-back" onclick="showLicMain()">← Back</div>
-  </div>
-</div>
+<!-- Donation model: all 14 filters + FLOW/EXPO/DRAW/POSE are FREE. Optional ♥ Support button on the launcher opens the Creem tip product. -->
 
 <iframe id="peFlow" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
 <iframe id="peExpo" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
@@ -695,169 +647,13 @@ upd();
 <div id="peExit" style="display:none;position:fixed;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;padding:6px 14px;border-radius:14px;font-size:12px;font-family:-apple-system,sans-serif;cursor:pointer;border:1px solid rgba(255,255,255,.15)">← EXIT</div>
 <script>
 if('serviceWorker' in navigator && !location.hostname.includes('localhost')){
-  navigator.serviceWorker.register('/service-worker.js?v=1');
+  navigator.serviceWorker.register('/service-worker.js?v=2');
 }
 </script>
 <script>
-// --- License System ---
-const CREEM_URL = 'https://www.creem.io/test/payment/prod_5zEMGWdQ6q3O7fPgT8Iw3j';
-const WORKER_URL = 'https://pe-worker.yuyang918.workers.dev';
-const FREE_MODES = [0, 3, 10]; // BLUR, VALUE, ORIGINAL
-const LIC_KEY = 'pe_license';
-var licMode = 'free'; // 'free' | 'pro'
-
-(function initLic(){
-  var stored = localStorage.getItem(LIC_KEY);
-  if (stored) {
-    // Verify stored key with Worker
-    verifyStored(stored);
-  }
-  // Show overlay only when user clicks a locked feature (not on startup)
-  // setTimeout removed — license prompt now triggers on enterMode instead
-})();
-
-function verifyStored(key){
-  fetch(WORKER_URL + '/verify', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:key})})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      if(d.valid){setPro(key)}else{localStorage.removeItem(LIC_KEY)}
-    })
-    .catch(function(){/* offline - trust localStorage */ setPro(key)});
-}
-
-function setPro(key){
-  licMode='pro';
-  localStorage.setItem(LIC_KEY, key);
-  document.getElementById('licOverlay').classList.add('hidden');
-}
-
-function buyLicense(){
-  var email = prompt('Enter your email to receive your license key:');
-  if(!email || !email.includes('@')){
-    alert('Please enter a valid email.');
-    return;
-  }
-  fetch(WORKER_URL + '/checkout', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      if(d.url){window.open(d.url, '_blank')}
-      else{window.open('https://www.creem.io/payment/prod_1xUMyi4KHwroNzYGQNi18V', '_blank')}
-    })
-    .catch(function(){window.open('https://www.creem.io/payment/prod_1xUMyi4KHwroNzYGQNi18V', '_blank')});
-}
-
-function useFree(){
-  licMode='free';
-  document.getElementById('licOverlay').classList.add('hidden');
-  window.__peFreeAccepted = true; // mark that user chose free — don't re-prompt
-}
-
-function showLicInput(){
-  document.getElementById('licMain').style.display='none';
-  document.getElementById('licRecover').style.display='none';
-  document.getElementById('licInput').style.display='block';
-}
-
-function showLicRecover(){
-  document.getElementById('licMain').style.display='none';
-  document.getElementById('licInput').style.display='none';
-  document.getElementById('licRecover').style.display='block';
-  document.getElementById('recErr').style.display='none';
-  document.getElementById('recOk').style.display='none';
-  document.getElementById('recKey').style.display='none';
-}
-
-function showLicMain(){
-  document.getElementById('licInput').style.display='none';
-  document.getElementById('licRecover').style.display='none';
-  document.getElementById('licMain').style.display='block';
-  document.getElementById('licErr').style.display='none';
-  document.getElementById('licOk').style.display='none';
-}
-
-function openLicOverlay(){
-  document.getElementById('licOverlay').classList.remove('hidden');
-  showLicMain();
-}
-
-function recoverKey(){
-  var email = document.getElementById('recEmail').value.trim();
-  if(!email || !email.includes('@')){
-    document.getElementById('recErr').textContent='Enter a valid email.';
-    document.getElementById('recErr').style.display='block';
-    return;
-  }
-  document.getElementById('recErr').style.display='none';
-  document.getElementById('recOk').style.display='none';
-  fetch(WORKER_URL+'/recover?email='+encodeURIComponent(email))
-    .then(function(r){return r.json()})
-    .then(function(d){
-      if(d.key){
-        document.getElementById('recOk').style.display='block';
-        document.getElementById('recKey').textContent=d.key;
-        document.getElementById('recKey').style.display='block';
-      }else{
-        document.getElementById('recErr').textContent='No license found for this email.';
-        document.getElementById('recErr').style.display='block';
-      }
-    })
-    .catch(function(){
-      document.getElementById('recErr').textContent='Network error. Try again.';
-      document.getElementById('recErr').style.display='block';
-    });
-}
-
-function verifyKey(){
-  var inp = document.getElementById('keyInput');
-  var key = inp.value.trim().toUpperCase();
-  if(!key || key.length < 10){
-    document.getElementById('licErr').style.display='block';
-    return;
-  }
-  // Direct activation for known key (bypass worker)
-  if (key === 'PE-FISHER-2026') {
-    setPro(key);
-    return;
-  }
-  document.getElementById('licErr').style.display='none';
-  fetch(WORKER_URL + '/verify', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:key})})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      if(d.valid){
-        document.getElementById('licOk').style.display='block';
-        document.getElementById('licErr').style.display='none';
-        setTimeout(function(){setPro(key)}, 800);
-      } else {
-        document.getElementById('licErr').style.display='block';
-      }
-    })
-    .catch(function(){
-      document.getElementById('licErr').textContent='Network error. Try again.';
-      document.getElementById('licErr').style.display='block';
-    });
-}
-
-// Intercept mode switches to block premium modes in free tier
-document.addEventListener('click', function(e){
-  if (licMode === 'pro') return;
-  var opt = e.target.closest('.mode-opt');
-  if (opt && opt.dataset.m !== undefined){
-    var m = parseInt(opt.dataset.m);
-    if (FREE_MODES.indexOf(m) === -1){
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      openLicOverlay();
-    }
-  }
-  // Block dropper for free users
-  if (e.target.closest('#dropper')){
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    openLicOverlay();
-  }
-}, true);
+// --- Support (all features free; optional donation) ---
+const CREEM_SUPPORT_URL = 'https://www.creem.io/payment/prod_1xUMyi4KHwroNzYGQNi18V';
+function supportPE(){ window.open(CREEM_SUPPORT_URL, '_blank'); }
 
 // Limit BLUR slider to 5 on mode switch (perf optimization)
 document.addEventListener('click', function(e){
@@ -876,33 +672,17 @@ document.addEventListener('click', function(e){
   }
 });
 
-// Also block keyboard mode switching for premium modes
+// BLUR slider limit on keyboard mode switches (ArrowUp/Down/Left/Right or , / .)
 document.addEventListener('keydown', function(e){
-  var slider = document.getElementById('slider');
-  if (licMode === 'pro'){
-    // BLUR slider limit applies to pro users too
-    if (typeof mode !== 'undefined' && mode === 0 && slider){
-      slider.max = 5;
-      if (parseInt(slider.value) > 5) slider.value = 5;
-    } else if (slider){
-      slider.max = 10;
-    }
-    return;
-  }
-  var key = e.key;
-  // ArrowLeft/Right change modes
-  if (key === 'ArrowLeft' || key === 'ArrowRight' || key === ',' || key === '.'){
+  var k = e.key;
+  if (k === 'ArrowUp' || k === 'ArrowDown' || k === 'ArrowLeft' || k === 'ArrowRight' || k === ',' || k === '.'){
     setTimeout(function(){
-      if (typeof mode !== 'undefined' && FREE_MODES.indexOf(mode) === -1){
-        mode = 10;
-        if (typeof upd === 'function') upd();
-        openLicOverlay();
-      }
-      // Apply BLUR slider limit
-      if (typeof mode !== 'undefined' && mode === 0 && slider){
+      var slider = document.getElementById('slider');
+      if (!slider) return;
+      if (typeof mode !== 'undefined' && mode === 0){ // BLUR
         slider.max = 5;
         if (parseInt(slider.value) > 5) slider.value = 5;
-      } else if (slider){
+      } else {
         slider.max = 10;
       }
     }, 50);
@@ -929,50 +709,24 @@ document.addEventListener('keydown', function(e){
       btn.addEventListener('click', function(){
         var target = this.dataset.target;
         if (target === 'shader') {
-          // Check license — free users can also enter (3 free modes)
-          // Only show unlock prompt if user hasn't already chosen "Try Free"
-          if (licMode === 'free' && !window.__peFreeAccepted) {
-            var lo = document.getElementById('licOverlay');
-            if (lo) lo.classList.remove('hidden');
-          }
-          // Always allow entry (free=3 modes, pro=all)
+          // All features free — enter directly
           if (launcher) launcher.classList.add('hide');
           // Show camera permission UI and trigger camera start
           if (permEl) permEl.style.display = '';
         } else if (target === 'flow') {
-          // FLOW is premium — only pro users can enter
-          if (licMode !== 'pro') {
-            var lo = document.getElementById('licOverlay');
-            if (lo) lo.classList.remove('hidden');
-            return;
-          }
+          // All features free
           if (launcher) launcher.classList.add('hide');
           enterIframeMode('FLOW', flowIframe);
         } else if (target === 'expo') {
-          // EXPO is premium — only pro users can enter
-          if (licMode !== 'pro') {
-            var lo = document.getElementById('licOverlay');
-            if (lo) lo.classList.remove('hidden');
-            return;
-          }
+          // All features free
           if (launcher) launcher.classList.add('hide');
           enterIframeMode('EXPO', expoIframe);
         } else if (target === 'draw') {
-            // DRAW is premium — only pro users can enter
-            if (licMode !== 'pro') {
-              var lo = document.getElementById('licOverlay');
-              if (lo) lo.classList.remove('hidden');
-              return;
-            }
+            // All features free
             if (launcher) launcher.classList.add('hide');
             enterIframeMode('DRAW', drawIframe);
         } else if (target === 'pose') {
-            // POSE is premium — only pro users can enter
-            if (licMode !== 'pro') {
-              var lo = document.getElementById('licOverlay');
-              if (lo) lo.classList.remove('hidden');
-              return;
-            }
+            // All features free
             window.location.href = 'pose.html';
         }
       });
@@ -1020,11 +774,6 @@ document.addEventListener('keydown', function(e){
       }
       if (name === 'FLOW') { expoIframe.style.display = 'none'; flowIframe.src = 'ink-flow.html?embed=1&t=' + Date.now(); flowIframe.style.display = 'block'; }
       else { flowIframe.style.display = 'none'; expoIframe.src = 'de.html?embed=1&t=' + Date.now(); expoIframe.style.display = 'block'; }
-      // Push activation code to iframe after it loads
-      var lic = localStorage.getItem('pe_license');
-      if (lic) setTimeout(function(){
-        try { iframe.contentWindow.postMessage({type:'license', key:lic}, '*'); } catch(e){}
-      }, 300);
       exitBtn.style.display = 'block';
       if (mL) mL.textContent = name;
       // Update mode selector button
@@ -1108,7 +857,7 @@ document.addEventListener('keydown', function(e){
       // If in FLOW/EXPO iframe mode, exit first
       if (activeMode) { exitMode(); return; }
       // Hide shader-mode UI elements
-      ['top','perm','capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','perm','permBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','palette','toast','mMenu','gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra','dropper','ciCard','ciXh','licOverlay','mL','mCur'].forEach(function(id){
+      ['top','perm','capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','perm','permBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','palette','toast','mMenu','gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra','dropper','ciCard','ciXh','mL','mCur'].forEach(function(id){
         var el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
@@ -1140,7 +889,7 @@ document.addEventListener('keydown', function(e){
       // Hide all painting-eye UI
       var topEl = document.querySelector('.top');
       if (topEl) topEl.style.display = 'none';
-      ['capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','perm','permBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','palette','toast','mMenu','gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra','dropper','ciCard','ciXh','licOverlay','mCur'].forEach(function(id){
+      ['capWrap','capBtn','camBtn','slider','sBar','mSel','aux','uploadBtn','perm','permBtn','recDot','recRing','sw0','sw1','sw2','sw3','sw4','palette','toast','mMenu','gridBtn','frameBtn','palBtn','grid','frame','pal','act','spiral','fib','diag','gridDense','gridUltra','dropper','ciCard','ciXh','mCur'].forEach(function(id){
         var el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
@@ -1173,13 +922,6 @@ document.addEventListener('keydown', function(e){
         flowIframe.style.display = 'none'; expoIframe.style.display = 'none'; drawIframe.style.display = 'none';
         poseIframe.src = 'pose.html?t=' + Date.now();
         poseIframe.style.display = 'block';
-      }
-      // Push activation code to iframe
-      var lic = localStorage.getItem('pe_license');
-      if (lic) {
-        setTimeout(function(){
-          try { iframe.contentWindow.postMessage({type:'license', key:lic}, '*'); } catch(e){}
-        }, 500);
       }
       activeMode = name;
     }
@@ -1229,23 +971,6 @@ document.addEventListener('keydown', function(e){
       if (e.key === 'Escape' && activeMode) exitMode();
     });
 
-    // License: pass activation to both iframes on load; also sync licMode if Worker verify failed
-    var licKey = localStorage.getItem('pe_license');
-    if (licKey) {
-      // Force-sync licMode in case Worker /verify was unreachable
-      if (typeof licMode !== 'undefined' && licMode !== 'pro') {
-        licMode = 'pro';
-        var lo = document.getElementById('licOverlay');
-        if (lo) lo.classList.add('hidden');
-      }
-      [flowIframe, expoIframe].forEach(function(fr){
-        fr.addEventListener('load', function(){
-          if (fr.contentWindow && fr.contentWindow.postMessage) {
-            fr.contentWindow.postMessage({type:'license', key: licKey}, '*');
-          }
-        });
-      });
-    }
   }, 500);
 })();
 </script>
