@@ -154,8 +154,6 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
 .launcher .e5{top:calc(50% - 82px);left:calc(50% - 179px)}
 .launcher .e5 .lbl{left:50%;transform:translateX(-50%)}
 
-.launcher .sup{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.08em;color:rgba(255,255,255,.45);cursor:pointer;padding:8px 18px;border:1px solid rgba(255,255,255,.14);border-radius:20px;background:rgba(255,255,255,.04);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:color .25s,border-color .25s,background .25s;animation:fadeIn .6s ease-out both;animation-delay:1.25s;white-space:nowrap;user-select:none}
-.launcher .sup:hover{color:#fff;border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.09)}
 </style>
 </head>
 <body>
@@ -183,7 +181,6 @@ canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-inde
   <div class="ent e3" data-target="expo"><img src="icons/expo.png" alt="DOUBLE EXPO"><span class="lbl">DOUBLE EXPO</span></div>
   <div class="ent e4" data-target="draw"><img src="icons/draw.png" alt="DRAW"><span class="lbl">DRAW</span></div>
   <div class="ent e5" data-target="pose"><img src="icons/pose.png" alt="POSE"><span class="lbl">POSE</span></div>
-  <div class="sup" id="supBtn" onclick="supportPE()">♥ Support Painting Eye</div>
 </div>
 
 <div class="top"><span id="mL">ORIGINAL 4</span></div>
@@ -638,7 +635,7 @@ document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){mode=(mode+14)%14;
 addEventListener('resize',()=>{r.setSize(innerWidth,innerHeight);u.uRes.value.set(innerWidth,innerHeight);});
 upd();
 </script>
-<!-- Donation model: all 14 filters + FLOW/EXPO/DRAW/POSE are FREE. Optional ♥ Support button on the launcher opens the Creem tip product. -->
+<!-- All 13 filters + FLOW/EXPO/DRAW/POSE are free for everyone -- no gates, no unlock codes, no payment UI, no external checkout anywhere in this file. -->
 
 <iframe id="peFlow" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
 <iframe id="peExpo" allow="camera" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:10"></iframe>
@@ -647,14 +644,10 @@ upd();
 <div id="peExit" style="display:none;position:fixed;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;padding:6px 14px;border-radius:14px;font-size:12px;font-family:-apple-system,sans-serif;cursor:pointer;border:1px solid rgba(255,255,255,.15)">← EXIT</div>
 <script>
 if('serviceWorker' in navigator && !location.hostname.includes('localhost')){
-  navigator.serviceWorker.register('/service-worker.js?v=2');
+  navigator.serviceWorker.register('/service-worker.js?v=3');
 }
 </script>
 <script>
-// --- Support (all features free; optional donation) ---
-const CREEM_SUPPORT_URL = 'https://www.creem.io/payment/prod_1xUMyi4KHwroNzYGQNi18V';
-function supportPE(){ window.open(CREEM_SUPPORT_URL, '_blank'); }
-
 // Limit BLUR slider to 5 on mode switch (perf optimization)
 document.addEventListener('click', function(e){
   var opt = e.target.closest('.mode-opt');
