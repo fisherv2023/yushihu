@@ -1,13 +1,13 @@
-// Painting Eye Service Worker v1
-const CACHE = 'painting-eye-v1';
+// Painting Eye Service Worker v2
+const CACHE = 'painting-eye-v2';
 
 const PRECACHE = [
   '/painting-eye.html',
   '/draw.html',
   '/ink-flow.html',
   '/de.html',
-  '/icons/shader.png',
-  '/icons/flow.png',
+  '/icons/filter.png',
+  '/icons/ink.png',
   '/icons/expo.png',
   '/icons/draw.png',
   'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js'
